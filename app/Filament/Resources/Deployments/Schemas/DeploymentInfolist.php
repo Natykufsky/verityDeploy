@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Deployments\Schemas;
 
+use App\Livewire\DeploymentCommandToolbar;
 use App\Livewire\DeploymentTerminal;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -57,6 +58,11 @@ class DeploymentInfolist
                 Section::make('Terminal Output')
                     ->schema([
                         Livewire::make(DeploymentTerminal::class)
+                            ->columnSpanFull(),
+                    ]),
+                Section::make('Command Copy Toolbar')
+                    ->schema([
+                        Livewire::make(DeploymentCommandToolbar::class)
                             ->columnSpanFull(),
                     ]),
                 Section::make('Deployment Steps')
