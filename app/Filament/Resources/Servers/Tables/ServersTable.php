@@ -6,6 +6,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -60,7 +61,20 @@ class ServersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('status')
+                    ->options([
+                        'online' => 'Online',
+                        'offline' => 'Offline',
+                        'error' => 'Error',
+                        'pending' => 'Pending',
+                    ]),
+                SelectFilter::make('connection_type')
+                    ->options([
+                        'ssh_key' => 'SSH key',
+                        'password' => 'Password',
+                        'local' => 'Local',
+                        'cpanel' => 'cPanel',
+                    ]),
             ])
             ->recordActions([
                 ViewAction::make(),

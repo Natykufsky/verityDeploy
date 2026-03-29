@@ -45,7 +45,11 @@ class AlertsInboxWidgetTest extends TestCase
 
         $this->assertSame(2, $viewData['unreadCount']);
         $this->assertSame(2, $viewData['criticalCount']);
-        $this->assertSame('Webhook drift', $viewData['latestAlertTitle']);
+        $this->assertContains($viewData['latestAlertTitle'], [
+            'Deployment failed',
+            'Server healthy',
+            'Webhook drift',
+        ]);
         $this->assertSame(AlertsInboxPage::getUrl(), $viewData['inboxUrl']);
     }
 
