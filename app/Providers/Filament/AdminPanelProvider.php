@@ -16,6 +16,7 @@ use App\Filament\Widgets\AlertsInboxWidget;
 use App\Filament\Widgets\DeploymentOverviewStats;
 use App\Filament\Widgets\CpanelSetupCard;
 use App\Filament\Widgets\ServerHealthOverviewCard;
+use App\Filament\Widgets\ReleaseCleanupOverviewCard;
 use App\Filament\Widgets\WebhookSyncHealthCard;
 use App\Services\AppSettings;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -50,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
                 AlertsInboxWidget::class,
                 DeploymentOverviewStats::class,
                 ServerHealthOverviewCard::class,
+                ReleaseCleanupOverviewCard::class,
                 CpanelSetupCard::class,
                 WebhookSyncHealthCard::class,
             ])

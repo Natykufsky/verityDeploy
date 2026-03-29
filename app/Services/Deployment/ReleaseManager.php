@@ -2,11 +2,13 @@
 
 namespace App\Services\Deployment;
 
+use App\Models\ReleaseCleanupRun;
 use App\Models\Site;
-use Illuminate\Support\Str;
 use App\Services\SSH\SshCommandRunner;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 class ReleaseManager
 {
@@ -121,13 +123,38 @@ class ReleaseManager
 
     public function cleanupOldReleases(Site $site, int $keep = 5): Process
     {
-        $process = $this->sshCommandRunner->execute($site->server, $this->cleanupCommand($site, $keep));
+        $run = ReleaseCleanupRun::query()->create([
+            'site_id' => $site->id,
+            'status' => 'running',
+            'keep_count' => $keep,
+            'started_at' => now(),
+        ]);
 
-        if (! $process->isSuccessful()) {
-            throw new RuntimeException('Unable to rotate old releases.');
+        try {
+            $process = $this->sshCommandRunner->execute($site->server, $this->cleanupCommand($site, $keep));
+            $output = trim(($process->getOutput() ?: '').PHP_EOL.($process->getErrorOutput() ?: ''));
+
+            $run->update([
+                'status' => $process->isSuccessful() ? 'successful' : 'failed',
+                'output' => $output ?: null,
+                'error_message' => $process->isSuccessful() ? null : trim($process->getErrorOutput() ?: $process->getOutput() ?: 'Unable to rotate old releases.'),
+                'finished_at' => now(),
+            ]);
+
+            if (! $process->isSuccessful()) {
+                throw new RuntimeException('Unable to rotate old releases.');
+            }
+
+            return $process;
+        } catch (Throwable $throwable) {
+            $run->update([
+                'status' => 'failed',
+                'error_message' => $throwable->getMessage(),
+                'finished_at' => now(),
+            ]);
+
+            throw $throwable;
         }
-
-        return $process;
     }
 
     public function environmentFileContents(Site $site): string

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\ReleaseCleanupRun;
 
 class Site extends Model
 {
@@ -62,6 +63,11 @@ class Site extends Model
     public function cpanelWizardRuns(): HasMany
     {
         return $this->hasMany(CpanelWizardRun::class)->latest('started_at');
+    }
+
+    public function releaseCleanupRuns(): HasMany
+    {
+        return $this->hasMany(ReleaseCleanupRun::class)->latest('started_at');
     }
 
     public function latestDeployment(): HasOne
@@ -193,5 +199,10 @@ class Site extends Model
                 ];
             })
             ->all();
+    }
+
+    public function getLatestReleaseCleanupAttribute(): ?ReleaseCleanupRun
+    {
+        return $this->releaseCleanupRuns()->first();
     }
 }
