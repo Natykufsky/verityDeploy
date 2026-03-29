@@ -14,7 +14,9 @@ use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use App\Filament\Widgets\AlertsInboxWidget;
 use App\Filament\Widgets\DeploymentOverviewStats;
+use App\Filament\Widgets\DeploymentTimelineWidget;
 use App\Filament\Widgets\CpanelSetupCard;
+use App\Filament\Widgets\GithubSyncDriftCard;
 use App\Filament\Widgets\ServerHealthOverviewCard;
 use App\Filament\Widgets\ReleaseCleanupOverviewCard;
 use App\Filament\Widgets\WebhookSyncHealthCard;
@@ -50,9 +52,11 @@ class AdminPanelProvider extends PanelProvider
                 FilamentInfoWidget::class,
                 AlertsInboxWidget::class,
                 DeploymentOverviewStats::class,
+                DeploymentTimelineWidget::class,
                 ServerHealthOverviewCard::class,
                 ReleaseCleanupOverviewCard::class,
                 CpanelSetupCard::class,
+                GithubSyncDriftCard::class,
                 WebhookSyncHealthCard::class,
             ])
             ->middleware([

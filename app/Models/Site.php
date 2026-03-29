@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\ReleaseCleanupRun;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Models\ReleaseCleanupRun;
 
 class Site extends Model
 {
@@ -204,5 +204,10 @@ class Site extends Model
     public function getLatestReleaseCleanupAttribute(): ?ReleaseCleanupRun
     {
         return $this->releaseCleanupRuns()->first();
+    }
+
+    public function getGithubWebhookDriftAttribute(): bool
+    {
+        return in_array($this->github_webhook_status, ['needs-sync', 'failed'], true);
     }
 }
