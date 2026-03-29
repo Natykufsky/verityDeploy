@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Support\DeploymentCommandGuide;
 
 class Deployment extends Model
 {
@@ -84,5 +85,18 @@ class Deployment extends Model
     public function steps(): HasMany
     {
         return $this->hasMany(DeploymentStep::class)->orderBy('sequence');
+    }
+
+    /**
+     * @return array<int, array{title: string, description: string, command: string, usage: string, intro: string}>
+     */
+    public function getCommandGuideSnippetsAttribute(): array
+    {
+        return app(DeploymentCommandGuide::class)->snippetsFor($this->fresh(['site']));
+    }
+
+    public function getCommandGuideIntroAttribute(): string
+    {
+        return app(DeploymentCommandGuide::class)->introFor($this->fresh(['site']));
     }
 }

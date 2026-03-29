@@ -91,6 +91,30 @@ class DeploymentInfolist
                             ->columns(2)
                             ->contained(),
                     ]),
+                Section::make('Useful deployment commands')
+                    ->schema([
+                        TextEntry::make('command_guide_intro')
+                            ->label('Guide')
+                            ->columnSpanFull(),
+                        RepeatableEntry::make('command_guide_snippets')
+                            ->state(fn ($record): array => $record->command_guide_snippets)
+                            ->schema([
+                                TextEntry::make('title')
+                                    ->weight('bold'),
+                                TextEntry::make('description')
+                                    ->columnSpanFull(),
+                                TextEntry::make('command')
+                                    ->label('Command')
+                                    ->copyable()
+                                    ->columnSpanFull(),
+                                TextEntry::make('usage')
+                                    ->label('When to use')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(1)
+                            ->contained(),
+                    ])
+                    ->columns(1),
             ]);
     }
 

@@ -101,12 +101,16 @@
 
             <div class="mt-3 flex flex-wrap gap-2">
                 @forelse ($stepChips as $chip)
-                    <div class="rounded-full border px-3 py-2 text-xs font-semibold {{ $toneStyles[$chip['tone']]['chip'] }}">
+                    <button
+                        type="button"
+                        wire:click="openStepDetail({{ $latestDeploymentId }}, {{ $chip['sequence'] }})"
+                        class="rounded-full border px-3 py-2 text-xs font-semibold transition hover:scale-[1.01] hover:shadow-sm {{ $toneStyles[$chip['tone']]['chip'] }}"
+                    >
                         <span>{{ $chip['label'] }}</span>
                         <span class="ml-2 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] {{ $toneStyles[$chip['tone']]['chip'] }}">
                             {{ $chip['status'] }}
                         </span>
-                    </div>
+                    </button>
                 @empty
                     <div class="rounded-xl border border-white/5 bg-black/20 px-4 py-3 text-sm text-slate-400">
                         No step history yet. The timeline will populate after the first deployment.
@@ -114,5 +118,81 @@
                 @endforelse
             </div>
         </div>
+
+        @if (filled($selectedStepDetail))
+            <div class="mt-5 rounded-2xl border border-white/10 bg-slate-950/95 p-5 shadow-2xl">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Step detail</p>
+                        <h4 class="mt-2 text-lg font-semibold text-white">{{ $selectedStepDetail['step_label'] }}</h4>
+                        <p class="mt-1 text-sm text-slate-400">
+                            {{ $selectedStepDetail['deployment_label'] }} · Step {{ $selectedStepDetail['sequence'] }}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        wire:click="closeStepDetail"
+                        class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                    >
+                        Close
+                    </button>
+                </div>
+
+                <div class="mt-4 grid gap-3 sm:grid-cols-4">
+                    <div class="rounded-xl border border-white/5 bg-black/20 p-3">
+                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Status</p>
+                        <p class="mt-1 text-sm font-semibold text-white">{{ $selectedStepDetail['status'] }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-white/5 bg-black/20 p-3">
+                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Started</p>
+                        <p class="mt-1 text-sm font-semibold text-white">{{ $selectedStepDetail['started_at'] }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-white/5 bg-black/20 p-3">
+                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Finished</p>
+                        <p class="mt-1 text-sm font-semibold text-white">{{ $selectedStepDetail['finished_at'] }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-white/5 bg-black/20 p-3">
+                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Exit code</p>
+                        <p class="mt-1 text-sm font-semibold text-white">{{ $selectedStepDetail['exit_code'] ?? 'n/a' }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Command</p>
+                        <button
+                            type="button"
+                            onclick="navigator.clipboard.writeText(@js($selectedStepDetail['command']))"
+                            class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-slate-100 transition hover:bg-white/10"
+                        >
+                            Copy command
+                        </button>
+                    </div>
+                    <pre class="mt-3 whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['command'] }}</pre>
+                </div>
+
+                <div class="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
+                    <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Output</p>
+                    <pre class="mt-3 whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['output'] ?: 'No output captured.' }}</pre>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-xs text-slate-400">
+                        Open the full deployment record for the complete command history and terminal output.
+                    </p>
+
+                    <a
+                        href="{{ $selectedStepDetail['url'] }}"
+                        class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                    >
+                        Open deployment
+                    </a>
+                </div>
+            </div>
+        @endif
     </div>
 </div>

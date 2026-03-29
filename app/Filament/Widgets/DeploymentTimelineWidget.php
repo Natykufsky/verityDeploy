@@ -12,6 +12,10 @@ class DeploymentTimelineWidget extends Widget
 
     protected ?string $pollingInterval = '30s';
 
+    public ?int $selectedDeploymentId = null;
+
+    public ?int $selectedStepSequence = null;
+
     /**
      * @return array<string, mixed>
      */
@@ -25,6 +29,7 @@ class DeploymentTimelineWidget extends Widget
             ->first();
 
         return [
+            'latestDeploymentId' => $latestDeployment?->id,
             'latestDeployment' => $latestDeployment,
             'latestDeploymentLabel' => $this->deploymentLabel($latestDeployment),
             'latestDeploymentTone' => $this->deploymentTone($latestDeployment),
@@ -32,10 +37,23 @@ class DeploymentTimelineWidget extends Widget
             'latestDeploymentSummary' => $this->deploymentSummary($latestDeployment),
             'latestDeploymentUrl' => $this->deploymentUrl($latestDeployment),
             'stepChips' => $this->stepChips($latestDeployment),
+            'selectedStepDetail' => $this->selectedStepDetail(),
             'successfulCount' => Deployment::query()->where('status', 'successful')->count(),
             'failedCount' => Deployment::query()->where('status', 'failed')->count(),
             'runningCount' => Deployment::query()->where('status', 'running')->count(),
         ];
+    }
+
+    public function openStepDetail(int $deploymentId, int $sequence): void
+    {
+        $this->selectedDeploymentId = $deploymentId;
+        $this->selectedStepSequence = $sequence;
+    }
+
+    public function closeStepDetail(): void
+    {
+        $this->selectedDeploymentId = null;
+        $this->selectedStepSequence = null;
     }
 
     public function openLatestDeployment()
@@ -109,6 +127,7 @@ class DeploymentTimelineWidget extends Widget
             ->sortBy('sequence')
             ->map(function ($step): array {
                 return [
+                    'sequence' => $step->sequence,
                     'label' => $step->label,
                     'status' => str($step->status)->headline()->toString(),
                     'tone' => match ($step->status) {
@@ -122,6 +141,47 @@ class DeploymentTimelineWidget extends Widget
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function selectedStepDetail(): ?array
+    {
+        if (! filled($this->selectedDeploymentId) || ! filled($this->selectedStepSequence)) {
+            return null;
+        }
+
+        $deployment = Deployment::query()
+            ->with(['site', 'steps'])
+            ->find($this->selectedDeploymentId);
+
+        $step = $deployment?->steps->firstWhere('sequence', $this->selectedStepSequence);
+
+        if (! $deployment || ! $step) {
+            return null;
+        }
+
+        return [
+            'deployment_label' => $deployment->site?->name ?? 'Unknown site',
+            'step_label' => $step->label,
+            'status' => str($step->status)->headline()->toString(),
+            'tone' => match ($step->status) {
+                'successful' => 'emerald',
+                'failed' => 'rose',
+                'running' => 'amber',
+                default => 'slate',
+            },
+            'sequence' => $step->sequence,
+            'command' => $step->command,
+            'output' => $step->output,
+            'started_at' => $step->started_at?->diffForHumans() ?? 'just now',
+            'finished_at' => $step->finished_at?->diffForHumans() ?? 'in progress',
+            'exit_code' => $step->exit_code,
+            'url' => DeploymentResource::getUrl('view', [
+                'record' => $deployment,
+            ]),
+        ];
     }
 
     protected function deploymentUrl(?Deployment $deployment): ?string

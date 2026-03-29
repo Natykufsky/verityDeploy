@@ -86,6 +86,13 @@ class DeploymentTimelineWidgetTest extends TestCase
         $this->assertCount(2, $viewData['stepChips']);
         $this->assertSame('Fetch latest code', $viewData['stepChips'][0]['label']);
         $this->assertSame('Successful', $viewData['stepChips'][0]['status']);
+
+        $widget->openStepDetail($deployment->id, 2);
+        $selectedViewData = $this->invokeProtected($widget, 'getViewData');
+
+        $this->assertSame('Install dependencies', $selectedViewData['selectedStepDetail']['step_label']);
+        $this->assertSame('composer install', $selectedViewData['selectedStepDetail']['command']);
+        $this->assertSame('Installed.', $selectedViewData['selectedStepDetail']['output']);
     }
 
     protected function invokeProtected(object $object, string $method, array $arguments = []): mixed
