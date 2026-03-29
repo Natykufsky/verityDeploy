@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Filament\Resources\Servers\ServerResource;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Models\CpanelWizardRun;
-use Illuminate\Http\RedirectResponse;
 use Filament\Widgets\Widget;
 
 class CpanelSetupCard extends Widget
@@ -51,7 +50,7 @@ class CpanelSetupCard extends Widget
         ];
     }
 
-    public function openLatestRun(): RedirectResponse
+    public function openLatestRun()
     {
         $serverRun = CpanelWizardRun::query()
             ->with(['server'])
@@ -70,7 +69,7 @@ class CpanelSetupCard extends Widget
         return redirect()->to($url ?? ServerResource::getUrl('index'));
     }
 
-    public function openServerRun(): RedirectResponse
+    public function openServerRun()
     {
         $serverRun = CpanelWizardRun::query()
             ->with(['server'])
@@ -81,7 +80,7 @@ class CpanelSetupCard extends Widget
         return redirect()->to($this->runUrl($serverRun) ?? ServerResource::getUrl('index'));
     }
 
-    public function openSiteRun(): RedirectResponse
+    public function openSiteRun()
     {
         $siteRun = CpanelWizardRun::query()
             ->with(['site'])

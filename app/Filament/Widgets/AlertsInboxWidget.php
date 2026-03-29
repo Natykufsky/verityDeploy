@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Filament\Pages\AlertsInboxPage;
 use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Notifications\DatabaseNotification;
 
 class AlertsInboxWidget extends Widget
@@ -53,7 +52,7 @@ class AlertsInboxWidget extends Widget
             ->send();
     }
 
-    public function openInbox(): RedirectResponse
+    public function openInbox()
     {
         return redirect()->to(AlertsInboxPage::getUrl());
     }
@@ -91,7 +90,6 @@ class AlertsInboxWidget extends Widget
         }
 
         return $user->notifications()
-            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->first();
     }
