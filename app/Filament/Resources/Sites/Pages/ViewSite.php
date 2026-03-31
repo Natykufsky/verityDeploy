@@ -10,6 +10,7 @@ use App\Models\SiteBackup;
 use App\Services\Backups\SiteBackupService;
 use App\Services\Deployment\ReleaseManager;
 use App\Services\GitHub\WebhookProvisioner;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -40,49 +41,15 @@ class ViewSite extends ViewRecord
                 ->modalDescription('This creates a new deployment record and hands it to the queue worker so the selected site can deploy in the background.')
                 ->modalSubmitActionLabel('Queue deployment')
                 ->action(fn () => $this->deploySite()),
-            Action::make('provisionCpanelSite')
-                ->label('cPanel site wizard')
-                ->icon('heroicon-o-wrench-screwdriver')
-                ->color('primary')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel')
-                ->modalWidth('7xl')
-                ->steps([
-                    Step::make('Workspace')
-                        ->description('Review the cPanel account and deployment target.')
-                        ->schema([
-                            SchemaView::make('filament.sites.cpanel-provision-wizard'),
-                        ]),
-                    Step::make('Confirm')
-                        ->description('Confirm that the cPanel workspace should be created.')
-                        ->schema([
-                            Toggle::make('confirm_provisioning')
-                                ->label('I want to provision this cPanel site')
-                                ->accepted()
-                                ->helperText('This creates the workspace and shared runtime files on the cPanel server.'),
-                        ]),
-                ])
-                ->modalHeading('cPanel site provisioning wizard')
-                ->modalDescription('Use this wizard before the first deploy to prepare the cPanel workspace, verify the connection details, and review the exact steps that will run.')
-                ->modalSubmitActionLabel('Provision site')
-                ->action(fn () => $this->bootstrapDeployPath()),
-            Action::make('runCpanelBootstrapWizard')
-                ->label('Run cPanel bootstrap')
-                ->icon('heroicon-o-sparkles')
-                ->color('primary')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel')
-                ->url(fn (): string => static::getResource()::getUrl('cpanel-bootstrap-wizard', [
+            Action::make('openTerminal')
+                ->label('Open terminal')
+                ->icon('heroicon-o-command-line')
+                ->color('gray')
+                ->outlined()
+                ->url(fn (): string => static::getResource()::getUrl('view', [
                     'record' => $this->record,
-                ])),
-            Action::make('reRunCpanelBootstrap')
-                ->label('Re-run cPanel bootstrap')
-                ->icon('heroicon-o-arrow-path')
-                ->color('warning')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->deploy_path))
-                ->requiresConfirmation()
-                ->modalHeading('Re-run cPanel bootstrap?')
-                ->modalDescription('This re-validates the cPanel API, ensures the workspace directories exist, re-syncs shared files, and refreshes the deployment path without changing releases.')
-                ->modalSubmitActionLabel('Re-run bootstrap')
-                ->action(fn () => $this->bootstrapDeployPath()),
+                    'tab' => 'terminal',
+                ]) . '#site-terminal'),
             Action::make('bootstrapDeployPath')
                 ->label('Bootstrap path')
                 ->icon('heroicon-o-cube-transparent')
@@ -93,98 +60,149 @@ class ViewSite extends ViewRecord
                 ->modalDescription('This checks the server, then creates the releases and shared directories needed for the first git-based deploy so future deploys can switch releases safely.')
                 ->modalSubmitActionLabel('Bootstrap path')
                 ->action(fn () => $this->bootstrapDeployPath()),
-            Action::make('cleanupReleases')
-                ->label('Clean releases')
-                ->icon('heroicon-o-trash')
-                ->color('danger')
-                ->visible(fn (): bool => $this->record->deploy_source === 'git' && filled($this->record->deploy_path))
-                ->requiresConfirmation()
-                ->modalHeading('Remove old release folders?')
-                ->modalDescription('This keeps the latest 5 releases and removes older release directories from the server to reduce disk usage.')
-                ->modalSubmitActionLabel('Clean releases')
-                ->action(fn () => $this->cleanupReleases()),
-            Action::make('createBackup')
-                ->label('Create backup')
-                ->icon('heroicon-o-archive-box')
-                ->color('primary')
-                ->requiresConfirmation()
-                ->visible(fn (): bool => filled($this->record->current_release_path))
-                ->modalHeading('Create a release backup?')
-                ->modalDescription('This copies the current release into the backups directory so you can restore it later without rebuilding from Git or a local source archive.')
-                ->modalSubmitActionLabel('Create backup')
-                ->action(fn () => $this->createBackup()),
-            Action::make('restoreBackup')
-                ->label('Restore backup')
-                ->icon('heroicon-o-arrow-uturn-left')
-                ->color('warning')
-                ->visible(fn (): bool => filled($this->record->backupOptions()))
-                ->modalWidth('4xl')
-                ->schema([
-                    Select::make('backup_id')
-                        ->label('Backup snapshot')
-                        ->options(fn (): array => $this->record->fresh()->backupOptions())
-                        ->searchable()
-                        ->required()
-                        ->live()
-                        ->helperText('Choose a successful backup snapshot to restore the current release from.'),
-                    Placeholder::make('restore_preview')
-                        ->label('Restore confirmation')
-                        ->content(function (Get $get): string {
-                            return $this->renderBackupPreview($get('backup_id'));
-                        })
-                        ->columnSpanFull(),
-                ])
-                ->modalHeading('Restore a backup snapshot')
-                ->modalDescription('The selected backup will be copied into a fresh release directory and then activated as the current release.')
-                ->modalSubmitActionLabel('Restore backup')
-                ->requiresConfirmation()
-                ->action(fn (array $data) => $this->restoreBackup($data)),
-            Action::make('restoreRelease')
-                ->label('Restore release')
-                ->icon('heroicon-o-backward')
-                ->color('warning')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->previousReleaseOptions()))
-                ->modalWidth('4xl')
-                ->schema([
-                    Select::make('deployment_id')
-                        ->label('Previous release')
-                        ->options(fn (): array => $this->record->fresh()->previousReleaseOptions())
-                        ->searchable()
-                        ->required()
-                        ->live()
-                        ->helperText('Choose a previous successful release from this site.'),
-                    Placeholder::make('restore_preview')
-                        ->label('Rollback confirmation')
-                        ->content(function (Get $get): string {
-                            return $this->renderRestorePreview($get('deployment_id'));
-                        })
-                        ->columnSpanFull(),
-                ])
-                ->modalHeading('Restore a previous release')
-                ->modalDescription('Select a prior release to preview the exact release path that will be restored before you confirm the rollback.')
-                ->modalSubmitActionLabel('Restore release')
-                ->requiresConfirmation()
-                ->action(fn (array $data) => $this->restoreRelease($data)),
-            Action::make('refreshWebhookStatus')
-                ->label('Refresh webhook status')
-                ->icon('heroicon-o-arrow-path')
+            ActionGroup::make([
+                Action::make('provisionCpanelSite')
+                    ->label('cPanel site wizard')
+                    ->icon('heroicon-o-wrench-screwdriver')
+                    ->color('primary')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel')
+                    ->modalWidth('7xl')
+                    ->steps([
+                        Step::make('Workspace')
+                            ->description('Review the cPanel account and deployment target.')
+                            ->schema([
+                                SchemaView::make('filament.sites.cpanel-provision-wizard'),
+                            ]),
+                        Step::make('Confirm')
+                            ->description('Confirm that the cPanel workspace should be created.')
+                            ->schema([
+                                Toggle::make('confirm_provisioning')
+                                    ->label('I want to provision this cPanel site')
+                                    ->accepted()
+                                    ->helperText('This creates the workspace and shared runtime files on the cPanel server.'),
+                            ]),
+                    ])
+                    ->modalHeading('cPanel site provisioning wizard')
+                    ->modalDescription('Use this wizard before the first deploy to prepare the cPanel workspace, verify the connection details, and review the exact steps that will run.')
+                    ->modalSubmitActionLabel('Provision site')
+                    ->action(fn () => $this->bootstrapDeployPath()),
+                Action::make('runCpanelBootstrapWizard')
+                    ->label('Run cPanel bootstrap')
+                    ->icon('heroicon-o-sparkles')
+                    ->color('primary')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel')
+                    ->url(fn (): string => static::getResource()::getUrl('cpanel-bootstrap-wizard', [
+                        'record' => $this->record,
+                    ])),
+                Action::make('reRunCpanelBootstrap')
+                    ->label('Re-run cPanel bootstrap')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->deploy_path))
+                    ->requiresConfirmation()
+                    ->modalHeading('Re-run cPanel bootstrap?')
+                    ->modalDescription('This re-validates the cPanel API, ensures the workspace directories exist, re-syncs shared files, and refreshes the deployment path without changing releases.')
+                    ->modalSubmitActionLabel('Re-run bootstrap')
+                    ->action(fn () => $this->bootstrapDeployPath()),
+                Action::make('cleanupReleases')
+                    ->label('Clean releases')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn (): bool => $this->record->deploy_source === 'git' && filled($this->record->deploy_path))
+                    ->requiresConfirmation()
+                    ->modalHeading('Remove old release folders?')
+                    ->modalDescription('This keeps the latest 5 releases and removes older release directories from the server to reduce disk usage.')
+                    ->modalSubmitActionLabel('Clean releases')
+                    ->action(fn () => $this->cleanupReleases()),
+                Action::make('createBackup')
+                    ->label('Create backup')
+                    ->icon('heroicon-o-archive-box')
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->current_release_path))
+                    ->modalHeading('Create a release backup?')
+                    ->modalDescription('This copies the current release into the backups directory so you can restore it later without rebuilding from Git or a local source archive.')
+                    ->modalSubmitActionLabel('Create backup')
+                    ->action(fn () => $this->createBackup()),
+                Action::make('restoreBackup')
+                    ->label('Restore backup')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->visible(fn (): bool => filled($this->record->backupOptions()))
+                    ->modalWidth('4xl')
+                    ->schema([
+                        Select::make('backup_id')
+                            ->label('Backup snapshot')
+                            ->options(fn (): array => $this->record->fresh()->backupOptions())
+                            ->searchable()
+                            ->required()
+                            ->live()
+                            ->helperText('Choose a successful backup snapshot to restore the current release from.'),
+                        Placeholder::make('restore_preview')
+                            ->label('Restore confirmation')
+                            ->content(function (Get $get): string {
+                                return $this->renderBackupPreview($get('backup_id'));
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->modalHeading('Restore a backup snapshot')
+                    ->modalDescription('The selected backup will be copied into a fresh release directory and then activated as the current release.')
+                    ->modalSubmitActionLabel('Restore backup')
+                    ->requiresConfirmation()
+                    ->action(fn (array $data) => $this->restoreBackup($data)),
+                Action::make('restoreRelease')
+                    ->label('Restore release')
+                    ->icon('heroicon-o-backward')
+                    ->color('warning')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->previousReleaseOptions()))
+                    ->modalWidth('4xl')
+                    ->schema([
+                        Select::make('deployment_id')
+                            ->label('Previous release')
+                            ->options(fn (): array => $this->record->fresh()->previousReleaseOptions())
+                            ->searchable()
+                            ->required()
+                            ->live()
+                            ->helperText('Choose a previous successful release from this site.'),
+                        Placeholder::make('restore_preview')
+                            ->label('Rollback confirmation')
+                            ->content(function (Get $get): string {
+                                return $this->renderRestorePreview($get('deployment_id'));
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->modalHeading('Restore a previous release')
+                    ->modalDescription('Select a prior release to preview the exact release path that will be restored before you confirm the rollback.')
+                    ->modalSubmitActionLabel('Restore release')
+                    ->requiresConfirmation()
+                    ->action(fn (array $data) => $this->restoreRelease($data)),
+                Action::make('refreshWebhookStatus')
+                    ->label('Refresh webhook status')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->action(fn () => $this->refreshWebhookStatus()),
+                Action::make('reProvisionWebhook')
+                    ->label('Re-provision webhook')
+                    ->icon('heroicon-o-signal')
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->repository_url))
+                    ->modalHeading('Re-provision GitHub webhook?')
+                    ->modalDescription('This will create or update the webhook on GitHub so push deploys work again.')
+                    ->action(fn () => $this->reProvisionWebhook()),
+                Action::make('webhookSettings')
+                    ->label('Webhook settings')
+                    ->icon('heroicon-o-link')
+                    ->url(fn (): string => static::getResource()::getUrl('webhooks', [
+                        'record' => $this->record,
+                    ])),
+            ])
+                ->label('More')
+                ->icon('heroicon-o-ellipsis-horizontal')
                 ->color('gray')
-                ->action(fn () => $this->refreshWebhookStatus()),
-            Action::make('reProvisionWebhook')
-                ->label('Re-provision webhook')
-                ->icon('heroicon-o-signal')
-                ->color('primary')
-                ->requiresConfirmation()
-                ->visible(fn (): bool => filled($this->record->repository_url))
-                ->modalHeading('Re-provision GitHub webhook?')
-                ->modalDescription('This will create or update the webhook on GitHub so push deploys work again.')
-                ->action(fn () => $this->reProvisionWebhook()),
-            Action::make('webhookSettings')
-                ->label('Webhook settings')
-                ->icon('heroicon-o-link')
-                ->url(fn (): string => static::getResource()::getUrl('webhooks', [
-                    'record' => $this->record,
-                ])),
+                ->outlined()
+                ->button()
+                ->size('sm'),
         ];
     }
 

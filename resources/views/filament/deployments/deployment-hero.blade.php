@@ -1,4 +1,4 @@
-<div class="rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-950 to-emerald-950/40 p-5 shadow-2xl shadow-black/30">
+<div class="deployment-frost-card rounded-3xl p-5">
     @php($snapshot = $record->page_snapshot)
 
     <div class="flex flex-wrap items-start justify-between gap-4">
@@ -7,37 +7,37 @@
                 <span class="h-2 w-2 rounded-full bg-emerald-300"></span>
                 Deployment snapshot
             </div>
-        <div class="space-y-2">
-            <h2 class="text-2xl font-semibold tracking-tight text-white md:text-3xl">
-                {{ $snapshot['headline'] }}
-            </h2>
-            <p class="max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
-                {{ $snapshot['summary'] }}
-            </p>
-        </div>
+            <div class="space-y-2">
+                <h2 class="text-2xl font-semibold tracking-tight text-white md:text-3xl">
+                    {{ $snapshot['headline'] }}
+                </h2>
+                <p class="max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
+                    {{ $snapshot['summary'] }}
+                </p>
+            </div>
 
-        <div class="grid gap-2 rounded-2xl border border-white/5 bg-black/20 p-4 text-sm text-slate-300">
-            <div class="flex items-center justify-between gap-4">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Elapsed</span>
-                <span class="font-semibold text-white">{{ $snapshot['timing']['elapsed'] }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-4">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Started</span>
-                <span class="font-medium text-slate-200">{{ $snapshot['timing']['started'] }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-4">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Finished</span>
-                <span class="font-medium text-slate-200">{{ $snapshot['timing']['finished'] }}</span>
-            </div>
-            <div class="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
-                <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-sky-400" style="width: {{ $snapshot['progress']['percentage'] }}%"></div>
-            </div>
-            <div class="flex items-center justify-between gap-4 text-xs text-slate-400">
-                <span>{{ $snapshot['progress']['summary'] }}</span>
-                <span>{{ $snapshot['progress']['percentage'] }}%</span>
+            <div class="deployment-frost-panel grid gap-2 rounded-2xl p-4 text-sm text-slate-300">
+                <div class="flex items-center justify-between gap-4">
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Elapsed</span>
+                    <span class="font-semibold text-white">{{ $snapshot['timing']['elapsed'] }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Started</span>
+                    <span class="font-medium text-slate-200">{{ $snapshot['timing']['started'] }}</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Finished</span>
+                    <span class="font-medium text-slate-200">{{ $snapshot['timing']['finished'] }}</span>
+                </div>
+                <div class="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-sky-400" style="width: {{ $snapshot['progress']['percentage'] }}%"></div>
+                </div>
+                <div class="flex items-center justify-between gap-4 text-xs text-slate-400">
+                    <span>{{ $snapshot['progress']['summary'] }}</span>
+                    <span>{{ $snapshot['progress']['percentage'] }}%</span>
+                </div>
             </div>
         </div>
-    </div>
 
         <div class="flex flex-wrap items-center gap-2">
             @foreach ($snapshot['badges'] as $badge)
@@ -56,13 +56,13 @@
     </div>
 
     <div class="mt-5 grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-white/5 bg-black/25 p-4">
+        <div class="deployment-frost-panel rounded-2xl p-4">
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Next action</div>
             <div class="mt-2 text-sm font-semibold text-white">{{ $snapshot['next_action'] }}</div>
             <p class="mt-2 text-sm leading-6 text-slate-400">{{ $snapshot['next_action_description'] }}</p>
         </div>
 
-        <div class="rounded-2xl border border-white/5 bg-black/25 p-4">
+        <div class="deployment-frost-panel rounded-2xl p-4">
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Release</div>
             <div class="mt-2 text-sm font-semibold text-white">{{ $record->release_path ?? 'Pending release path' }}</div>
             <p class="mt-2 text-sm leading-6 text-slate-400">
@@ -70,7 +70,7 @@
             </p>
         </div>
 
-        <div class="rounded-2xl border border-white/5 bg-black/25 p-4">
+        <div class="deployment-frost-panel rounded-2xl p-4">
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Recovery</div>
             <div class="mt-2 text-sm font-semibold text-white">
                 {{ filled($record->recovery_hint) ? 'Guidance is available' : 'No recovery hint yet' }}

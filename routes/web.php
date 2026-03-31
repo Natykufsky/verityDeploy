@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\GitHubOAuthController;
+use App\Http\Controllers\SiteTerminalFeedController;
 use App\Http\Controllers\ServerTerminalFeedController;
 use App\Http\Controllers\TeamInvitationController;
 use Illuminate\Support\Facades\Route;
@@ -18,3 +19,6 @@ Route::post('/team-invitations/{token}', [TeamInvitationController::class, 'acce
 Route::get('/servers/{record}/terminal-feed', ServerTerminalFeedController::class)
     ->middleware(['auth'])
     ->name('servers.terminal-feed');
+Route::get('/sites/{record}/terminal-feed', SiteTerminalFeedController::class)
+    ->middleware(['auth'])
+    ->name('sites.terminal-feed');

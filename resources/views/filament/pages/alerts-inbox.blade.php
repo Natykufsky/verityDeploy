@@ -58,96 +58,98 @@
         @endforeach
     </div>
 
-    @if ($notifications->isEmpty())
-        <div class="rounded-2xl border border-dashed border-slate-200/10 bg-slate-950/40 p-6 text-sm text-slate-400 dark:border-white/10">
-            No alerts match the current filter.
-        </div>
-    @else
-        <div class="space-y-4">
-            @foreach ($notifications as $notification)
-                @php
-                    $tone = $this->notificationTone($notification);
-                    $context = $this->notificationContext($notification);
-                    $isUnread = is_null($notification->read_at);
-                @endphp
-                <article
-                    class="rounded-2xl border border-white/5 bg-slate-950/70 p-4 shadow-sm {{ $toneStyles[$tone]['border'] }}"
-                >
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div class="space-y-2">
-                            <div class="flex flex-wrap items-center gap-3">
-                                <div class="flex items-center gap-2">
-                                    <span class="h-2.5 w-2.5 rounded-full {{ $toneStyles[$tone]['dot'] }}"></span>
-                                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Alert</p>
+    <div class="max-h-[58vh] overflow-y-auto pr-1">
+        @if ($notifications->isEmpty())
+            <div class="rounded-2xl border border-dashed border-slate-200/10 bg-slate-950/40 p-6 text-sm text-slate-400 dark:border-white/10">
+                No alerts match the current filter.
+            </div>
+        @else
+            <div class="space-y-4">
+                @foreach ($notifications as $notification)
+                    @php
+                        $tone = $this->notificationTone($notification);
+                        $context = $this->notificationContext($notification);
+                        $isUnread = is_null($notification->read_at);
+                    @endphp
+                    <article
+                        class="rounded-2xl border border-white/5 bg-slate-950/70 p-4 shadow-sm {{ $toneStyles[$tone]['border'] }}"
+                    >
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div class="space-y-2">
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="h-2.5 w-2.5 rounded-full {{ $toneStyles[$tone]['dot'] }}"></span>
+                                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Alert</p>
+                                    </div>
+                                    <span class="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] {{ $isUnread ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300' }}">
+                                        {{ $isUnread ? 'Unread' : 'Read' }}
+                                    </span>
                                 </div>
-                                <span class="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] {{ $isUnread ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300' }}">
-                                    {{ $isUnread ? 'Unread' : 'Read' }}
-                                </span>
+
+                                <h3 class="text-base font-semibold text-white">{{ $this->notificationTitle($notification) }}</h3>
+                                <p class="max-w-3xl text-sm leading-6 text-slate-300">{{ $this->notificationBody($notification) }}</p>
                             </div>
 
-                            <h3 class="text-base font-semibold text-white">{{ $this->notificationTitle($notification) }}</h3>
-                            <p class="max-w-3xl text-sm leading-6 text-slate-300">{{ $this->notificationBody($notification) }}</p>
-                        </div>
+                            <div class="flex flex-wrap gap-2">
+                                @if ($this->notificationUrl($notification))
+                                    <button
+                                        type="button"
+                                        wire:click="openNotification('{{ $notification->id }}')"
+                                        class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                                    >
+                                        View
+                                    </button>
+                                @endif
 
-                        <div class="flex flex-wrap gap-2">
-                            @if ($this->notificationUrl($notification))
+                                @if ($isUnread)
+                                    <button
+                                        type="button"
+                                        wire:click="markAsRead('{{ $notification->id }}')"
+                                        class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                                    >
+                                        Mark read
+                                    </button>
+                                @else
+                                    <button
+                                        type="button"
+                                        wire:click="markAsUnread('{{ $notification->id }}')"
+                                        class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                                    >
+                                        Mark unread
+                                    </button>
+                                @endif
+
                                 <button
                                     type="button"
-                                    wire:click="openNotification('{{ $notification->id }}')"
-                                    class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
+                                    wire:click="dismiss('{{ $notification->id }}')"
+                                    class="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20"
                                 >
-                                    View
+                                    Dismiss
                                 </button>
-                            @endif
+                            </div>
+                        </div>
 
-                            @if ($isUnread)
-                                <button
-                                    type="button"
-                                    wire:click="markAsRead('{{ $notification->id }}')"
-                                    class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-                                >
-                                    Mark read
-                                </button>
-                            @else
-                                <button
-                                    type="button"
-                                    wire:click="markAsUnread('{{ $notification->id }}')"
-                                    class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-                                >
-                                    Mark unread
-                                </button>
-                            @endif
-
-                            <button
-                                type="button"
-                                wire:click="dismiss('{{ $notification->id }}')"
-                                class="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20"
-                            >
-                                Dismiss
-                            </button>
+                        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                            <div class="rounded-xl border border-white/5 bg-black/20 p-3">
+                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Level</p>
+                                <p class="mt-1 text-sm font-semibold {{ $toneStyles[$tone]['value'] }}">{{ data_get($notification->data, 'level', 'warning') }}</p>
+                            </div>
+                            <div class="rounded-xl border border-white/5 bg-black/20 p-3">
+                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">When</p>
+                                <p class="mt-1 text-sm font-semibold text-slate-100">{{ $this->notificationWhen($notification) }}</p>
+                            </div>
+                            <div class="rounded-xl border border-white/5 bg-black/20 p-3">
+                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Context</p>
+                                <p class="mt-1 text-sm font-semibold text-slate-100">
+                                    {{ filled($context) ? collect($context)->keys()->join(', ') : 'No extra context' }}
+                                </p>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                        <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Level</p>
-                            <p class="mt-1 text-sm font-semibold {{ $toneStyles[$tone]['value'] }}">{{ data_get($notification->data, 'level', 'warning') }}</p>
-                        </div>
-                        <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">When</p>
-                            <p class="mt-1 text-sm font-semibold text-slate-100">{{ $this->notificationWhen($notification) }}</p>
-                        </div>
-                        <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Context</p>
-                            <p class="mt-1 text-sm font-semibold text-slate-100">
-                                {{ filled($context) ? collect($context)->keys()->join(', ') : 'No extra context' }}
-                            </p>
-                        </div>
-                    </div>
-                </article>
-            @endforeach
-        </div>
-    @endif
+                    </article>
+                @endforeach
+            </div>
+        @endif
+    </div>
 
     @php($activeNotification = $this->activeNotification())
     @php($activeIndex = filled($activeNotification) ? array_search($activeNotification->id, $notificationIds, true) : false)
@@ -162,8 +164,11 @@
             x-on:keydown.window.escape.prevent="$wire.closeNotification()"
             tabindex="0"
         >
-            <div class="w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/50">
-                <div class="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 px-5 py-4">
+            <div class="relative mx-auto flex w-full max-w-3xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/50">
+                <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))]"></div>
+                <div class="pointer-events-none absolute inset-0 backdrop-blur-[2px]"></div>
+
+                <div class="relative z-10 flex flex-wrap items-start justify-between gap-3 border-b border-white/5 px-5 py-4">
                     <div class="space-y-1">
                         <div class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Alert details</div>
                         <h3 class="text-lg font-semibold text-white">{{ $this->notificationTitle($activeNotification) }}</h3>
@@ -207,7 +212,7 @@
                     </div>
                 </div>
 
-                <div class="max-h-[70vh] overflow-y-auto px-5 py-5">
+                <div class="relative z-10 flex-1 overflow-y-auto px-5 py-5">
                     <div class="grid gap-3 sm:grid-cols-3">
                         <div class="rounded-2xl border border-white/5 bg-black/20 p-3">
                             <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Level</p>

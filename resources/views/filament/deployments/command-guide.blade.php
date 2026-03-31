@@ -1,4 +1,4 @@
-<div id="command-guide" class="space-y-4 rounded-2xl border border-white/10 bg-slate-950/80 p-4">
+<div id="command-guide" class="deployment-frost-card space-y-4 rounded-2xl p-4">
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="space-y-2">
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Command guide</div>
@@ -14,7 +14,7 @@
 
     <div class="grid gap-3 lg:grid-cols-2">
         @foreach ($record->command_guide_snippets as $snippet)
-            <article class="rounded-2xl border border-white/5 bg-black/20 p-4">
+                    <article class="deployment-frost-panel rounded-2xl p-4">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="space-y-1">
                         <h4 class="text-sm font-semibold text-white">{{ $snippet['title'] }}</h4>
@@ -25,7 +25,7 @@
                     </span>
                 </div>
 
-                <div class="mt-4 rounded-xl border border-emerald-400/15 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">
+                <div class="deployment-frost-panel mt-4 rounded-xl px-4 py-3 font-mono text-xs leading-6 text-slate-100">
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-[10px] uppercase tracking-[0.2em] text-emerald-300">Command</span>
                         <button

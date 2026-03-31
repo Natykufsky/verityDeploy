@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\EncryptedTextOrPlain;
 use App\Models\ReleaseCleanupRun;
+use App\Models\SiteTerminalRun;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -85,6 +86,11 @@ class Site extends Model
         return $this->hasMany(SiteBackup::class)->latest('started_at');
     }
 
+    public function terminalRuns(): HasMany
+    {
+        return $this->hasMany(SiteTerminalRun::class)->latest('started_at');
+    }
+
     public function latestDeployment(): HasOne
     {
         return $this->hasOne(Deployment::class)->latestOfMany();
@@ -135,6 +141,82 @@ class Site extends Model
             'custom' => 'custom override',
             default => 'generated',
         };
+    }
+
+    public function getTerminalPromptAttribute(): string
+    {
+        $serverName = $this->server?->name ?: 'site';
+        $deployPath = filled($this->deploy_path) ? $this->deploy_path : '~';
+
+        return sprintf('%s@%s:%s$ ', $this->name ?: 'site', $serverName, $deployPath);
+    }
+
+    public function terminalCommandPrefix(): string
+    {
+        if (! filled($this->deploy_path)) {
+            return '';
+        }
+
+        $path = $this->deploy_path;
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            return sprintf('cd /d "%s" && ', str_replace('"', '""', $path));
+        }
+
+        return sprintf('cd %s && ', escapeshellarg($path));
+    }
+
+    /**
+     * @return array<int, array{label: string, command: string, description: string, source: string}>
+     */
+    public function terminalAutocompleteSuggestions(): array
+    {
+        $suggestions = [
+            [
+                'label' => 'pwd',
+                'command' => 'pwd',
+                'description' => 'Show the current working directory for this site.',
+                'source' => 'Site terminal',
+            ],
+            [
+                'label' => 'ls -la',
+                'command' => 'ls -la',
+                'description' => 'List files in the current site folder.',
+                'source' => 'Site terminal',
+            ],
+            [
+                'label' => 'php -v',
+                'command' => 'php -v',
+                'description' => 'Check the PHP version available to the site.',
+                'source' => 'Site terminal',
+            ],
+            [
+                'label' => 'git status',
+                'command' => 'git status',
+                'description' => 'Inspect the repository state when the site uses Git deployment.',
+                'source' => 'Site terminal',
+            ],
+        ];
+
+        if ($this->deploy_source === 'git') {
+            $suggestions[] = [
+                'label' => 'composer -V',
+                'command' => 'composer -V',
+                'description' => 'Confirm Composer is available for deployments and maintenance tasks.',
+                'source' => 'Site terminal',
+            ];
+        }
+
+        if ($this->deploy_source === 'local') {
+            $suggestions[] = [
+                'label' => 'du -sh .',
+                'command' => 'du -sh .',
+                'description' => 'Check the current site folder size.',
+                'source' => 'Site terminal',
+            ];
+        }
+
+        return $suggestions;
     }
 
     public function getLastSuccessfulDeployBadgeAttribute(): string

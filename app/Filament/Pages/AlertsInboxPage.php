@@ -45,10 +45,6 @@ class AlertsInboxPage extends Page
     {
         return $schema
             ->components([
-                Section::make('How this inbox works')
-                    ->schema([
-                        View::make('filament.pages.alerts-inbox-guide'),
-                    ]),
                 Section::make('Operational alerts')
                     ->schema([
                         View::make('filament.pages.alerts-inbox')

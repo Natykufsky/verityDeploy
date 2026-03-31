@@ -1,5 +1,5 @@
 <div class="sticky top-4 z-20 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.9fr)]">
-    <div class="rounded-2xl border border-white/10 bg-slate-950/90 p-4 backdrop-blur">
+    <div class="deployment-frost-card rounded-2xl p-4">
         <div class="flex flex-wrap items-center gap-2">
             @if ($record->status === 'running')
                 <span class="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
@@ -34,7 +34,7 @@
         </div>
     </div>
 
-    <div class="rounded-2xl border border-white/10 bg-slate-950/90 p-4 backdrop-blur">
+    <div class="deployment-frost-card rounded-2xl p-4">
         <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Suggested action</div>
         <div class="mt-2 text-sm font-semibold text-white">
             {{ $record->page_snapshot['next_action'] }}
@@ -45,7 +45,7 @@
     </div>
 </div>
 
-<div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+<div class="deployment-frost-card mt-4 rounded-2xl p-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Quick checklist</div>
@@ -58,7 +58,7 @@
 
     <ul class="mt-4 grid gap-2 md:grid-cols-3">
         @foreach ($record->page_snapshot['checklist'] as $item)
-            <li class="flex items-start gap-3 rounded-xl border border-white/5 bg-slate-950/60 px-3 py-3 text-sm leading-6 text-slate-300">
+            <li class="deployment-frost-panel flex items-start gap-3 rounded-xl px-3 py-3 text-sm leading-6 text-slate-300">
                 <span class="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-[11px] font-bold text-emerald-300">{{ $loop->iteration }}</span>
                 <span>{{ $item }}</span>
             </li>

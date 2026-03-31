@@ -18,6 +18,8 @@ window.verityServerTerminal = function verityServerTerminal(options) {
         autocompleteQuery: '',
         suggestionIndex: -1,
         autocompleteHint: '',
+        welcomeTitle: options.welcomeTitle || 'verityDeploy terminal',
+        welcomeText: options.welcomeText || 'Connected to the server console. Use Tab for autocomplete and the left sidebar for presets.',
         renderedRuns: new Set(),
         runOutputLengths: {},
         pollTimer: null,
@@ -55,8 +57,8 @@ window.verityServerTerminal = function verityServerTerminal(options) {
             this.fitAddon.fit();
             this.focusTerminal();
 
-            this.terminal.writeln('\x1b[38;5;214mverityDeploy terminal\x1b[0m');
-            this.terminal.writeln('\x1b[38;5;245mConnected to the server console. Use Tab for autocomplete and the left sidebar for presets.\x1b[0m');
+            this.terminal.writeln(`\x1b[38;5;214m${this.welcomeTitle}\x1b[0m`);
+            this.terminal.writeln(`\x1b[38;5;245m${this.welcomeText}\x1b[0m`);
             this.writePrompt();
 
             this.terminal.onData((data) => this.handleInput(data));
@@ -147,8 +149,8 @@ window.verityServerTerminal = function verityServerTerminal(options) {
 
             if (!this.renderedRuns.size) {
                 this.terminal.clear();
-                this.terminal.writeln('\x1b[38;5;214mverityDeploy terminal\x1b[0m');
-                this.terminal.writeln('\x1b[38;5;245mConnected to the server console. Use Tab for autocomplete and the left sidebar for presets.\x1b[0m');
+                this.terminal.writeln(`\x1b[38;5;214m${this.welcomeTitle}\x1b[0m`);
+                this.terminal.writeln(`\x1b[38;5;245m${this.welcomeText}\x1b[0m`);
 
                 orderedRuns.forEach((run) => {
                     this.renderRun(run, true);

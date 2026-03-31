@@ -241,11 +241,17 @@
 }
 
 .fi-modal-window {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
     min-height: 0;
 }
 
 .fi-modal-content {
+    width: min(100%, calc(100vw - 3rem));
     min-height: 0;
+    max-height: calc(100vh - 3rem);
     overflow-y: auto;
 }
 
@@ -293,6 +299,58 @@
     overflow-y: auto;
 }
 
+.deployment-frost-card {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background:
+        radial-gradient(circle at top left, rgba(251, 191, 36, 0.08), transparent 28%),
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 26%),
+        linear-gradient(180deg, rgba(2, 6, 23, 0.9), rgba(15, 23, 42, 0.8));
+    box-shadow: 0 30px 90px rgba(2, 6, 23, 0.42);
+    backdrop-filter: blur(22px) saturate(160%);
+}
+
+.deployment-frost-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 30%),
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 32%);
+    opacity: 0.9;
+}
+
+.deployment-frost-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.deployment-frost-panel {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(2, 6, 23, 0.48);
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.deployment-frost-panel strong,
+.deployment-frost-panel .font-semibold,
+.deployment-frost-panel .font-medium {
+    color: rgb(248 250 252);
+}
+
+.deployment-frost-panel code,
+.deployment-frost-panel pre {
+    border-color: rgba(148, 163, 184, 0.14);
+    background: rgba(2, 6, 23, 0.72);
+}
+
 [class^='fi-wi-'] > div,
 [class*=' fi-wi-'] > div {
     overflow-y: auto;
@@ -308,15 +366,24 @@
 
 .fi-header-actions-ctn {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.75rem;
     justify-content: flex-end;
     align-items: stretch;
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: 0.125rem;
+    scrollbar-width: thin;
 }
 
 .fi-header-actions-ctn > * {
-    flex: 0 1 12rem;
-    min-width: 11rem;
+    flex: 0 0 auto;
+    min-width: max-content;
+}
+
+.fi-header-actions-ctn .fi-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 @media (max-width: 48rem) {
@@ -329,8 +396,11 @@
     }
 
     .fi-header-actions-ctn > * {
-        flex: 1 1 100%;
-        min-width: 0;
+        flex: 0 0 auto;
+    }
+
+    .fi-header-actions-ctn .fi-btn {
+        width: auto;
     }
 
     .fi-btn {

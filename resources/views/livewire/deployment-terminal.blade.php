@@ -1,5 +1,5 @@
 <div id="deployment-terminal" class="max-h-[620px] space-y-4 overflow-y-auto pr-1">
-    <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3">
+    <div class="deployment-frost-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
         <div>
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Live deployment logs</div>
             <div class="mt-1 text-sm font-semibold text-white">
@@ -14,9 +14,8 @@
     <div class="space-y-4">
     @forelse ($lines as $line)
         <details @class([
-            'group rounded-2xl border px-4 py-4 transition-all duration-300',
-            'border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_0_1px_rgba(52,211,153,0.25),0_0_30px_rgba(16,185,129,0.14)] ring-1 ring-emerald-400/30' => $line['is_running'],
-            'border-white/5 bg-slate-900/70' => ! $line['is_running'],
+            'group deployment-frost-card rounded-2xl px-4 py-4 transition-all duration-300',
+            'ring-1 ring-emerald-400/30 shadow-[0_0_0_1px_rgba(52,211,153,0.25),0_0_30px_rgba(16,185,129,0.14)]' => $line['is_running'],
         ]) {{ $line['is_running'] ? 'open' : '' }}>
             <summary @class([
                 'flex cursor-pointer list-none flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.24em]',
@@ -56,7 +55,7 @@
                 </span>
             </summary>
 
-            <div class="mt-3 space-y-3 rounded-xl border border-white/5 bg-black/50 px-4 py-3">
+            <div class="deployment-frost-panel mt-3 space-y-3 rounded-xl px-4 py-3">
                 <div class="text-sm font-medium" @class([
                     'text-emerald-200' => $line['is_running'],
                     'text-slate-300' => ! $line['is_running'] && $line['status'] !== 'failed',
