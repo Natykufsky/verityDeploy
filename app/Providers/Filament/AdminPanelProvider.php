@@ -6,12 +6,13 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Enums\ThemeMode;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
+use Filament\Support\Enums\Width;
+use Filament\View\PanelsRenderHook;
 use App\Filament\Widgets\AlertsInboxWidget;
 use App\Filament\Widgets\DeploymentOverviewStats;
 use App\Filament\Widgets\DeploymentTimelineWidget;
@@ -19,8 +20,10 @@ use App\Filament\Widgets\CpanelSetupCard;
 use App\Filament\Widgets\GithubSyncDriftCard;
 use App\Filament\Widgets\ServerHealthOverviewCard;
 use App\Filament\Widgets\ReleaseCleanupOverviewCard;
+use App\Filament\Widgets\SiteBackupOverviewCard;
 use App\Filament\Widgets\WebhookSyncHealthCard;
 use App\Services\AppSettings;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -37,10 +40,28 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->defaultThemeMode(ThemeMode::Dark)
+            ->maxContentWidth(Width::Full)
+            ->simplePageMaxContentWidth(Width::Full)
+            ->sidebarCollapsibleOnDesktop()
             ->brandName(app(AppSettings::class)->appName())
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => Blade::render("@vite('resources/js/app.js')"))
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
+                fn (): string => view('filament.auth.login-brand', [
+                    'appName' => app(AppSettings::class)->appName(),
+                ])->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn (): string => view('filament.auth.login-help', [
+                    'appName' => app(AppSettings::class)->appName(),
+                ])->render(),
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -48,16 +69,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
                 AlertsInboxWidget::class,
                 DeploymentOverviewStats::class,
-                DeploymentTimelineWidget::class,
                 ServerHealthOverviewCard::class,
-                ReleaseCleanupOverviewCard::class,
                 CpanelSetupCard::class,
                 GithubSyncDriftCard::class,
                 WebhookSyncHealthCard::class,
+                ReleaseCleanupOverviewCard::class,
+                SiteBackupOverviewCard::class,
+                DeploymentTimelineWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

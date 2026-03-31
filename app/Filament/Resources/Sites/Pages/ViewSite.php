@@ -6,6 +6,8 @@ use App\Actions\DeployProject;
 use App\Actions\BootstrapDeployPath;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Models\Deployment;
+use App\Models\SiteBackup;
+use App\Services\Backups\SiteBackupService;
 use App\Services\Deployment\ReleaseManager;
 use App\Services\GitHub\WebhookProvisioner;
 use Filament\Actions\Action;
@@ -101,6 +103,42 @@ class ViewSite extends ViewRecord
                 ->modalDescription('This keeps the latest 5 releases and removes older release directories from the server to reduce disk usage.')
                 ->modalSubmitActionLabel('Clean releases')
                 ->action(fn () => $this->cleanupReleases()),
+            Action::make('createBackup')
+                ->label('Create backup')
+                ->icon('heroicon-o-archive-box')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->visible(fn (): bool => filled($this->record->current_release_path))
+                ->modalHeading('Create a release backup?')
+                ->modalDescription('This copies the current release into the backups directory so you can restore it later without rebuilding from Git or a local source archive.')
+                ->modalSubmitActionLabel('Create backup')
+                ->action(fn () => $this->createBackup()),
+            Action::make('restoreBackup')
+                ->label('Restore backup')
+                ->icon('heroicon-o-arrow-uturn-left')
+                ->color('warning')
+                ->visible(fn (): bool => filled($this->record->backupOptions()))
+                ->modalWidth('4xl')
+                ->schema([
+                    Select::make('backup_id')
+                        ->label('Backup snapshot')
+                        ->options(fn (): array => $this->record->fresh()->backupOptions())
+                        ->searchable()
+                        ->required()
+                        ->live()
+                        ->helperText('Choose a successful backup snapshot to restore the current release from.'),
+                    Placeholder::make('restore_preview')
+                        ->label('Restore confirmation')
+                        ->content(function (Get $get): string {
+                            return $this->renderBackupPreview($get('backup_id'));
+                        })
+                        ->columnSpanFull(),
+                ])
+                ->modalHeading('Restore a backup snapshot')
+                ->modalDescription('The selected backup will be copied into a fresh release directory and then activated as the current release.')
+                ->modalSubmitActionLabel('Restore backup')
+                ->requiresConfirmation()
+                ->action(fn (array $data) => $this->restoreBackup($data)),
             Action::make('restoreRelease')
                 ->label('Restore release')
                 ->icon('heroicon-o-backward')
@@ -209,6 +247,25 @@ class ViewSite extends ViewRecord
             ->send();
     }
 
+    protected function createBackup(): void
+    {
+        try {
+            app(SiteBackupService::class)->backup($this->record->fresh(['server']), auth()->user());
+
+            Notification::make()
+                ->title('Backup created')
+                ->body('The current release was copied into the backups directory.')
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to create backup')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
     protected function refreshWebhookStatus(): void
     {
         try {
@@ -248,6 +305,58 @@ class ViewSite extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to re-provision webhook')
+            ->body($throwable->getMessage())
+            ->danger()
+            ->send();
+        }
+    }
+
+    /**
+     * @param  array{backup_id?: string|int|null}  $data
+     */
+    protected function restoreBackup(array $data): void
+    {
+        $backupId = $data['backup_id'] ?? null;
+
+        if (blank($backupId)) {
+            Notification::make()
+                ->title('No backup selected')
+                ->body('Choose a backup snapshot before restoring.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $backup = SiteBackup::query()
+            ->whereKey($backupId)
+            ->where('site_id', $this->record->id)
+            ->where('operation', 'backup')
+            ->where('status', 'successful')
+            ->whereNotNull('snapshot_path')
+            ->first();
+
+        if (! $backup) {
+            Notification::make()
+                ->title('Backup not found')
+                ->body('The selected backup snapshot is no longer available.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        try {
+            app(SiteBackupService::class)->restore($backup, auth()->user());
+
+            Notification::make()
+                ->title('Backup restore queued')
+                ->body(sprintf('The site will be restored from %s.', $backup->snapshot_path))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to restore backup')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();
@@ -303,6 +412,33 @@ class ViewSite extends ViewRecord
                 ->danger()
                 ->send();
         }
+    }
+
+    protected function renderBackupPreview(mixed $backupId): string
+    {
+        if (blank($backupId)) {
+            return 'Select a previous backup to preview the exact snapshot that will be restored.';
+        }
+
+        $backup = SiteBackup::query()
+            ->whereKey($backupId)
+            ->where('site_id', $this->record->id)
+            ->where('operation', 'backup')
+            ->first();
+
+        if (! $backup || blank($backup->snapshot_path)) {
+            return 'The selected backup is unavailable. Choose a different backup to continue.';
+        }
+
+        $currentRelease = filled($this->record->current_release_path)
+            ? $this->record->current_release_path
+            : 'no current release is set';
+
+        return sprintf(
+            'This will restore exactly %s and then update the site current release from %s.',
+            $backup->snapshot_path,
+            $currentRelease,
+        );
     }
 
     protected function renderRestorePreview(mixed $deploymentId): string

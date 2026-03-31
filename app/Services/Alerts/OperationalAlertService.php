@@ -2,6 +2,8 @@
 
 namespace App\Services\Alerts;
 
+use App\Jobs\DeliverOperationalAlertEmail;
+use App\Jobs\DeliverOperationalAlertWebhooks;
 use App\Filament\Resources\Deployments\DeploymentResource;
 use App\Filament\Resources\Servers\ServerResource;
 use App\Filament\Resources\Sites\SiteResource;
@@ -9,18 +11,50 @@ use App\Models\Deployment;
 use App\Models\Server;
 use App\Models\Site;
 use App\Models\User;
+use App\Services\AppSettings;
 use App\Notifications\OperationalAlertNotification;
 
 class OperationalAlertService
 {
     public function notifyAll(string $title, string $body, string $level = 'warning', ?string $url = null, array $context = []): void
     {
+        $payload = [
+            'title' => $title,
+            'body' => $body,
+            'level' => $level,
+            'url' => $url,
+            'context' => $context,
+        ];
+
         User::query()
-            ->chunkById(100, function ($users) use ($title, $body, $level, $url, $context): void {
+            ->chunkById(100, function ($users) use ($title, $body, $level, $url, $context, $payload): void {
                 foreach ($users as $user) {
-                    $user->notify(new OperationalAlertNotification($title, $body, $level, $url, $context));
+                    if ($user->alertInboxEnabled() && $this->meetsMinimumLevel($level, $user->alertMinimumLevel())) {
+                        $user->notify(new OperationalAlertNotification($title, $body, $level, $url, $context));
+                    }
+
+                    if (app(AppSettings::class)->alertEmailEnabled() && $user->alertEmailEnabled() && filled($user->email) && $this->meetsMinimumLevel($level, $user->alertMinimumLevel())) {
+                        DeliverOperationalAlertEmail::dispatch($user->id, $payload);
+                    }
                 }
             });
+
+        $settings = app(AppSettings::class);
+
+        if ($settings->alertWebhooksEnabled() && filled($settings->alertWebhookUrls())) {
+            DeliverOperationalAlertWebhooks::dispatch($payload);
+        }
+    }
+
+    protected function meetsMinimumLevel(string $level, string $minimumLevel): bool
+    {
+        $rank = [
+            'success' => 0,
+            'warning' => 1,
+            'danger' => 2,
+        ];
+
+        return ($rank[$level] ?? 1) >= ($rank[$minimumLevel] ?? 1);
     }
 
     public function deployFailed(Deployment $deployment, string $message, ?string $hint = null): void

@@ -7,6 +7,10 @@ use App\Models\Server;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
+use Phar;
+use PharData;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use RuntimeException;
 use Throwable;
 
@@ -28,22 +32,7 @@ class FileTransportService
         $archivePath = storage_path('app/deployment-archives/'.$deployment->id.'-'.Str::uuid().'.tar.gz');
         File::ensureDirectoryExists(dirname($archivePath));
 
-        $package = Process::path($sourcePath)
-            ->timeout(300)
-            ->run([
-                'tar',
-                '--exclude=.git',
-                '--exclude=vendor',
-                '--exclude=node_modules',
-                '--exclude=storage',
-                '-czf',
-                $archivePath,
-                '.',
-            ]);
-
-        if ($package->failed()) {
-            throw new RuntimeException(trim($package->errorOutput() ?: $package->output()) ?: 'Unable to package the local source directory.');
-        }
+        $this->createLocalSourceArchive($sourcePath, $archivePath);
 
         return $archivePath;
     }
@@ -89,17 +78,23 @@ class FileTransportService
     protected function localTransferCommands(Deployment $deployment): array
     {
         $site = $deployment->site;
-        $archivePath = $this->packageLocalSourceArchive($deployment);
+        $remoteArchivePath = $this->remoteArchivePath($deployment);
 
-        try {
-            $this->uploadArchive($site->server, $archivePath, $this->remoteArchivePath($deployment));
-        } finally {
-            if (File::exists($archivePath)) {
-                File::delete($archivePath);
+        if (! filled($deployment->archive_uploaded_at)) {
+            $archivePath = $this->packageLocalSourceArchive($deployment);
+
+            try {
+                $this->uploadArchive($site->server, $archivePath, $remoteArchivePath);
+
+                $deployment->forceFill([
+                    'archive_uploaded_at' => now(),
+                ])->saveQuietly();
+            } finally {
+                if (File::exists($archivePath)) {
+                    File::delete($archivePath);
+                }
             }
         }
-
-        $remoteArchivePath = $this->remoteArchivePath($deployment);
         $releasePath = $deployment->release_path ?: $this->releasePath($deployment);
 
         return [
@@ -116,7 +111,58 @@ class FileTransportService
 
     protected function uploadArchive(Server $server, string $archivePath, string $remoteArchivePath): void
     {
+        if ($server->connection_type === 'password') {
+            if ($this->shouldUsePuTTY()) {
+                if (! File::exists($this->puttyExecutable('pscp.exe'))) {
+                    throw new RuntimeException('PuTTY pscp.exe was not found on this machine. Install PuTTY or use SSH key authentication.');
+                }
+
+                $destination = sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath);
+                $passwordProcess = Process::timeout(300)->run([
+                    $this->puttyExecutable('pscp.exe'),
+                    '-batch',
+                    '-P',
+                    (string) ($server->ssh_port ?: 22),
+                    '-pw',
+                    (string) $server->sudo_password,
+                    '-hostkey',
+                    $this->hostKeyFingerprint($server),
+                    $archivePath,
+                    $destination,
+                ]);
+
+                if ($passwordProcess->failed()) {
+                    throw new RuntimeException(trim($passwordProcess->errorOutput() ?: $passwordProcess->output()) ?: 'Unable to upload the deployment archive.');
+                }
+
+                return;
+            }
+
+            $passwordCommand = [
+                'sshpass',
+                '-p',
+                (string) $server->sudo_password,
+                'scp',
+                '-P',
+                (string) ($server->ssh_port ?: 22),
+                $archivePath,
+                sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath),
+            ];
+
+            $passwordProcess = Process::timeout(300)->run($passwordCommand);
+
+            if ($passwordProcess->failed()) {
+                throw new RuntimeException(trim($passwordProcess->errorOutput() ?: $passwordProcess->output()) ?: 'Unable to upload the deployment archive.');
+            }
+
+            return;
+        }
+
         if ($this->shouldUsePuTTY()) {
+            if (blank($server->ssh_key)) {
+                throw new RuntimeException('The server does not have an SSH private key configured for file transfer.');
+            }
+
             $keyPath = $this->writeTemporaryPrivateKey((string) $server->ssh_key, '.ppk');
             $destination = sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath);
 
@@ -144,35 +190,6 @@ class FileTransportService
                     File::delete($keyPath);
                 }
             }
-        }
-
-        if ($server->connection_type === 'password') {
-            $passwordCommand = [
-                'sshpass',
-                '-p',
-                (string) $server->sudo_password,
-                'scp',
-                '-P',
-                (string) ($server->ssh_port ?: 22),
-                '-o',
-                'StrictHostKeyChecking=no',
-                '-o',
-                'UserKnownHostsFile=/dev/null',
-                $archivePath,
-                sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath),
-            ];
-
-            $passwordProcess = Process::timeout(300)->run($passwordCommand);
-
-            if ($passwordProcess->failed()) {
-                throw new RuntimeException(trim($passwordProcess->errorOutput() ?: $passwordProcess->output()) ?: 'Unable to upload the deployment archive.');
-            }
-
-            return;
-        }
-
-        if (blank($server->ssh_key)) {
-            throw new RuntimeException('The server does not have an SSH private key configured for file transfer.');
         }
 
         $agentEnv = $this->startSshAgent();
@@ -324,5 +341,90 @@ class FileTransportService
     protected function sanitizeBranch(string $branch): string
     {
         return preg_replace('/[^A-Za-z0-9._\-\/]/', '', $branch) ?: 'main';
+    }
+
+    protected function shellPath(string $path): string
+    {
+        return str_replace('\\', '/', $path);
+    }
+
+    protected function createLocalSourceArchive(string $sourcePath, string $archivePath): void
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $package = Process::path($sourcePath)->timeout(300)->run([
+                'tar',
+                '--exclude=.git',
+                '--exclude=vendor',
+                '--exclude=node_modules',
+                '--exclude=storage',
+                '-czf',
+                $archivePath,
+                '.',
+            ]);
+
+            if ($package->failed()) {
+                throw new RuntimeException(trim($package->errorOutput() ?: $package->output()) ?: 'Unable to package the local source directory.');
+            }
+
+            return;
+        }
+
+        $tarPath = preg_replace('/\.gz$/', '', $archivePath) ?: ($archivePath.'.tar');
+        $tempTarPath = str_ends_with($tarPath, '.tar') ? $tarPath : $tarPath.'.tar';
+
+        if (File::exists($tempTarPath)) {
+            File::delete($tempTarPath);
+        }
+
+        if (File::exists($archivePath)) {
+            File::delete($archivePath);
+        }
+
+        $phar = new PharData($tempTarPath);
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($sourcePath, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST,
+        );
+
+        foreach ($iterator as $fileInfo) {
+            $path = $fileInfo->getPathname();
+            $relativePath = ltrim(str_replace('\\', '/', substr($path, strlen($sourcePath))), '/');
+
+            if ($relativePath === '' || $this->shouldExcludePath($relativePath)) {
+                continue;
+            }
+
+            if ($fileInfo->isDir()) {
+                $phar->addEmptyDir($relativePath);
+                continue;
+            }
+
+            $phar->addFile($path, $relativePath);
+        }
+
+        if (File::exists($archivePath)) {
+            File::delete($archivePath);
+        }
+
+        $phar->compress(Phar::GZ);
+
+        $gzPath = $tempTarPath.'.gz';
+        if (! File::move($gzPath, $archivePath)) {
+            throw new RuntimeException('Unable to finalize the compressed archive.');
+        }
+
+        if (File::exists($tempTarPath)) {
+            File::delete($tempTarPath);
+        }
+    }
+
+    protected function shouldExcludePath(string $relativePath): bool
+    {
+        $normalized = str_replace('\\', '/', $relativePath);
+
+        return str_starts_with($normalized, '.git')
+            || str_starts_with($normalized, 'vendor/')
+            || str_starts_with($normalized, 'node_modules/')
+            || str_starts_with($normalized, 'storage/');
     }
 }

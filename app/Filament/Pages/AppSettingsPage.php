@@ -63,6 +63,7 @@ class AppSettingsPage extends Page
         $data = $this->getSettings()->attributesToArray();
         $data['github_api_token'] = null;
         $data['github_oauth_client_secret'] = null;
+        $data['alert_webhook_secret'] = null;
 
         $this->form->fill($data);
     }
@@ -85,7 +86,7 @@ class AppSettingsPage extends Page
 
             $settings = $this->getSettings();
 
-            foreach (['github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret'] as $field) {
+            foreach (['github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret', 'alert_webhook_secret'] as $field) {
                 if (blank($data[$field] ?? null)) {
                     unset($data[$field]);
                 }
@@ -111,7 +112,7 @@ class AppSettingsPage extends Page
         Notification::make()
             ->success()
             ->title('Settings saved')
-            ->body('Your deployment defaults, webhook settings, and GitHub access have been updated.')
+            ->body('Your deployment defaults, webhook settings, alert delivery, and GitHub access have been updated.')
             ->send();
     }
 
@@ -159,6 +160,10 @@ class AppSettingsPage extends Page
             return filled($value) ? 'updated' : 'cleared';
         }
 
+        if (in_array($key, ['alert_webhook_secret', 'alert_webhook_urls'], true)) {
+            return filled($value) ? 'updated' : 'cleared';
+        }
+
         $normalized = $this->normalizeSettingValue($value, $key);
 
         return filled($normalized) ? $normalized : 'empty';
@@ -190,6 +195,10 @@ class AppSettingsPage extends Page
             'github_oauth_access_token' => 'GitHub OAuth token',
             'github_oauth_connected_at' => 'GitHub OAuth connected at',
             'github_oauth_last_error' => 'GitHub OAuth last error',
+            'alert_email_enabled' => 'email alerts',
+            'alert_webhooks_enabled' => 'webhook alerts',
+            'alert_webhook_urls' => 'webhook URLs',
+            'alert_webhook_secret' => 'webhook signing secret',
             default => str_replace('_', ' ', $key),
         };
     }
@@ -201,6 +210,7 @@ class AppSettingsPage extends Page
             'default_branch', 'default_web_root', 'default_php_version', 'default_deploy_source', 'default_ssh_port' => 'deployment-defaults',
             'github_webhook_path', 'github_webhook_events' => 'webhook-defaults',
             'github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret', 'github_oauth_access_token' => 'github-integration',
+            'alert_email_enabled', 'alert_webhooks_enabled', 'alert_webhook_urls', 'alert_webhook_secret' => 'alert-delivery',
             default => 'branding-settings',
         };
     }

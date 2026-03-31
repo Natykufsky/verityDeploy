@@ -142,10 +142,23 @@ class SiteInfolist
                     ->columns(2),
                 Section::make('Runtime Configuration')
                     ->schema([
+                        TextEntry::make('shared_env_mode')
+                            ->label('Shared .env')
+                            ->badge()
+                            ->color(fn (string $state): string => $state === 'custom' ? 'warning' : 'success'),
+                        TextEntry::make('shared_env_summary')
+                            ->label('Summary')
+                            ->columnSpanFull(),
                         KeyValueEntry::make('environment_variables')
                             ->label('Environment variables')
                             ->keyLabel('Variable')
                             ->valueLabel('Value'),
+                        TextEntry::make('shared_env_contents')
+                            ->label('Shared .env override')
+                            ->visible(fn ($record): bool => filled($record->shared_env_contents))
+                            ->html()
+                            ->formatStateUsing(fn ($state): HtmlString => static::renderTerminalBlock($state))
+                            ->columnSpanFull(),
                         RepeatableEntry::make('shared_files')
                             ->schema([
                                 TextEntry::make('path')
@@ -191,6 +204,63 @@ class SiteInfolist
                                     ->columnSpanFull(),
                                 TextEntry::make('output')
                                     ->label('Log output')
+                                    ->html()
+                                    ->formatStateUsing(fn ($state): HtmlString => static::renderTerminalBlock($state))
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2)
+                            ->contained(),
+                    ]),
+                Section::make('Backup Status')
+                    ->schema([
+                        TextEntry::make('backup_status')
+                            ->label('Status')
+                            ->badge()
+                            ->color(fn (string $state): string => match ($state) {
+                                'healthy' => 'success',
+                                'needs attention' => 'warning',
+                                'running' => 'info',
+                                default => 'gray',
+                            }),
+                        TextEntry::make('latest_backup_summary')
+                            ->label('Latest backup')
+                            ->columnSpanFull(),
+                        TextEntry::make('latest_backup_snapshot_path')
+                            ->label('Latest snapshot path')
+                            ->copyable()
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+                Section::make('Backup History')
+                    ->schema([
+                        RepeatableEntry::make('recent_admin_backups')
+                            ->schema([
+                                TextEntry::make('operation')
+                                    ->badge(),
+                                TextEntry::make('status')
+                                    ->badge()
+                                    ->color(fn (string $state): string => match ($state) {
+                                        'successful' => 'success',
+                                        'running' => 'warning',
+                                        'failed' => 'danger',
+                                        default => 'gray',
+                                    }),
+                                TextEntry::make('snapshot_path')
+                                    ->label('Snapshot path')
+                                    ->copyable()
+                                    ->columnSpanFull(),
+                                TextEntry::make('restored_release_path')
+                                    ->label('Restored release')
+                                    ->copyable()
+                                    ->columnSpanFull(),
+                                TextEntry::make('started_at')
+                                    ->dateTime(),
+                                TextEntry::make('finished_at')
+                                    ->dateTime(),
+                                TextEntry::make('error_message')
+                                    ->columnSpanFull(),
+                                TextEntry::make('output')
+                                    ->label('Output')
                                     ->html()
                                     ->formatStateUsing(fn ($state): HtmlString => static::renderTerminalBlock($state))
                                     ->columnSpanFull(),

@@ -30,7 +30,7 @@ class ServerProvisioner
             : [
                 sprintf('df -Pk %s', escapeshellarg($diskTarget)),
                 'php -v',
-                'composer --version',
+                'command -v composer >/dev/null && composer --version || echo "Composer not found (optional for bootstrap)."',
                 'git --version',
             ];
 
@@ -69,7 +69,7 @@ class ServerProvisioner
                 return $test->fresh();
             }
 
-            $strategy = $this->connector->strategy($server, 5);
+            $strategy = $this->connector->strategy($server, 20);
             $output = collect($commands)
                 ->map(fn (string $command): string => $strategy->run($command))
                 ->implode(PHP_EOL.PHP_EOL);

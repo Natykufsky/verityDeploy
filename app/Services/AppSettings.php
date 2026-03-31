@@ -35,6 +35,10 @@ class AppSettings
                 'github_oauth_client_id' => null,
                 'github_oauth_client_secret' => null,
                 'github_oauth_access_token' => null,
+                'alert_email_enabled' => false,
+                'alert_webhooks_enabled' => false,
+                'alert_webhook_urls' => null,
+                'alert_webhook_secret' => null,
             ]);
         } catch (Throwable) {
             return $this->cached = $this->fallbackRecord();
@@ -55,6 +59,10 @@ class AppSettings
             'github_oauth_client_id' => null,
             'github_oauth_client_secret' => null,
             'github_oauth_access_token' => null,
+            'alert_email_enabled' => false,
+            'alert_webhooks_enabled' => false,
+            'alert_webhook_urls' => null,
+            'alert_webhook_secret' => null,
         ]);
     }
 
@@ -139,5 +147,36 @@ class AppSettings
             ->filter()
             ->values()
             ->all();
+    }
+
+    public function alertEmailEnabled(): bool
+    {
+        return (bool) $this->record()->alert_email_enabled;
+    }
+
+    public function alertWebhooksEnabled(): bool
+    {
+        return (bool) $this->record()->alert_webhooks_enabled;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function alertWebhookUrls(): array
+    {
+        $urls = (string) ($this->record()->alert_webhook_urls ?: '');
+
+        return collect(preg_split('/\r\n|\r|\n/', $urls) ?: [])
+            ->map(fn (string $url): string => trim($url))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function alertWebhookSecret(): ?string
+    {
+        $secret = $this->record()->alert_webhook_secret;
+
+        return filled($secret) ? (string) $secret : null;
     }
 }

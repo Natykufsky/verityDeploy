@@ -15,13 +15,19 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SitesTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->accessibleTo())
             ->columns([
+                TextColumn::make('team.name')
+                    ->label('Team')
+                    ->placeholder('Inherited')
+                    ->searchable(),
                 TextColumn::make('server.name')
                     ->label('Server')
                     ->searchable(),

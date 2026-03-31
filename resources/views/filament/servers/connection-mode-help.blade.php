@@ -30,6 +30,7 @@
         <p class="font-medium text-slate-900 dark:text-slate-100">Quick checklist</p>
         <ul class="mt-2 list-disc space-y-1 pl-4">
             <li>Choose the connection type that matches the server platform.</li>
+            <li>Use the Provider tab to record the cloud vendor, region, and any infrastructure notes.</li>
             <li>Keep sensitive values encrypted in the server record.</li>
             <li>Use Export PuTTY key if you need a Windows-friendly .ppk file for SSH tooling.</li>
             <li>Use Discover port and Test API on cPanel servers after saving the record.</li>

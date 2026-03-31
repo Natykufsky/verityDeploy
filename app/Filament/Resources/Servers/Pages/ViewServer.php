@@ -31,6 +31,11 @@ class ViewServer extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('openTerminalConsole')
+                ->label('Launch terminal')
+                ->icon('heroicon-o-command-line')
+                ->color('info')
+                ->action(fn (): mixed => $this->dispatch('verity-open-server-terminal')),
             Action::make('openCpanelConnectionWizard')
                 ->label('Run all cPanel steps')
                 ->icon('heroicon-o-sparkles')
@@ -44,6 +49,8 @@ class ViewServer extends ViewRecord
                 ->icon('heroicon-o-bolt')
                 ->color('warning')
                 ->requiresConfirmation()
+                ->stickyModalHeader()
+                ->stickyModalFooter()
                 ->modalHeading('Server connection details')
                 ->modalDescription('Run a live whoami check through the configured connection strategy, save the result, and review the latest connection attempts.')
                 ->modalWidth('7xl')
@@ -88,8 +95,10 @@ class ViewServer extends ViewRecord
                 ->icon('heroicon-o-server-stack')
                 ->color('primary')
                 ->requiresConfirmation()
+                ->stickyModalHeader()
+                ->stickyModalFooter()
                 ->modalHeading('Run server provisioning checks?')
-                ->modalDescription('Checks disk space, PHP, Composer, and Git before the server is used for bootstrap, and records the result for later review.')
+                ->modalDescription('Checks disk space, PHP, and Git before the server is used for bootstrap. Composer is treated as optional here, and the result is recorded for later review.')
                 ->modalWidth('7xl')
                 ->modalSubmitActionLabel('Run checks')
                 ->modalContent(fn (): View => view('filament.servers.connection-details-modal', [
@@ -214,7 +223,7 @@ class ViewServer extends ViewRecord
 
             Notification::make()
                 ->title('Server provisioned')
-                ->body('Disk, PHP, Composer, and Git checks passed successfully.')
+                ->body('Disk, PHP, and Git checks passed successfully. Composer was treated as optional for bootstrap.')
                 ->success()
                 ->send();
         } catch (Throwable $throwable) {

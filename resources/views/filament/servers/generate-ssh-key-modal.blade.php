@@ -10,7 +10,7 @@
 
     @if(filled($generatedPublicKey))
         <div class="space-y-3">
-            <div class="flex items-start justify-between gap-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-100">Public key ready</h3>
                     <p class="mt-1 text-sm text-slate-400">Copy this key and add it to the remote server.</p>

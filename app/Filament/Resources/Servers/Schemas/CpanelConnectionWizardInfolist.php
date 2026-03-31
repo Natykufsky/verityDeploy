@@ -21,6 +21,10 @@ class CpanelConnectionWizardInfolist
                         TextEntry::make('ssh_user')
                             ->label('SSH user')
                             ->copyable(),
+                        TextEntry::make('cpanel_username')
+                            ->label('cPanel username')
+                            ->placeholder('Uses SSH user when blank')
+                            ->copyable(),
                         TextEntry::make('ip_address')
                             ->label('IP address')
                             ->copyable(),

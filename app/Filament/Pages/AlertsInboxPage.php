@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Notifications\OperationalAlertNotification;
+use App\Models\OperationalAlertDelivery;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -13,7 +14,6 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\DatabaseNotification;
 use BackedEnum;
-use Illuminate\Http\RedirectResponse;
 use UnitEnum;
 
 class AlertsInboxPage extends Page
@@ -34,6 +34,8 @@ class AlertsInboxPage extends Page
 
     public string $filter = 'unread';
 
+    public ?string $activeNotificationId = null;
+
     public function infolist(Schema $schema): Schema
     {
         return $this->content($schema);
@@ -51,6 +53,13 @@ class AlertsInboxPage extends Page
                     ->schema([
                         View::make('filament.pages.alerts-inbox')
                             ->viewData(fn (): array => $this->inboxViewData()),
+                    ]),
+                Section::make('Delivery status')
+                    ->schema([
+                        View::make('filament.pages.alert-delivery-log')
+                            ->viewData(fn (): array => [
+                                'deliveries' => $this->recentDeliveries(),
+                            ]),
                     ]),
             ]);
     }
@@ -109,6 +118,7 @@ class AlertsInboxPage extends Page
                 'recent' => $this->recentCount(),
             ],
             'notifications' => $this->inboxNotifications(),
+            'notificationIds' => $this->inboxNotifications()->pluck('id')->values()->all(),
         ];
     }
 
@@ -204,6 +214,10 @@ class AlertsInboxPage extends Page
 
         $notification->delete();
 
+        if ($this->activeNotificationId === $notificationId) {
+            $this->activeNotificationId = null;
+        }
+
         Notification::make()
             ->title('Alert dismissed')
             ->body('The alert was removed from the inbox.')
@@ -211,29 +225,86 @@ class AlertsInboxPage extends Page
             ->send();
     }
 
-    public function openNotification(string $notificationId): ?RedirectResponse
+    public function openNotification(string $notificationId): void
     {
         $notification = $this->findNotification($notificationId);
 
         if (! $notification) {
-            return null;
+            return;
         }
 
         $notification->markAsRead();
-
-        $url = data_get($notification->data, 'url');
-
-        if (filled($url)) {
-            return redirect()->to($url);
-        }
+        $this->activeNotificationId = $notification->id;
 
         Notification::make()
             ->title('Alert opened')
-            ->body('The alert has been marked as read.')
+            ->body('The alert is now open in the modal.')
             ->success()
             ->send();
+    }
 
-        return null;
+    public function closeNotification(): void
+    {
+        $this->activeNotificationId = null;
+    }
+
+    public function nextNotification(): void
+    {
+        $notification = $this->activeNotification();
+
+        if (! $notification) {
+            return;
+        }
+
+        $notifications = $this->inboxNotifications()->values();
+        $currentIndex = $notifications->search(fn (DatabaseNotification $item): bool => $item->is($notification));
+
+        if ($currentIndex === false) {
+            return;
+        }
+
+        $next = $notifications->get($currentIndex + 1);
+
+        if (! $next instanceof DatabaseNotification) {
+            return;
+        }
+
+        $this->activeNotificationId = $next->id;
+        $next->markAsRead();
+    }
+
+    public function previousNotification(): void
+    {
+        $notification = $this->activeNotification();
+
+        if (! $notification) {
+            return;
+        }
+
+        $notifications = $this->inboxNotifications()->values();
+        $currentIndex = $notifications->search(fn (DatabaseNotification $item): bool => $item->is($notification));
+
+        if ($currentIndex === false || $currentIndex === 0) {
+            return;
+        }
+
+        $previous = $notifications->get($currentIndex - 1);
+
+        if (! $previous instanceof DatabaseNotification) {
+            return;
+        }
+
+        $this->activeNotificationId = $previous->id;
+        $previous->markAsRead();
+    }
+
+    public function activeNotification(): ?DatabaseNotification
+    {
+        if (! filled($this->activeNotificationId)) {
+            return null;
+        }
+
+        return $this->findNotification($this->activeNotificationId);
     }
 
     public function notificationTitle(DatabaseNotification $notification): string
@@ -277,6 +348,29 @@ class AlertsInboxPage extends Page
         return $notification->created_at?->diffForHumans() ?? 'just now';
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function recentDeliveries(): array
+    {
+        return OperationalAlertDelivery::query()
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(function (OperationalAlertDelivery $delivery): array {
+                return [
+                    'title' => $delivery->title,
+                    'channel' => $delivery->channel,
+                    'target' => $delivery->target,
+                    'status' => $delivery->status,
+                    'level' => $delivery->level,
+                    'error_message' => $delivery->error_message,
+                    'delivered_at' => $delivery->delivered_at?->diffForHumans() ?? $delivery->created_at?->diffForHumans() ?? 'just now',
+                ];
+            })
+            ->all();
+    }
+
     protected function updateNotificationReadState(string $notificationId, ?\Illuminate\Support\Carbon $readAt): void
     {
         $notification = $this->findNotification($notificationId);
@@ -288,6 +382,10 @@ class AlertsInboxPage extends Page
         $notification->update([
             'read_at' => $readAt,
         ]);
+
+        if ($this->activeNotificationId === $notificationId) {
+            $this->activeNotificationId = $readAt ? $notificationId : $notificationId;
+        }
 
         Notification::make()
             ->title($readAt ? 'Alert marked as read' : 'Alert marked as unread')

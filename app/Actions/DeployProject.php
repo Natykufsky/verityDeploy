@@ -72,10 +72,34 @@ class DeployProject
         return $deployment;
     }
 
+    public function resume(
+        Deployment $deployment,
+        ?User $user = null,
+    ): Deployment {
+        if (! $deployment->isResumable()) {
+            throw new \RuntimeException('This deployment does not have enough completed state to resume safely.');
+        }
+
+        $deployment->update([
+            'triggered_by_user_id' => $user?->id ?? $deployment->triggered_by_user_id,
+            'status' => 'pending',
+            'started_at' => null,
+            'finished_at' => null,
+            'exit_code' => null,
+            'error_message' => null,
+            'recovery_hint' => null,
+        ]);
+
+        DeployJob::dispatch($deployment->id);
+
+        return $deployment;
+    }
+
     public function run(Deployment $deployment): Deployment
     {
         $deployment->loadMissing('site.server', 'steps');
         $deploymentOutput = (string) $deployment->output;
+        $existingSteps = $deployment->steps->keyBy('sequence');
 
         $deployment->update([
             'status' => 'running',
@@ -115,8 +139,24 @@ class DeployProject
         }
 
         foreach ($this->buildCommands($deployment) as $index => $step) {
+            $sequence = $index + 1;
+            $existingStep = $existingSteps->get($sequence);
+
+            if ($existingStep?->status === 'successful') {
+                $deploymentOutput .= sprintf(
+                    '[%s] Skipped (already successful in a previous attempt).'.PHP_EOL,
+                    $step['label'],
+                );
+
+                $deployment->update([
+                    'output' => trim($deploymentOutput),
+                ]);
+
+                continue;
+            }
+
             $deploymentStep = $deployment->steps()->create([
-                'sequence' => $index + 1,
+                'sequence' => $sequence,
                 'label' => $step['label'],
                 'command' => $step['command'],
                 'status' => 'running',
@@ -217,11 +257,11 @@ class DeployProject
                 'label' => 'Preflight checks',
                 'command' => $site->deploy_source === 'git'
                     ? sprintf(
-                        'mkdir -p %s && command -v git >/dev/null && command -v composer >/dev/null && command -v php >/dev/null',
+                        'mkdir -p %s && command -v git >/dev/null && (command -v composer >/dev/null || command -v composer2 >/dev/null || command -v ea-composer >/dev/null || [ -x /opt/cpanel/composer/bin/composer ]) && command -v php >/dev/null',
                         escapeshellarg($basePath),
                     )
                     : sprintf(
-                        'mkdir -p %s && command -v tar >/dev/null && command -v composer >/dev/null && command -v php >/dev/null',
+                        'mkdir -p %s && command -v tar >/dev/null && (command -v composer >/dev/null || command -v composer2 >/dev/null || command -v ea-composer >/dev/null || [ -x /opt/cpanel/composer/bin/composer ]) && command -v php >/dev/null',
                         escapeshellarg($basePath),
                     ),
             ];
@@ -251,10 +291,7 @@ class DeployProject
         if ($deployment->source !== 'rollback') {
             $commands[] = [
                 'label' => 'Install dependencies',
-                'command' => sprintf(
-                    'cd %s && composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader',
-                    escapeshellarg($site->deploy_source === 'git' || $site->deploy_source === 'local' ? $releasePath : $basePath),
-                ),
+                'command' => $this->composerInstallCommand($site->deploy_source === 'git' || $site->deploy_source === 'local' ? $releasePath : $basePath),
             ];
 
             $commands[] = [
@@ -331,6 +368,22 @@ class DeployProject
     protected function sanitizeShellToken(string $value): string
     {
         return preg_replace('/[^A-Za-z0-9._\-\/]/', '', $value) ?: 'main';
+    }
+
+    protected function composerInstallCommand(string $workingDirectory): string
+    {
+        $script = implode(' ; ', [
+            'composer_bin=$(command -v composer 2>/dev/null || command -v composer2 2>/dev/null || command -v ea-composer 2>/dev/null || printf %s /opt/cpanel/composer/bin/composer)',
+            'if [ ! -x "$composer_bin" ]; then echo "Composer not found on the remote server. Install Composer or expose composer2 / /opt/cpanel/composer/bin/composer in PATH."; exit 127; fi',
+            sprintf('cd %s && "$composer_bin" install --no-interaction --prefer-dist --no-dev --optimize-autoloader', $this->shellDoubleQuoteArgument($workingDirectory)),
+        ]);
+
+        return $script;
+    }
+
+    protected function shellDoubleQuoteArgument(string $value): string
+    {
+        return '"'.str_replace(['\\', '"', '$', '`'], ['\\\\', '\\"', '\$', '\`'], $value).'"';
     }
 
     protected function recoveryHint(Throwable $throwable, Site $site, ?string $step = null): string

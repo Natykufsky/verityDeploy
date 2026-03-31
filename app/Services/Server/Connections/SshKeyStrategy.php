@@ -16,8 +16,18 @@ class SshKeyStrategy implements ConnectionStrategy
 
     public function run(string $command): string
     {
-        $process = $this->ssh()
-            ->execute($command);
+        return $this->streamRun($command);
+    }
+
+    public function streamRun(string $command, ?callable $onOutput = null): string
+    {
+        $ssh = $this->ssh();
+
+        if ($onOutput) {
+            $ssh->onOutput($onOutput);
+        }
+
+        $process = $ssh->execute($command);
 
         if (! $process->isSuccessful()) {
             throw new RuntimeException(trim($process->getErrorOutput() ?: $process->getOutput()) ?: 'SSH command failed.');

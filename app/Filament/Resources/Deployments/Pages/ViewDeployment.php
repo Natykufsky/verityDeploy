@@ -14,11 +14,32 @@ class ViewDeployment extends ViewRecord
 {
     protected static string $resource = DeploymentResource::class;
 
-    protected ?string $pollingInterval = '5s';
+    protected function getPollingInterval(): ?string
+    {
+        return in_array($this->record->status, ['pending', 'running'], true) ? '5s' : null;
+    }
 
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('resume')
+                ->label('Resume deployment')
+                ->icon('heroicon-o-play')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->isResumable())
+                ->requiresConfirmation()
+                ->modalHeading(function (): string {
+                    return sprintf('Resume deployment for %s?', $this->record->site->name);
+                })
+                ->modalDescription(function (): string {
+                    $alreadyUploaded = filled($this->record->archive_uploaded_at)
+                        ? 'The uploaded archive will be reused, so the retry will continue from the next incomplete step.'
+                        : 'Completed steps will be skipped, and the retry will continue from the next incomplete step.';
+
+                    return $alreadyUploaded.' Confirm only after you have fixed the issue that caused the failure.';
+                })
+                ->modalSubmitActionLabel('Resume deployment')
+                ->action(fn () => $this->queueResume()),
             Action::make('rollback')
                 ->label('Rollback')
                 ->icon('heroicon-o-arrow-uturn-left')
@@ -126,6 +147,29 @@ class ViewDeployment extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to queue rollback')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function queueResume(): void
+    {
+        try {
+            app(DeployProject::class)->resume($this->record, auth()->user());
+
+            Notification::make()
+                ->title('Deployment resumed')
+                ->body(sprintf(
+                    '%s is resuming from the next incomplete step%s.',
+                    $this->record->site->name,
+                    filled($this->record->archive_uploaded_at) ? ' and will reuse the already uploaded archive' : '',
+                ))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to resume deployment')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();

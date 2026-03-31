@@ -65,7 +65,7 @@ class CpanelApiClient
         $response = $this->api2Client($server)
             ->asForm()
             ->post('', array_merge([
-                'cpanel_jsonapi_user' => $server->ssh_user,
+                'cpanel_jsonapi_user' => $this->cpanelUsername($server),
                 'cpanel_jsonapi_apiversion' => 2,
                 'cpanel_jsonapi_module' => $module,
                 'cpanel_jsonapi_func' => $function,
@@ -170,7 +170,7 @@ class CpanelApiClient
             ->asMultipart()
             ->attach('file-1', $contents, $filename)
             ->post('', [
-                'cpanel_jsonapi_user' => $server->ssh_user,
+                'cpanel_jsonapi_user' => $this->cpanelUsername($server),
                 'cpanel_jsonapi_apiversion' => 2,
                 'cpanel_jsonapi_module' => 'Fileman',
                 'cpanel_jsonapi_func' => 'uploadfiles',
@@ -243,12 +243,24 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function copyPath(Server $server, string $sourcePath, string $destinationPath): array
+    {
+        return $this->fileOp($server, 'copy', [
+            'sourcefiles' => $this->toHomeRelativePath($server, $sourcePath),
+            'destfiles' => $this->toHomeRelativePath($server, $destinationPath),
+            'doubledecode' => 1,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function fileOp(Server $server, string $operation, array $query = []): array
     {
         $response = $this->api2Client($server)
             ->asForm()
             ->post('', array_merge([
-                'cpanel_jsonapi_user' => $server->ssh_user,
+                'cpanel_jsonapi_user' => $this->cpanelUsername($server),
                 'cpanel_jsonapi_apiversion' => 2,
                 'cpanel_jsonapi_module' => 'Fileman',
                 'cpanel_jsonapi_func' => 'fileop',
@@ -386,7 +398,7 @@ class CpanelApiClient
             ->acceptJson()
             ->asJson()
             ->timeout(30)
-            ->withBasicAuth($server->ssh_user, (string) $server->cpanel_api_token);
+            ->withBasicAuth($this->cpanelUsername($server), (string) $server->cpanel_api_token);
     }
 
     protected function api2Client(Server $server)
@@ -401,13 +413,47 @@ class CpanelApiClient
             ->acceptJson()
             ->asJson()
             ->timeout(30)
-            ->withBasicAuth($server->ssh_user, (string) $server->cpanel_api_token);
+            ->withBasicAuth($this->cpanelUsername($server), (string) $server->cpanel_api_token);
+    }
+
+    protected function cpanelUsername(Server $server): string
+    {
+        return trim((string) ($server->cpanel_username ?: $server->ssh_user));
     }
 
     protected function errorMessage(Response $response): string
     {
         $message = trim($response->body());
 
-        return $message !== '' ? $message : 'Unable to reach the cPanel API.';
+        if ($message === '') {
+            return 'Unable to reach the cPanel API.';
+        }
+
+        $lower = strtolower($message);
+
+        if (str_contains($lower, 'login is invalid')) {
+            return 'cPanel rejected the login. The username/token pair is wrong for this account, or the token does not belong to the cPanel account you entered.';
+        }
+
+        if (str_contains($lower, 'unauthorized') || str_contains($lower, 'forbidden')) {
+            return 'cPanel rejected the API token. Confirm the token belongs to the same cPanel account as the cPanel username and that the API port is correct.';
+        }
+
+        if (str_contains($lower, 'not found') || str_contains($lower, '404')) {
+            return 'The cPanel API endpoint was not found. Confirm the API port and that you are pointing at the cPanel host, not the website port.';
+        }
+
+        if (str_contains($lower, 'wrong version number') || str_contains($lower, 'tls connect error')) {
+            return sprintf(
+                'The cPanel API port is wrong or not serving HTTPS. Port %s looks like an SSH port, not the cPanel HTTPS/API port. Change the cPanel API port to the real cPanel service port, usually 2083, and retry.',
+                $response->effectiveUri()?->getPort() ?: 'unknown',
+            );
+        }
+
+        if (str_contains($lower, 'unable to reach the cpanel api')) {
+            return 'The cPanel API did not respond. Confirm that port 2083 is open on the host, the account has cPanel API access, and the hostname resolves to the cPanel service.';
+        }
+
+        return $message;
     }
 }

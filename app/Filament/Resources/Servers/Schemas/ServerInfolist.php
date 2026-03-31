@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Servers\Schemas;
 
+use App\Livewire\ServerTerminalConsole;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
@@ -29,6 +31,10 @@ class ServerInfolist
                         TextEntry::make('ssh_user')
                             ->label('SSH user')
                             ->copyable(),
+                        TextEntry::make('cpanel_username')
+                            ->label('cPanel username')
+                            ->placeholder('Same as SSH user if not set')
+                            ->copyable(),
                         TextEntry::make('status')
                             ->badge()
                             ->color(fn (string $state): string => match ($state) {
@@ -51,7 +57,42 @@ class ServerInfolist
                         TextEntry::make('notes')
                             ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                    ->columns([
+                        'default' => 1,
+                        'md' => 2,
+                    ]),
+                Section::make('Provider')
+                    ->schema([
+                        TextEntry::make('provider_type')
+                            ->label('Provider')
+                            ->badge()
+                            ->color(fn (string $state): string => match ($state) {
+                                'digitalocean' => 'info',
+                                'aws' => 'warning',
+                                'hetzner' => 'danger',
+                                'vultr', 'linode' => 'primary',
+                                'cpanel' => 'success',
+                                'local' => 'gray',
+                                default => 'slate',
+                            }),
+                        TextEntry::make('provider_reference')
+                            ->label('Provider reference')
+                            ->copyable(),
+                        TextEntry::make('provider_region')
+                            ->label('Provider region'),
+                        TextEntry::make('provider_summary')
+                            ->label('Summary')
+                            ->columnSpanFull(),
+                        KeyValueEntry::make('provider_metadata')
+                            ->label('Metadata')
+                            ->keyLabel('Field')
+                            ->valueLabel('Value')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns([
+                        'default' => 1,
+                        'md' => 2,
+                    ]),
                 Section::make('Health Metrics')
                     ->schema([
                         KeyValueEntry::make('metrics')
@@ -79,11 +120,19 @@ class ServerInfolist
                         TextEntry::make('cpanel_api_port')
                             ->label('cPanel API port'),
                     ])
-                    ->columns(2),
+                    ->columns([
+                        'default' => 1,
+                        'md' => 2,
+                    ]),
                 Section::make('Operational Timeline')
+                    ->extraAttributes([
+                        'class' => 'operational-timeline-section',
+                    ])
                     ->schema([
                         View::make('filament.schemas.components.operational-timeline'),
                     ]),
+                Livewire::make(ServerTerminalConsole::class)
+                    ->columnSpanFull(),
             ]);
     }
 

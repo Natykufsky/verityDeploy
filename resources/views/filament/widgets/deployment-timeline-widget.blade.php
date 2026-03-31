@@ -31,7 +31,7 @@
 
 <div class="space-y-4" wire:poll.30s>
     <div class="rounded-2xl border border-slate-200/10 bg-slate-950/70 p-5 shadow-sm">
-        <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-3">
                     <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Deployment timeline</p>
@@ -46,7 +46,7 @@
                 </p>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 lg:justify-end">
                 @if (filled($latestDeploymentUrl))
                     <a
                         href="{{ $latestDeploymentUrl }}"
@@ -99,15 +99,15 @@
         <div class="mt-4">
             <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Step chips</p>
 
-            <div class="mt-3 flex flex-wrap gap-2">
+            <div class="mt-3 grid gap-2 sm:flex sm:flex-wrap">
                 @forelse ($stepChips as $chip)
                     <button
                         type="button"
                         wire:click="openStepDetail({{ $latestDeploymentId }}, {{ $chip['sequence'] }})"
-                        class="rounded-full border px-3 py-2 text-xs font-semibold transition hover:scale-[1.01] hover:shadow-sm {{ $toneStyles[$chip['tone']]['chip'] }}"
+                        class="flex w-full items-center justify-between gap-3 rounded-full border px-3 py-2 text-left text-xs font-semibold transition hover:scale-[1.01] hover:shadow-sm sm:w-auto {{ $toneStyles[$chip['tone']]['chip'] }}"
                     >
-                        <span>{{ $chip['label'] }}</span>
-                        <span class="ml-2 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] {{ $toneStyles[$chip['tone']]['chip'] }}">
+                        <span class="truncate">{{ $chip['label'] }}</span>
+                        <span class="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] {{ $toneStyles[$chip['tone']]['chip'] }}">
                             {{ $chip['status'] }}
                         </span>
                     </button>
@@ -121,7 +121,7 @@
 
         @if (filled($selectedStepDetail))
             <div class="mt-5 rounded-2xl border border-white/10 bg-slate-950/95 p-5 shadow-2xl">
-                <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                     <div>
                         <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Step detail</p>
                         <h4 class="mt-2 text-lg font-semibold text-white">{{ $selectedStepDetail['step_label'] }}</h4>
@@ -139,7 +139,7 @@
                     </button>
                 </div>
 
-                <div class="mt-4 grid gap-3 sm:grid-cols-4">
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <div class="rounded-xl border border-white/5 bg-black/20 p-3">
                         <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Status</p>
                         <p class="mt-1 text-sm font-semibold text-white">{{ $selectedStepDetail['status'] }}</p>
@@ -172,15 +172,15 @@
                             Copy command
                         </button>
                     </div>
-                    <pre class="mt-3 whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['command'] }}</pre>
+                    <pre class="mt-3 max-h-[180px] overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['command'] }}</pre>
                 </div>
 
                 <div class="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
                     <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Output</p>
-                    <pre class="mt-3 whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['output'] ?: 'No output captured.' }}</pre>
+                    <pre class="mt-3 max-h-[220px] overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['output'] ?: 'No output captured.' }}</pre>
                 </div>
 
-                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-xs text-slate-400">
                         Open the full deployment record for the complete command history and terminal output.
                     </p>

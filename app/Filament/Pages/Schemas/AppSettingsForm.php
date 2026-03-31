@@ -4,7 +4,9 @@ namespace App\Filament\Pages\Schemas;
 
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class AppSettingsForm
@@ -73,6 +75,27 @@ class AppSettingsForm
                             ->revealable()
                             ->helperText('Stored encrypted. Leave blank to keep the saved secret.')
                             ->columnSpanFull(),
+                    ])
+                    ->columns(1),
+                Section::make('Alert Delivery')
+                    ->extraAttributes(['id' => 'alert-delivery'])
+                    ->schema([
+                        Toggle::make('alert_email_enabled')
+                            ->label('Email alerts')
+                            ->helperText('When enabled, operational alerts are emailed to users who can access the Filament panel.'),
+                        Toggle::make('alert_webhooks_enabled')
+                            ->label('Webhook alerts')
+                            ->helperText('When enabled, operational alerts are posted to each URL below as JSON payloads.'),
+                        Textarea::make('alert_webhook_urls')
+                            ->label('Webhook URLs')
+                            ->rows(4)
+                            ->placeholder("https://example.com/webhooks/veritydeploy\nhttps://backup.example.com/alerts")
+                            ->helperText('Enter one endpoint per line. Leave blank to disable webhook delivery.'),
+                        TextInput::make('alert_webhook_secret')
+                            ->label('Webhook signing secret')
+                            ->password()
+                            ->revealable()
+                            ->helperText('Optional shared secret used to sign outbound webhook payloads.'),
                     ])
                     ->columns(1),
             ]);

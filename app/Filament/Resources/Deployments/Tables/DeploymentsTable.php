@@ -14,8 +14,12 @@ class DeploymentsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->visibleInAdmin())
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->visibleInAdmin()->accessibleTo())
             ->columns([
+                TextColumn::make('site.team.name')
+                    ->label('Team')
+                    ->placeholder('Inherited')
+                    ->searchable(),
                 TextColumn::make('site.name')
                     ->label('Site')
                     ->searchable(),

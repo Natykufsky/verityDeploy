@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Servers\Tables;
 
+use App\Models\Server;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -9,13 +10,19 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ServersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->accessibleTo())
             ->columns([
+                TextColumn::make('team.name')
+                    ->label('Team')
+                    ->placeholder('Personal workspace')
+                    ->searchable(),
                 TextColumn::make('owner.name')
                     ->label('Owner')
                     ->placeholder('Unassigned')
@@ -32,6 +39,18 @@ class ServersTable
                 TextColumn::make('ssh_user')
                     ->label('SSH user')
                     ->searchable(),
+                TextColumn::make('provider_type')
+                    ->label('Provider')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'digitalocean' => 'info',
+                        'aws' => 'warning',
+                        'hetzner' => 'danger',
+                        'vultr', 'linode' => 'primary',
+                        'cpanel' => 'success',
+                        'local' => 'gray',
+                        default => 'slate',
+                    }),
                 TextColumn::make('connection_type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -74,6 +93,18 @@ class ServersTable
                         'password' => 'Password',
                         'local' => 'Local',
                         'cpanel' => 'cPanel',
+                    ]),
+                SelectFilter::make('provider_type')
+                    ->label('Provider')
+                    ->options([
+                        'manual' => 'Manual / Custom',
+                        'digitalocean' => 'DigitalOcean',
+                        'aws' => 'AWS',
+                        'hetzner' => 'Hetzner',
+                        'vultr' => 'Vultr',
+                        'linode' => 'Linode',
+                        'cpanel' => 'cPanel',
+                        'local' => 'Local',
                     ]),
             ])
             ->recordActions([

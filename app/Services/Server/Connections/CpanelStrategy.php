@@ -18,13 +18,24 @@ class CpanelStrategy implements ConnectionStrategy
 
     public function run(string $command): string
     {
+        return $this->streamRun($command);
+    }
+
+    public function streamRun(string $command, ?callable $onOutput = null): string
+    {
         $normalized = trim(strtolower($command));
 
-        return match ($normalized) {
+        $result = match ($normalized) {
             'whoami' => trim((string) $this->server->ssh_user),
             'ping', 'api ping', 'cpanel ping' => $this->ping(),
             default => throw new RuntimeException('cPanel connections support API-based checks only.'),
         };
+
+        if ($onOutput) {
+            $onOutput('output', $result.PHP_EOL);
+        }
+
+        return $result;
     }
 
     protected function ping(): string

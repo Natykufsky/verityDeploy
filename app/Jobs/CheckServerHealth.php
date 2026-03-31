@@ -68,7 +68,7 @@ class CheckServerHealth implements ShouldQueue
                 return;
             }
 
-            $strategy = $connector->strategy($server, 5);
+            $strategy = $connector->strategy($server, 20);
             $uptime = $strategy->run('uptime');
             $free = $strategy->run('free -m');
             $disk = $strategy->run('df -h /');

@@ -3,10 +3,16 @@
     $recentRuns = $record->cpanelWizardRuns()->latest('started_at')->limit(5)->get();
 @endphp
 
-<div class="space-y-6">
+<div class="mx-auto max-h-[400px] max-w-[1100px] space-y-6 overflow-y-auto pr-1">
     <div class="rounded-2xl border border-sky-500/15 bg-sky-500/10 p-4 text-sm text-slate-200">
-        <p class="font-semibold text-white">cPanel bootstrap wizard</p>
-        <p class="mt-2 leading-6 text-slate-300">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="space-y-2">
+                <span class="inline-flex rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-100">Wizard workspace</span>
+                <p class="text-lg font-semibold text-white">cPanel bootstrap wizard</p>
+            </div>
+            <div class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200">{{ $recentRuns->count() }} saved runs</div>
+        </div>
+        <p class="mt-3 leading-6 text-slate-300">
             This flow discovers the SSH port, validates the cPanel API, runs the server checks, and then bootstraps the deployment path for this site.
         </p>
     </div>
@@ -37,9 +43,9 @@
             No wizard run has been recorded yet. Click <span class="font-semibold text-slate-200">Run cPanel bootstrap</span> to start the full site-level setup.
         </div>
     @else
-        <div class="space-y-4">
+        <div class="max-h-[300px] space-y-4 overflow-y-auto pr-1">
             @foreach ($wizardLog as $entry)
-                <article class="rounded-2xl border border-white/5 bg-slate-950/70 p-4 shadow-sm">
+                <article class="w-full max-w-full min-w-0 rounded-2xl border border-white/5 bg-slate-950/70 p-4 shadow-sm">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div class="space-y-1">
                             <h3 class="text-sm font-semibold text-slate-100">{{ $entry['step'] ?? 'Step' }}</h3>
@@ -55,10 +61,22 @@
                         </span>
                     </div>
 
-                    <div class="mt-4 rounded-xl border border-white/5 bg-black/30 px-4 py-3">
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Message</p>
-                        <pre class="mt-2 whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $entry['message'] ?? '' }}</pre>
-                    </div>
+                    @if (($entry['status'] ?? 'running') === 'failed')
+                        <details class="mt-4 rounded-xl border border-rose-500/15 bg-rose-500/10">
+                            <summary class="cursor-pointer list-none px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-rose-100">
+                                Failure details
+                            </summary>
+                            <div class="border-t border-rose-500/10 bg-black/30 px-4 py-3">
+                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Message</p>
+                                <pre class="mt-2 max-w-full min-w-0 overflow-x-auto whitespace-pre-wrap break-words break-all font-mono text-xs leading-6 text-slate-100">{{ $entry['message'] ?? '' }}</pre>
+                            </div>
+                        </details>
+                    @else
+                        <div class="mt-4 w-full max-w-full min-w-0 rounded-xl border border-white/5 bg-black/30 px-4 py-3">
+                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Message</p>
+                            <pre class="mt-2 w-full max-w-full min-w-0 overflow-x-auto whitespace-pre-wrap break-words break-all font-mono text-xs leading-6 text-slate-100">{{ $entry['message'] ?? '' }}</pre>
+                        </div>
+                    @endif
 
                     @if (($entry['status'] ?? 'running') === 'failed' && filled($entry['recovery_hint'] ?? null))
                         <div class="mt-3 rounded-xl border border-amber-500/15 bg-amber-500/10 px-4 py-3">
@@ -82,9 +100,9 @@
                 No saved cPanel wizard runs yet.
             </div>
         @else
-            <div class="mt-4 space-y-3">
+            <div class="mt-4 max-h-[300px] space-y-3 overflow-y-auto pr-1">
                 @foreach ($recentRuns as $run)
-                    <article class="rounded-xl border border-white/5 bg-black/25 p-4">
+                    <article class="w-full max-w-full min-w-0 rounded-xl border border-white/5 bg-black/25 p-4">
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="space-y-1">
                                 <h4 class="text-sm font-semibold text-slate-100">{{ $run->wizard_type_label }}</h4>
@@ -105,9 +123,9 @@
                             </span>
                         </div>
 
-                        <div class="mt-4 rounded-xl border border-white/5 bg-black/30 px-4 py-3">
+                        <div class="mt-4 w-full max-w-full min-w-0 rounded-xl border border-white/5 bg-black/30 px-4 py-3">
                             <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Summary</p>
-                            <pre class="mt-2 whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $run->summary ?? $run->error_message ?? 'No summary available.' }}</pre>
+                            <pre class="mt-2 w-full max-w-full min-w-0 overflow-x-auto whitespace-pre-wrap break-words break-all font-mono text-xs leading-6 text-slate-100">{{ $run->summary ?? $run->error_message ?? 'No summary available.' }}</pre>
                         </div>
 
                         @if (filled($run->recovery_hint))

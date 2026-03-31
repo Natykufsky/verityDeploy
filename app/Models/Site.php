@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Casts\EncryptedTextOrPlain;
 use App\Models\ReleaseCleanupRun;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -15,6 +17,7 @@ class Site extends Model
 
     protected $fillable = [
         'server_id',
+        'team_id',
         'name',
         'repository_url',
         'default_branch',
@@ -26,6 +29,7 @@ class Site extends Model
         'deploy_source',
         'webhook_secret',
         'environment_variables',
+        'shared_env_contents',
         'shared_files',
         'github_webhook_id',
         'github_webhook_status',
@@ -39,7 +43,8 @@ class Site extends Model
     protected function casts(): array
     {
         return [
-            'webhook_secret' => 'encrypted',
+            'webhook_secret' => EncryptedTextOrPlain::class,
+            'shared_env_contents' => EncryptedTextOrPlain::class,
             'environment_variables' => 'array',
             'shared_files' => 'array',
             'github_webhook_synced_at' => 'datetime',
@@ -53,6 +58,11 @@ class Site extends Model
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
     }
 
     public function deployments(): HasMany
@@ -70,14 +80,61 @@ class Site extends Model
         return $this->hasMany(ReleaseCleanupRun::class)->latest('started_at');
     }
 
+    public function backups(): HasMany
+    {
+        return $this->hasMany(SiteBackup::class)->latest('started_at');
+    }
+
     public function latestDeployment(): HasOne
     {
         return $this->hasOne(Deployment::class)->latestOfMany();
     }
 
+    /**
+     * @return Builder<self>
+     */
+    public function scopeAccessibleTo(Builder $query, ?User $user = null): Builder
+    {
+        $user ??= auth()->user();
+
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $query) use ($user): void {
+            $query->whereHas('server', function (Builder $query) use ($user): void {
+                $query->accessibleTo($user);
+            })->orWhere(function (Builder $query) use ($user): void {
+                $query->whereNotNull('team_id')
+                    ->whereIn('team_id', $user->teams()->select('teams.id'));
+            });
+        });
+    }
+
     public function getCurrentReleaseStatusAttribute(): string
     {
         return filled($this->current_release_path) ? 'active' : 'inactive';
+    }
+
+    public function getSharedEnvModeAttribute(): string
+    {
+        return filled($this->shared_env_contents) ? 'custom' : 'generated';
+    }
+
+    public function getSharedEnvSummaryAttribute(): string
+    {
+        return match ($this->shared_env_mode) {
+            'custom' => 'This site uses a custom shared .env file override instead of generated environment variables.',
+            default => 'This site generates its shared .env file from the environment variables editor.',
+        };
+    }
+
+    public function getSharedEnvBadgeAttribute(): string
+    {
+        return match ($this->shared_env_mode) {
+            'custom' => 'custom override',
+            default => 'generated',
+        };
     }
 
     public function getLastSuccessfulDeployBadgeAttribute(): string
@@ -209,5 +266,107 @@ class Site extends Model
     public function getGithubWebhookDriftAttribute(): bool
     {
         return in_array($this->github_webhook_status, ['needs-sync', 'failed'], true);
+    }
+
+    public function getBackupStatusAttribute(): string
+    {
+        $latestBackup = $this->backups()
+            ->where('operation', 'backup')
+            ->latest('started_at')
+            ->first();
+
+        if (! $latestBackup) {
+            return 'not run';
+        }
+
+        return match ($latestBackup->status) {
+            'successful' => 'healthy',
+            'failed' => 'needs attention',
+            'running' => 'running',
+            default => 'unknown',
+        };
+    }
+
+    public function getBackupStatusBadgeAttribute(): string
+    {
+        return match ($this->backup_status) {
+            'healthy' => 'ready',
+            'needs attention' => 'attention needed',
+            'running' => 'running',
+            default => 'not run',
+        };
+    }
+
+    public function getLatestBackupSnapshotPathAttribute(): ?string
+    {
+        return $this->latestSuccessfulBackup?->snapshot_path;
+    }
+
+    public function getLatestBackupSummaryAttribute(): string
+    {
+        $backup = $this->latestSuccessfulBackup;
+
+        if (! $backup) {
+            return 'No backups have been created yet.';
+        }
+
+        return trim(sprintf(
+            '%s • %s',
+            $backup->started_at?->format('M d, Y H:i') ?? "Backup #{$backup->id}",
+            $backup->snapshot_path ?? 'no snapshot path recorded',
+        ));
+    }
+
+    public function getRecentAdminBackupsAttribute(): array
+    {
+        return $this->backups()
+            ->latest('id')
+            ->limit(10)
+            ->get()
+            ->map(function (SiteBackup $backup): array {
+                return [
+                    'operation' => $backup->operation,
+                    'status' => $backup->status,
+                    'snapshot_path' => $backup->snapshot_path,
+                    'restored_release_path' => $backup->restored_release_path,
+                    'started_at' => $backup->started_at,
+                    'finished_at' => $backup->finished_at,
+                    'error_message' => $backup->error_message,
+                    'output' => $backup->output,
+                ];
+            })
+            ->all();
+    }
+
+    public function backupOptions(int $limit = 10): array
+    {
+        return $this->backups()
+            ->where('operation', 'backup')
+            ->where('status', 'successful')
+            ->whereNotNull('snapshot_path')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->mapWithKeys(function (SiteBackup $backup): array {
+                $labelParts = [
+                    $backup->started_at?->format('M d, Y H:i') ?? "Backup #{$backup->id}",
+                    $backup->snapshot_path,
+                ];
+
+                return [
+                    $backup->id => implode(' • ', array_values(array_filter($labelParts))),
+                ];
+            })
+            ->all();
+    }
+
+    public function getLatestSuccessfulBackupAttribute(): ?SiteBackup
+    {
+        return $this->backups()
+            ->where('operation', 'backup')
+            ->where('status', 'successful')
+            ->whereNotNull('snapshot_path')
+            ->latest('started_at')
+            ->first();
     }
 }

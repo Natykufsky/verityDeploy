@@ -17,6 +17,7 @@ class DeploymentStep extends Model
         'command',
         'status',
         'output',
+        'error_message',
         'started_at',
         'finished_at',
         'exit_code',
@@ -35,5 +36,30 @@ class DeploymentStep extends Model
     public function deployment(): BelongsTo
     {
         return $this->belongsTo(Deployment::class);
+    }
+
+    public function getSeverityAttribute(): string
+    {
+        return match ($this->status) {
+            'successful' => 'success',
+            'running' => 'warning',
+            'failed' => 'danger',
+            default => 'gray',
+        };
+    }
+
+    public function getSummaryAttribute(): string
+    {
+        return match ($this->status) {
+            'successful' => 'Completed successfully',
+            'running' => 'Currently running',
+            'failed' => 'Needs attention',
+            default => 'Waiting for update',
+        };
+    }
+
+    public function getIsExpandedAttribute(): bool
+    {
+        return $this->status !== 'successful';
     }
 }

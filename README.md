@@ -14,7 +14,7 @@ verityDeploy is a Laravel + Filament deployment dashboard for managing servers, 
 ## Quick Start
 
 1. Install Composer dependencies.
-2. Copy `.env.example` to `.env` and set the database, queue, and GitHub values.
+2. Copy `.env.example` to `.env` and set the local MySQL database, queue, and GitHub values.
 3. Run `php artisan key:generate`.
 4. Run migrations with `php artisan migrate`.
 5. Start the app with `composer dev` for local development.
@@ -22,6 +22,10 @@ verityDeploy is a Laravel + Filament deployment dashboard for managing servers, 
 ## Production Guide
 
 For server setup, cPanel setup, queue workers, and cron, see [docs/production-setup.md](docs/production-setup.md).
+
+## Minimum Deployment Checklist
+
+If you want the fastest path to a first real server, start with [docs/minimum-deployment-checklist.md](docs/minimum-deployment-checklist.md).
 
 ## About Laravel
 

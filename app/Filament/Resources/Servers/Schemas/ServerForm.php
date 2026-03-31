@@ -3,18 +3,20 @@
 namespace App\Filament\Resources\Servers\Schemas;
 
 use App\Models\Server;
+use App\Models\Team;
 use App\Services\AppSettings;
 use App\Services\Cpanel\CpanelApiClient;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
@@ -85,6 +87,21 @@ class ServerForm
                                 TextInput::make('ssh_user')
                                     ->label('SSH user')
                                     ->required(),
+                                TextInput::make('cpanel_username')
+                                    ->label('cPanel username')
+                                    ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
+                                    ->helperText('If your cPanel login username is different from the SSH user, enter it here. The API token must belong to this exact cPanel account.')
+                                    ->columnSpanFull(),
+                                Select::make('team_id')
+                                    ->label('Team')
+                                    ->options(fn (): array => Team::query()
+                                        ->accessibleTo()
+                                        ->orderBy('name')
+                                        ->pluck('name', 'id')
+                                        ->all())
+                                    ->searchable()
+                                    ->placeholder('Personal workspace')
+                                    ->helperText('Assign this server to a team so other members can share access and deploys.'),
                                 Select::make('connection_type')
                                     ->options([
                                         'ssh_key' => 'SSH key',
@@ -123,12 +140,22 @@ class ServerForm
                                             ->label('Test API')
                                             ->icon('heroicon-o-bolt')
                                             ->visible(fn (?Server $record, Get $get): bool => $get('connection_type') === 'cpanel' && filled($record))
-                                            ->action(function (?Server $record): void {
+                                            ->action(function (?Server $record, Get $get): void {
                                                 if (! $record) {
                                                     Notification::make()
                                                         ->title('Save the server first')
                                                         ->body('Create or update the cPanel server before testing the API token.')
                                                         ->warning()
+                                                        ->send();
+
+                                                    return;
+                                                }
+
+                                                if ((int) ($get('cpanel_api_port') ?: 2083) === (int) ($get('ssh_port') ?: 22)) {
+                                                    Notification::make()
+                                                        ->title('Wrong cPanel API port')
+                                                        ->body('The cPanel API port matches the SSH port. Change it to the cPanel HTTPS/API port, usually 2083, then try again.')
+                                                        ->danger()
                                                         ->send();
 
                                                     return;
@@ -156,12 +183,41 @@ class ServerForm
                                                 }
                                             }),
                                     )
-                                    ->helperText('Stored encrypted. Use the cPanel account username in the SSH user field, and use Test API to verify the token and port.'),
+                                    ->helperText('Stored encrypted. Use the cPanel account username either here or in the SSH user field, and use Test API to verify the token and port.'),
                                 TextInput::make('cpanel_api_port')
                                     ->label('cPanel API port')
                                     ->numeric()
                                     ->default(2083)
-                                    ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel'),
+                                    ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
+                                    ->helperText(fn (Get $get): string => ((int) ($get('cpanel_api_port') ?: 2083) === (int) ($get('ssh_port') ?: 22))
+                                        ? 'This must be the cPanel HTTPS/API port, not the SSH port. If it matches SSH, change it to the actual cPanel API port (usually 2083).'
+                                        : 'This should be the cPanel HTTPS/API port. It is usually 2083 and should not match the SSH port.'),
+                              ])
+                              ->columns(2),
+                        Tab::make('Provider')
+                            ->schema([
+                                Select::make('provider_type')
+                                    ->label('Provider type')
+                                    ->options(Server::providerOptions())
+                                    ->default('manual')
+                                    ->required()
+                                    ->helperText('This identifies which cloud or hosting provider owns the machine. It helps with inventory, reporting, and future provider-specific automation.'),
+                                TextInput::make('provider_reference')
+                                    ->label('Provider reference')
+                                    ->placeholder('droplet-12345 / i-0abc123 / server-789')
+                                    ->helperText('Store the vendor-specific identifier here so you can match this server to the infrastructure console.'),
+                                TextInput::make('provider_region')
+                                    ->label('Provider region')
+                                    ->placeholder('fra1 / us-east-1 / ewr1')
+                                    ->helperText('Use the vendor region or datacenter name so the server is easy to locate later.'),
+                                KeyValue::make('provider_metadata')
+                                    ->label('Provider metadata')
+                                    ->keyLabel('Field')
+                                    ->valueLabel('Value')
+                                    ->columnSpanFull()
+                                    ->helperText('Add any extra provider details such as plan, tags, cluster, or notes.'),
+                                View::make('filament.servers.provider-mode-help')
+                                    ->columnSpanFull(),
                             ])
                             ->columns(2),
                         Tab::make('Sudo Settings')

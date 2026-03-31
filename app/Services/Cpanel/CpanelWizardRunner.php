@@ -193,7 +193,10 @@ class CpanelWizardRunner
         $message = strtolower($throwable->getMessage());
 
         return match (true) {
+            str_contains($message, 'ssh/get_port') || str_contains($message, 'ssh port') => 'The cPanel API token appears to be valid, but the SSH port lookup failed. Confirm that the cPanel account has SSH access enabled, rediscover the account SSH port, and then rerun the connection wizard.',
             str_contains($message, 'token') && str_contains($message, 'cpanel') => 'Re-check the cPanel API token and rerun the connection wizard.',
+            str_contains($message, 'unauthorized') || str_contains($message, '401') || str_contains($message, 'forbidden') || str_contains($message, '403') => 'The cPanel API token was rejected. Re-check the token, the cPanel username, and the API port before rerunning the wizard.',
+            str_contains($message, 'invalid response') || str_contains($message, 'failed to decode') => 'The cPanel API responded unexpectedly. Confirm the API port and that the server returns cPanel JSON, then rerun the wizard.',
             str_contains($message, 'ssh') && str_contains($message, 'port') => 'Rediscover the SSH port, then verify firewall access and retry.',
             str_contains($message, 'timeout') || str_contains($message, 'timed out') => 'Confirm network reachability and the cPanel host port, then rerun the wizard.',
             str_contains($message, 'permission denied') => 'Verify SSH credentials, sudo access, and file permissions before trying again.',

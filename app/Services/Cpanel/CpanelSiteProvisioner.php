@@ -59,6 +59,7 @@ class CpanelSiteProvisioner
         $this->ensureDirectory($server, $basePath.'/shared/storage');
         $this->ensureDirectory($server, $basePath.'/shared/bootstrap/cache');
         $this->ensureDirectory($server, $basePath.'/releases');
+        $this->ensureDirectory($server, $basePath.'/backups');
     }
 
     public function buildReleasePath(Deployment $deployment): string

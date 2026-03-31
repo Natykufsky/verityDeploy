@@ -4,6 +4,7 @@ namespace App\Services\Deployment;
 
 use App\Models\ReleaseCleanupRun;
 use App\Models\Site;
+use App\Support\SiteEnvironmentPreview;
 use App\Services\SSH\SshCommandRunner;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -26,9 +27,10 @@ class ReleaseManager
 
         return [
             sprintf(
-                'mkdir -p %s %s',
+                'mkdir -p %s %s %s',
                 escapeshellarg($basePath.'/releases'),
                 escapeshellarg($basePath.'/shared'),
+                escapeshellarg($basePath.'/backups'),
             ),
             ...$this->syncSharedRuntimeCommands($site),
         ];
@@ -159,21 +161,10 @@ class ReleaseManager
 
     public function environmentFileContents(Site $site): string
     {
-        $lines = [];
-
-        foreach ($this->environmentVariables($site) as $key => $value) {
-            $key = trim((string) $key);
-
-            if ($key === '') {
-                continue;
-            }
-
-            $lines[] = $key.'='.$this->formatEnvironmentValue($value);
-        }
-
-        return filled($lines)
-            ? implode(PHP_EOL, $lines).PHP_EOL
-            : '';
+        return SiteEnvironmentPreview::build(
+            $this->environmentVariables($site),
+            $site->shared_env_contents,
+        )['effective_contents'];
     }
 
     /**
@@ -233,30 +224,5 @@ class ReleaseManager
         }
 
         return $path;
-    }
-
-    protected function formatEnvironmentValue(mixed $value): string
-    {
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-
-        if (is_numeric($value)) {
-            return (string) $value;
-        }
-
-        $value = (string) $value;
-
-        if ($value === '') {
-            return '""';
-        }
-
-        if (preg_match('/^[A-Za-z0-9_@%:.,\\-\\/]+$/', $value)) {
-            return $value;
-        }
-
-        $escaped = str_replace(['\\', '"', "\n", "\r"], ['\\\\', '\\"', '\n', '\r'], $value);
-
-        return "\"{$escaped}\"";
     }
 }

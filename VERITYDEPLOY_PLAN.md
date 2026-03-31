@@ -23,6 +23,34 @@ The primary outcome is simple and reliable deployments without having to log int
 - Design for safety first, especially around secrets, deploy scripts, and server access.
 - Avoid feature bloat until the deployment loop is dependable.
 
+## Current Status
+
+This plan started as the launch roadmap for `verityDeploy`. The codebase has moved well beyond the original MVP, so this section separates what is already built from what is still pending.
+
+### Completed
+
+- Laravel app, auth, dashboard shell, and Filament UI.
+- Server management with SSH, connection tests, health checks, and provisioning helpers.
+- Site/app management, deploy actions, release history, rollback, and release cleanup.
+- Deployment logs, live terminal output, step detail views, and command snippets.
+- Environment variable editing and shared file management.
+- Webhook provisioning, GitHub OAuth/PAT support, and sync drift handling.
+- cPanel setup, bootstrap, deploy, rollback, and wizard history tracking.
+- Alerts inbox, dashboard alert widgets, and operational summary cards.
+- External alert delivery to email and webhooks.
+- Per-user alert preferences and alert delivery status logging.
+- Team collaboration, team workspaces, and permission-aware resource access.
+- CI, automated tests, production docs, and scheduled maintenance jobs.
+
+### Still Pending
+
+- Multiple server providers.
+- Backups and restore workflows.
+- External alert delivery to Slack or any additional destinations you want beyond email/webhooks.
+- Custom deploy hooks before and after deploys.
+- A lightweight agent for more reliable server communication.
+- Additional live staging smoke tests for rollback and cPanel edge cases.
+
 ## MVP Definition
 
 The first usable version should support:
@@ -492,13 +520,13 @@ Even if full rollback is not in v1, design for it early:
 
 ## Future Enhancements
 
-- Team collaboration and permissions.
+- Team invitations and richer role matrices.
 - Multiple server providers.
 - Zero-downtime deploys with release directories and symlinks.
 - Backups and restore workflows.
-- Alerting to Slack, email, or webhooks.
+- Alerting to Slack or additional external destinations.
 - Custom deploy hooks before and after deploys.
-- Role-based access control.
+- Granular action-level permissions and approval workflows.
 - A lightweight agent for more reliable server communication.
 
 ## Production Readiness Checklist
@@ -539,11 +567,9 @@ Before treating verityDeploy as production-ready, confirm the following:
 
 ## Suggested Immediate Next Steps
 
-- Confirm the tech stack.
-- Draft the database migrations.
-- Build the authentication and dashboard shell.
-- Implement server onboarding next.
-- Add the deployment job pipeline after that.
+- Historical note: these were the original starting steps.
+- The app has already completed the foundation, onboarding, and deployment pipeline work.
+- Use the current status and future enhancements sections below as the active backlog.
 
 ## Short Version
 

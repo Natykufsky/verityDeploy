@@ -9,39 +9,41 @@
 
     @if(filled($generatedPuTTYKey))
         <div class="space-y-3">
-            <div class="flex items-start justify-between gap-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-100">PuTTY key ready</h3>
                     <p class="mt-1 text-sm text-slate-400">Copy the exported key and keep it secure.</p>
                 </div>
 
-                <x-filament::button
-                    size="sm"
-                    color="gray"
-                    x-data="{ key: @js($generatedPuTTYKey) }"
-                    x-on:click="navigator.clipboard.writeText(key)"
-                >
-                    Copy PuTTY key
-                </x-filament::button>
+                <div class="flex flex-wrap gap-2">
+                    <x-filament::button
+                        size="sm"
+                        color="gray"
+                        x-data="{ key: @js($generatedPuTTYKey) }"
+                        x-on:click="navigator.clipboard.writeText(key)"
+                    >
+                        Copy PuTTY key
+                    </x-filament::button>
 
-                <x-filament::button
-                    size="sm"
-                    color="primary"
-                    x-data="{ key: @js($generatedPuTTYKey), filename: @js(($record->name ?? 'server').'-private-key.ppk') }"
-                    x-on:click="
-                        const blob = new Blob([key], { type: 'text/plain;charset=utf-8' });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = filename;
-                        document.body.appendChild(link);
-                        link.click();
-                        link.remove();
-                        URL.revokeObjectURL(url);
-                    "
-                >
-                    Download .ppk
-                </x-filament::button>
+                    <x-filament::button
+                        size="sm"
+                        color="primary"
+                        x-data="{ key: @js($generatedPuTTYKey), filename: @js(($record->name ?? 'server').'-private-key.ppk') }"
+                        x-on:click="
+                            const blob = new Blob([key], { type: 'text/plain;charset=utf-8' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = filename;
+                            document.body.appendChild(link);
+                            link.click();
+                            link.remove();
+                            URL.revokeObjectURL(url);
+                        "
+                    >
+                        Download .ppk
+                    </x-filament::button>
+                </div>
             </div>
 
             <textarea
