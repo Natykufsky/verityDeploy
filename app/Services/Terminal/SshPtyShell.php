@@ -19,8 +19,13 @@ class SshPtyShell
     public function connect(int $columns = 120, int $rows = 32): void
     {
         $host = (string) ($this->server->ip_address ?: $this->server->host);
-        $port = (int) ($this->session->port ?: $this->server->ssh_port ?: $this->server->port ?: 22);
-        $username = (string) ($this->server->cpanel_username ?: $this->server->ssh_user ?: $this->server->username);
+        $port = (int) ($this->session->port ?: $this->server->effectiveSshPort() ?: $this->server->port ?: 22);
+
+        $username = $this->server->connection_type === 'cpanel'
+            ? $this->server->effectiveCpanelUsername()
+            : $this->server->effectiveSshUser();
+
+        $username = (string) ($username ?: $this->server->username);
 
         if ($host === '' || $username === '') {
             throw new RuntimeException('The server is missing SSH host or username information.');
@@ -32,19 +37,22 @@ class SshPtyShell
         $ssh->setTerminal('xterm-256color');
         $ssh->setWindowSize($columns, $rows);
 
-        if (filled($this->server->ssh_key)) {
+        $sshKey = $this->server->effectiveSshKey();
+        $password = $this->server->effectiveSudoPassword();
+
+        if (filled($sshKey)) {
             $passphrase = filled($this->server->passphrase) ? (string) $this->server->passphrase : null;
-            $key = PublicKeyLoader::load((string) $this->server->ssh_key, $passphrase);
+            $key = PublicKeyLoader::load((string) $sshKey, $passphrase);
 
             if (! $ssh->login($username, $key)) {
                 throw new RuntimeException('SSH key login failed.');
             }
-        } elseif (filled($this->server->sudo_password)) {
-            if (! $ssh->login($username, (string) $this->server->sudo_password)) {
+        } elseif (filled($password)) {
+            if (! $ssh->login($username, (string) $password)) {
                 throw new RuntimeException('SSH password login failed.');
             }
         } else {
-            throw new RuntimeException('No SSH key or SSH password is configured for this server.');
+            throw new RuntimeException('No SSH key or SSH password is configured for this server. Check its Credential Profile.');
         }
 
         if (! $ssh->openShell()) {

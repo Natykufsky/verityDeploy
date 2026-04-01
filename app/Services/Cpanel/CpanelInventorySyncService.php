@@ -117,12 +117,12 @@ class CpanelInventorySyncService
     {
         return (bool) $server
             && $server->connection_type === 'cpanel'
-            && filled($server->cpanel_api_token);
+            && filled($server->effectiveCpanelApiToken());
     }
 
     protected function cpanelUsername(Server $server): string
     {
-        return trim((string) ($server->cpanel_username ?: $server->ssh_user));
+        return trim((string) ($server->effectiveCpanelUsername() ?: $server->effectiveSshUser()));
     }
 
     /**

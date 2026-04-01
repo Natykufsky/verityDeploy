@@ -66,6 +66,14 @@ class SiteForm
                                         ->placeholder('Use default or leave blank')
                                         ->helperText('Select the shared GitHub profile that this site should use for repository access and webhook setup.')
                                         ->columnSpanFull(),
+                                    Select::make('webhook_credential_profile_id')
+                                        ->label('Webhook credential profile')
+                                        ->options(fn (): array => CredentialProfile::query()->ofType('webhook')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                        ->default(fn (): ?int => app(AppSettings::class)->defaultWebhookCredentialProfileId())
+                                        ->searchable()
+                                        ->placeholder('Use default or leave blank')
+                                        ->helperText('Select the shared webhook profile that should be used for inbound deployment and alert hooks.')
+                                        ->columnSpanFull(),
                                     TextInput::make('default_branch')
                                         ->required()
                                         ->default(fn (): string => app(AppSettings::class)->defaultBranch()),
@@ -256,33 +264,6 @@ class SiteForm
                                         ]),
                                 ])
                                 ->columns(1),
-                        ]),
-                    Tab::make('Security')
-                        ->badge('Lock')
-                        ->badgeColor('warning')
-                        ->schema([
-                            Select::make('webhook_credential_profile_id')
-                                ->label('Webhook credential profile')
-                                ->options(fn (): array => CredentialProfile::query()->ofType('webhook')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
-                                ->default(fn (): ?int => app(AppSettings::class)->defaultWebhookCredentialProfileId())
-                                ->searchable()
-                                ->placeholder('Use default or leave blank')
-                                ->helperText('Select the shared webhook profile that should be used for inbound deployment and alert hooks.')
-                                ->columnSpanFull(),
-                            Section::make('Security and lifecycle')
-                                ->schema([
-                                    TextInput::make('webhook_secret')
-                                        ->password()
-                                        ->revealable()
-                                        ->columnSpanFull()
-                                        ->helperText('Leave blank to inherit the webhook secret from your selected Credential Profile.'),
-                                    Toggle::make('active')
-                                        ->default(true),
-                                    DateTimePicker::make('last_deployed_at'),
-                                    Textarea::make('notes')
-                                        ->columnSpanFull(),
-                                ])
-                                ->columns(2),
                         ]),
                 ]),
         ]);

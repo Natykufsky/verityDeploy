@@ -332,7 +332,7 @@ class CpanelApiClient
 
     public function homeDirectory(Server $server): string
     {
-        return sprintf('/home/%s', trim((string) $server->ssh_user));
+        return sprintf('/home/%s', trim((string) $server->effectiveSshUser()));
     }
 
     public function toHomeRelativePath(Server $server, string $path): string
@@ -427,14 +427,14 @@ class CpanelApiClient
         $baseUrl = sprintf(
             'https://%s:%d/execute',
             $server->ip_address,
-            $server->cpanel_api_port ?: 2083,
+            $server->effectiveCpanelApiPort() ?: 2083,
         );
 
         return Http::baseUrl($baseUrl)
             ->acceptJson()
             ->asJson()
             ->timeout(30)
-            ->withBasicAuth($this->cpanelUsername($server), (string) $server->cpanel_api_token);
+            ->withBasicAuth($this->cpanelUsername($server), (string) $server->effectiveCpanelApiToken());
     }
 
     protected function api2Client(Server $server)
@@ -442,19 +442,19 @@ class CpanelApiClient
         $baseUrl = sprintf(
             'https://%s:%d/json-api/cpanel',
             $server->ip_address,
-            $server->cpanel_api_port ?: 2083,
+            $server->effectiveCpanelApiPort() ?: 2083,
         );
 
         return Http::baseUrl($baseUrl)
             ->acceptJson()
             ->asJson()
             ->timeout(30)
-            ->withBasicAuth($this->cpanelUsername($server), (string) $server->cpanel_api_token);
+            ->withBasicAuth($this->cpanelUsername($server), (string) $server->effectiveCpanelApiToken());
     }
 
     protected function cpanelUsername(Server $server): string
     {
-        return trim((string) ($server->cpanel_username ?: $server->ssh_user));
+        return trim((string) ($server->effectiveCpanelUsername() ?: $server->effectiveSshUser()));
     }
 
     protected function errorMessage(Response $response): string

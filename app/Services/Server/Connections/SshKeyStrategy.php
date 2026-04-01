@@ -37,15 +37,16 @@ class SshKeyStrategy implements ConnectionStrategy
 
     protected function ssh(): Ssh
     {
-        $ssh = Ssh::create($this->server->ssh_user, $this->server->ip_address, $this->server->ssh_port ?: 22)
+        $ssh = Ssh::create($this->server->effectiveSshUser(), $this->server->ip_address, $this->server->effectiveSshPort() ?: 22)
             ->disableStrictHostKeyChecking();
 
         if ($this->timeout > 0) {
             $ssh->setTimeout($this->timeout);
         }
 
-        if (filled($this->server->ssh_key)) {
-            $ssh->usePrivateKey($this->server->ssh_key);
+        $key = $this->server->effectiveSshKey();
+        if (filled($key)) {
+            $ssh->usePrivateKey($key);
         }
 
         return $ssh;

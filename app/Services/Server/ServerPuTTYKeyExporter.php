@@ -15,7 +15,7 @@ class ServerPuTTYKeyExporter
      */
     public function export(Server $server): array
     {
-        $privateKey = trim((string) ($server->ssh_key ?: $server->private_key));
+        $privateKey = trim((string) ($server->effectiveSshKey() ?: $server->private_key));
 
         if ($privateKey === '') {
             throw new RuntimeException('The server does not have an SSH private key configured.');

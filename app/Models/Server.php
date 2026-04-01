@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Casts\EncryptedTextOrPlain;
 use App\Services\AppSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Support\Facades\Crypt;
 
 class Server extends Model
 {
@@ -21,9 +19,6 @@ class Server extends Model
         'team_id',
         'name',
         'ip_address',
-        'ssh_port',
-        'ssh_user',
-        'cpanel_username',
         'provider_type',
         'provider_reference',
         'provider_region',
@@ -35,24 +30,11 @@ class Server extends Model
         'vhost_config_path',
         'vhost_enabled_path',
         'vhost_reload_command',
-        'dns_provider',
-        'dns_zone_id',
-        'dns_api_token',
-        'dns_proxy_records',
         'connection_type',
-        'ssh_key',
         'ssh_credential_profile_id',
-        'sudo_password',
-        'cpanel_api_token',
         'cpanel_credential_profile_id',
-        'cpanel_api_port',
         'dns_credential_profile_id',
         'metrics',
-        'host',
-        'port',
-        'username',
-        'private_key',
-        'passphrase',
         'status',
         'last_connected_at',
         'notes',
@@ -62,9 +44,6 @@ class Server extends Model
     {
         return [
             'ip_address' => 'string',
-            'ssh_port' => 'integer',
-            'ssh_user' => 'string',
-            'cpanel_username' => 'string',
             'provider_type' => 'string',
             'provider_reference' => 'string',
             'provider_region' => 'string',
@@ -76,23 +55,12 @@ class Server extends Model
             'vhost_config_path' => 'string',
             'vhost_enabled_path' => 'string',
             'vhost_reload_command' => 'string',
-            'dns_provider' => 'string',
-            'dns_zone_id' => 'string',
-            'dns_api_token' => EncryptedTextOrPlain::class,
-            'dns_proxy_records' => 'boolean',
             'connection_type' => 'string',
-            'ssh_key' => EncryptedTextOrPlain::class,
             'ssh_credential_profile_id' => 'integer',
-            'sudo_password' => EncryptedTextOrPlain::class,
-            'cpanel_api_token' => EncryptedTextOrPlain::class,
             'cpanel_credential_profile_id' => 'integer',
-            'metrics' => 'array',
             'dns_credential_profile_id' => 'integer',
-            'private_key' => EncryptedTextOrPlain::class,
-            'passphrase' => EncryptedTextOrPlain::class,
+            'metrics' => 'array',
             'last_connected_at' => 'datetime',
-            'port' => 'integer',
-            'cpanel_api_port' => 'integer',
         ];
     }
 
@@ -152,107 +120,59 @@ class Server extends Model
 
     public function effectiveSshUser(): ?string
     {
-        return filled($this->attributes['ssh_user'] ?? null)
-            ? (string) $this->attributes['ssh_user']
-            : (string) $this->credentialProfileSetting('ssh', ['username', 'ssh_user'], null);
+        return (string) $this->credentialProfileSetting('ssh', ['username', 'ssh_user'], 'root');
     }
 
     public function effectiveSshPort(): int
     {
-        $value = filled($this->attributes['ssh_port'] ?? null)
-            ? $this->attributes['ssh_port']
-            : $this->credentialProfileSetting('ssh', ['port', 'ssh_port'], null);
-
-        return (int) ($value ?: 22);
+        return (int) $this->credentialProfileSetting('ssh', ['port', 'ssh_port'], 22);
     }
 
     public function effectiveSshKey(): ?string
     {
-        $value = filled($this->attributes['ssh_key'] ?? null)
-            ? $this->attributes['ssh_key']
-            : $this->credentialProfileSetting('ssh', ['private_key', 'ssh_key'], null);
-
-        return filled($value) ? (string) $value : null;
+        return $this->credentialProfileSetting('ssh', ['private_key', 'ssh_key'], null);
     }
 
     public function effectiveSudoPassword(): ?string
     {
-        $value = filled($this->attributes['sudo_password'] ?? null)
-            ? $this->attributes['sudo_password']
-            : $this->credentialProfileSetting('ssh', ['password', 'sudo_password', 'passphrase'], null);
-
-        return filled($value) ? (string) $value : null;
+        return $this->credentialProfileSetting('ssh', ['password', 'sudo_password', 'passphrase'], null);
     }
 
     public function effectiveCpanelUsername(): ?string
     {
-        $value = filled($this->attributes['cpanel_username'] ?? null)
-            ? $this->attributes['cpanel_username']
-            : $this->credentialProfileSetting('cpanel', ['username', 'cpanel_username'], null);
-
-        return filled($value) ? (string) $value : null;
+        return $this->credentialProfileSetting('cpanel', ['username', 'cpanel_username'], null);
     }
 
     public function effectiveCpanelApiToken(): ?string
     {
-        $value = filled($this->attributes['cpanel_api_token'] ?? null)
-            ? $this->attributes['cpanel_api_token']
-            : $this->credentialProfileSetting('cpanel', ['api_token', 'cpanel_api_token'], null);
-
-        return filled($value) ? (string) $value : null;
+        return $this->credentialProfileSetting('cpanel', ['api_token', 'cpanel_api_token'], null);
     }
 
     public function effectiveCpanelApiPort(): int
     {
-        $value = filled($this->attributes['cpanel_api_port'] ?? null)
-            ? $this->attributes['cpanel_api_port']
-            : $this->credentialProfileSetting('cpanel', ['api_port', 'cpanel_api_port'], null);
-
-        return (int) ($value ?: 2083);
+        return (int) $this->credentialProfileSetting('cpanel', ['api_port', 'cpanel_api_port'], 2083);
     }
 
     public function effectiveDnsProvider(): string
     {
-        $value = filled($this->attributes['dns_provider'] ?? null)
-            ? $this->attributes['dns_provider']
-            : $this->credentialProfileSetting('dns', ['provider', 'dns_provider'], 'manual');
-
-        return (string) ($value ?: 'manual');
+        return (string) $this->credentialProfileSetting('dns', ['provider', 'dns_provider'], 'manual');
     }
 
     public function effectiveDnsZoneId(): ?string
     {
-        $value = filled($this->attributes['dns_zone_id'] ?? null)
-            ? $this->attributes['dns_zone_id']
-            : $this->credentialProfileSetting('dns', ['zone_id', 'dns_zone_id'], null);
-
-        return filled($value) ? (string) $value : null;
+        return $this->credentialProfileSetting('dns', ['zone_id', 'dns_zone_id'], null);
     }
 
     public function effectiveDnsApiToken(): ?string
     {
-        $value = filled($this->attributes['dns_api_token'] ?? null)
-            ? $this->attributes['dns_api_token']
-            : $this->credentialProfileSetting('dns', ['api_token', 'dns_api_token'], null);
-
-        return filled($value) ? (string) $value : null;
+        return $this->credentialProfileSetting('dns', ['api_token', 'dns_api_token'], null);
     }
 
     public function effectiveDnsProxyRecords(): bool
     {
-        $value = $this->attributes['dns_proxy_records'] ?? null;
-
-        if ($value !== null) {
-            return (bool) $value;
-        }
-
         $profileValue = $this->credentialProfileSetting('dns', ['proxy_records', 'dns_proxy_records'], null);
 
-        if ($profileValue !== null) {
-            return (bool) $profileValue;
-        }
-
-        return true;
+        return $profileValue !== null ? (bool) $profileValue : true;
     }
 
     public function sites(): HasMany
@@ -365,12 +285,14 @@ class Server extends Model
 
     public function getDnsProviderLabelAttribute(): string
     {
-        return static::dnsProviderOptions()[$this->dns_provider] ?? ucwords(str_replace(['_', '-'], ' ', (string) $this->dns_provider));
+        $provider = $this->effectiveDnsProvider();
+
+        return static::dnsProviderOptions()[$provider] ?? ucwords(str_replace(['_', '-'], ' ', (string) $provider));
     }
 
     public function getDnsProviderBadgeAttribute(): string
     {
-        return match ($this->dns_provider) {
+        return match ($this->effectiveDnsProvider()) {
             'cloudflare' => 'cloudflare',
             'manual' => 'manual',
             default => 'custom',
@@ -379,7 +301,7 @@ class Server extends Model
 
     public function getDnsProviderSummaryAttribute(): string
     {
-        return match ($this->dns_provider) {
+        return match ($this->effectiveDnsProvider()) {
             'cloudflare' => 'Cloudflare can manage the DNS zone and record updates for this server.',
             'manual' => 'DNS is managed manually outside of the app.',
             default => 'A custom DNS provider can be wired in later.',
@@ -565,9 +487,9 @@ class Server extends Model
     public function getTerminalPromptAttribute(): string
     {
         return match ($this->connection_type) {
-            'cpanel' => sprintf('cpanel@%s:%s$ ', $this->name, $this->ssh_port ?: $this->cpanel_api_port ?: 22),
+            'cpanel' => sprintf('cpanel@%s:%s$ ', $this->name, $this->effectiveCpanelApiPort() ?: 2083),
             'local' => sprintf('local@%s:%s$ ', gethostname() ?: 'localhost', base_path()),
-            default => sprintf('%s@%s:%s$ ', $this->ssh_user ?: 'root', $this->name, $this->ssh_port ?: 22),
+            default => sprintf('%s@%s:%s$ ', $this->effectiveSshUser() ?: 'root', $this->name, $this->effectiveSshPort() ?: 22),
         };
     }
 
@@ -722,65 +644,6 @@ class Server extends Model
     public function setIpAddressAttribute(mixed $value): void
     {
         $this->attributes['ip_address'] = $value;
-        $this->attributes['host'] = $value;
-    }
-
-    public function setSshPortAttribute(mixed $value): void
-    {
-        $this->attributes['ssh_port'] = $value;
-        $this->attributes['port'] = $value;
-    }
-
-    public function setSshUserAttribute(mixed $value): void
-    {
-        $this->attributes['ssh_user'] = $value;
-        $this->attributes['username'] = $value;
-    }
-
-    public function setCpanelUsernameAttribute(mixed $value): void
-    {
-        $this->attributes['cpanel_username'] = $value;
-    }
-
-    public function setSshKeyAttribute(mixed $value): void
-    {
-        $encrypted = filled($value) ? Crypt::encryptString((string) $value) : null;
-
-        $this->attributes['ssh_key'] = $encrypted;
-        $this->attributes['private_key'] = $encrypted;
-    }
-
-    public function setSudoPasswordAttribute(mixed $value): void
-    {
-        $encrypted = filled($value) ? Crypt::encryptString((string) $value) : null;
-
-        $this->attributes['sudo_password'] = $encrypted;
-        $this->attributes['passphrase'] = $encrypted;
-    }
-
-    public function setHostAttribute(mixed $value): void
-    {
-        $this->setIpAddressAttribute($value);
-    }
-
-    public function setPortAttribute(mixed $value): void
-    {
-        $this->setSshPortAttribute($value);
-    }
-
-    public function setUsernameAttribute(mixed $value): void
-    {
-        $this->setSshUserAttribute($value);
-    }
-
-    public function setPrivateKeyAttribute(mixed $value): void
-    {
-        $this->setSshKeyAttribute($value);
-    }
-
-    public function setPassphraseAttribute(mixed $value): void
-    {
-        $this->setSudoPasswordAttribute($value);
     }
 
     public function setProviderTypeAttribute(mixed $value): void

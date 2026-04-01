@@ -28,8 +28,8 @@ class CpanelInventoryRepairService
             throw new RuntimeException('Inventory repair is currently available for cPanel servers only.');
         }
 
-        if (! filled($server->cpanel_api_token)) {
-            throw new RuntimeException('The cPanel API token is required before inventory repair can run.');
+        if (! filled($server->effectiveCpanelApiToken())) {
+            throw new RuntimeException('The cPanel API token is required before inventory repair can run. Attach a cPanel Credential Profile.');
         }
 
         $summary = [];

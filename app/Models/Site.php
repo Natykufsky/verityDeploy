@@ -38,7 +38,6 @@ class Site extends Model
         'php_version',
         'web_root',
         'deploy_source',
-        'webhook_secret',
         'environment_variables',
         'shared_env_contents',
         'shared_files',
@@ -64,7 +63,6 @@ class Site extends Model
     protected function casts(): array
     {
         return [
-            'webhook_secret' => EncryptedTextOrPlain::class,
             'shared_env_contents' => EncryptedTextOrPlain::class,
             'environment_variables' => 'array',
             'shared_files' => 'array',
@@ -111,6 +109,18 @@ class Site extends Model
     public function webhookCredentialProfile(): BelongsTo
     {
         return $this->belongsTo(CredentialProfile::class, 'webhook_credential_profile_id');
+    }
+
+    public function effectiveWebhookSecret(): ?string
+    {
+        $profile = $this->webhookCredentialProfile ?: app(AppSettings::class)->defaultWebhookCredentialProfile();
+
+        if (! $profile) {
+            return null;
+        }
+
+        return data_get($profile->settings, 'webhook_secret')
+            ?? data_get($profile->settings, 'secret');
     }
 
     public function team(): BelongsTo
@@ -822,8 +832,7 @@ class Site extends Model
 
         $items = [
             filled($this->deploy_path) ? 'Deploy path configured.' : 'Deploy path missing.',
-            filled($this->server?->cpanel_api_token) ? 'cPanel API token configured.' : 'cPanel API token missing.',
-            filled($this->server?->cpanel_api_port) ? 'cPanel API port configured.' : 'cPanel API port missing.',
+            filled($this->server?->effectiveCpanelApiToken()) ? 'cPanel API profile configured.' : 'cPanel API profile missing.',
         ];
 
         if ($this->deploy_source === 'git') {

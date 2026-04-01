@@ -113,20 +113,25 @@ class FileTransportService
 
     protected function uploadArchive(Server $server, string $archivePath, string $remoteArchivePath): void
     {
+        $sshUser = $server->effectiveSshUser() ?: 'root';
+        $sshPort = $server->effectiveSshPort() ?: 22;
+        $sshKey = $server->effectiveSshKey();
+        $sudoPassword = $server->effectiveSudoPassword();
+        $destination = sprintf('%s@%s:%s', $sshUser, $server->ip_address, $remoteArchivePath);
+
         if ($server->connection_type === 'password') {
             if ($this->shouldUsePuTTY()) {
                 if (! File::exists($this->puttyExecutable('pscp.exe'))) {
                     throw new RuntimeException('PuTTY pscp.exe was not found on this machine. Install PuTTY or use SSH key authentication.');
                 }
 
-                $destination = sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath);
                 $passwordProcess = Process::timeout(300)->run([
                     $this->puttyExecutable('pscp.exe'),
                     '-batch',
                     '-P',
-                    (string) ($server->ssh_port ?: 22),
+                    (string) $sshPort,
                     '-pw',
-                    (string) $server->sudo_password,
+                    (string) $sudoPassword,
                     '-hostkey',
                     $this->hostKeyFingerprint($server),
                     $archivePath,
@@ -143,12 +148,12 @@ class FileTransportService
             $passwordCommand = [
                 'sshpass',
                 '-p',
-                (string) $server->sudo_password,
+                (string) $sudoPassword,
                 'scp',
                 '-P',
-                (string) ($server->ssh_port ?: 22),
+                (string) $sshPort,
                 $archivePath,
-                sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath),
+                $destination,
             ];
 
             $passwordProcess = Process::timeout(300)->run($passwordCommand);
@@ -161,19 +166,18 @@ class FileTransportService
         }
 
         if ($this->shouldUsePuTTY()) {
-            if (blank($server->ssh_key)) {
+            if (blank($sshKey)) {
                 throw new RuntimeException('The server does not have an SSH private key configured for file transfer.');
             }
 
-            $keyPath = $this->writeTemporaryPrivateKey((string) $server->ssh_key, '.ppk');
-            $destination = sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath);
+            $keyPath = $this->writeTemporaryPrivateKey((string) $sshKey, '.ppk');
 
             try {
                 $scp = Process::timeout(300)->run([
                     $this->puttyExecutable('pscp.exe'),
                     '-batch',
                     '-P',
-                    (string) ($server->ssh_port ?: 22),
+                    (string) $sshPort,
                     '-i',
                     $keyPath,
                     '-hostkey',
@@ -199,20 +203,19 @@ class FileTransportService
         try {
             $keyLoad = Process::env($agentEnv)
                 ->timeout(30)
-                ->input(rtrim((string) $server->ssh_key).PHP_EOL)
+                ->input(rtrim((string) $sshKey).PHP_EOL)
                 ->run(['ssh-add', '-']);
 
             if ($keyLoad->failed()) {
                 throw new RuntimeException(trim($keyLoad->errorOutput() ?: $keyLoad->output()) ?: 'Unable to load the SSH key into the agent.');
             }
 
-            $destination = sprintf('%s@%s:%s', $server->ssh_user, $server->ip_address, $remoteArchivePath);
             $scp = Process::env($agentEnv)
                 ->timeout(300)
                 ->run([
                     'scp',
                     '-P',
-                    (string) ($server->ssh_port ?: 22),
+                    (string) $sshPort,
                     '-o',
                     'StrictHostKeyChecking=no',
                     '-o',
@@ -300,7 +303,7 @@ class FileTransportService
         $scan = Process::timeout(15)->run([
             'ssh-keyscan',
             '-p',
-            (string) ($server->ssh_port ?: 22),
+            (string) ($server->effectiveSshPort() ?: 22),
             '-t',
             'ed25519',
             $server->ip_address,

@@ -85,8 +85,8 @@ class CloudflareDnsProvisioner
     protected function isSupported(?Server $server): bool
     {
         return (bool) $server
-            && ($server->dns_provider === 'cloudflare')
-            && filled($server->dns_api_token)
+            && ($server->effectiveDnsProvider() === 'cloudflare')
+            && filled($server->effectiveDnsApiToken())
             && ($server->can_manage_dns ?? false);
     }
 
@@ -149,8 +149,8 @@ class CloudflareDnsProvisioner
 
     protected function resolveZoneId(Server $server, string $domain): string
     {
-        if (filled($server->dns_zone_id)) {
-            return (string) $server->dns_zone_id;
+        if (filled($server->effectiveDnsZoneId())) {
+            return (string) $server->effectiveDnsZoneId();
         }
 
         $response = $this->client($server)
@@ -218,7 +218,7 @@ class CloudflareDnsProvisioner
             ->acceptJson()
             ->asJson()
             ->timeout(30)
-            ->withToken((string) $server->dns_api_token);
+            ->withToken((string) $server->effectiveDnsApiToken());
     }
 
     protected function errorMessage(Response $response): string

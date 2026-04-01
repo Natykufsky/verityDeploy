@@ -91,21 +91,13 @@ class ServerForm
                                             }),
                                     )
                                     ->helperText('Use Discover after saving a cPanel server to fetch the account SSH port from the API.'),
-                                TextInput::make('ssh_user')
-                                    ->label('SSH user')
-                                    ->helperText('Leave blank to inherit the SSH user from your selected Credential Profile.'),
                                 Select::make('ssh_credential_profile_id')
                                     ->label('SSH credential profile')
                                     ->options(fn (): array => CredentialProfile::query()->ofType('ssh')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
                                     ->default(fn (): ?int => app(AppSettings::class)->defaultSshCredentialProfileId())
                                     ->searchable()
                                     ->placeholder('Use default or enter manually')
-                                    ->helperText('Select a shared SSH profile to avoid repeating host, key, and password details.')
-                                    ->columnSpanFull(),
-                                TextInput::make('cpanel_username')
-                                    ->label('cPanel username')
-                                    ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
-                                    ->helperText('Leave blank to inherit the cPanel username from your selected Credential Profile.')
+                                    ->helperText('Select a shared SSH profile containing the host user, key, and password details.')
                                     ->columnSpanFull(),
                                 Select::make('team_id')
                                     ->label('Team')
@@ -134,91 +126,12 @@ class ServerForm
                                     ->columnSpanFull(),
                             ])
                             ->columns(2),
-                        Tab::make('Security')
-                            ->badge('Access')
-                            ->badgeColor('warning')
-                            ->schema([
-                                Textarea::make('ssh_key')
-                                    ->label('SSH private key')
-                                    ->rows(12)
-                                    ->columnSpanFull()
-                                    ->helperText('Stored encrypted. Leave blank to inherit the SSH key from your selected Credential Profile. Or use the "generate key" action to create one.'),
-                                TextInput::make('sudo_password')
-                                    ->label('Sudo / SSH password')
-                                    ->password()
-                                    ->revealable()
-                                    ->columnSpanFull()
-                                    ->helperText('Leave blank to inherit the password from your selected Credential Profile.'),
-                                Textarea::make('notes')
-                                    ->columnSpanFull(),
-                            ])
-                            ->columns(1),
+
                         Tab::make('cPanel')
                             ->badge('API')
                             ->badgeColor('info')
                             ->schema([
-                                TextInput::make('cpanel_api_token')
-                                    ->label('cPanel API token')
-                                    ->password()
-                                    ->revealable()
-                                    ->columnSpanFull()
-                                    ->suffixAction(
-                                        Action::make('testCpanelApi')
-                                            ->label('Test API')
-                                            ->icon('heroicon-o-bolt')
-                                            ->visible(fn (?Server $record, Get $get): bool => $get('connection_type') === 'cpanel' && filled($record))
-                                            ->action(function (?Server $record, Get $get): void {
-                                                if (! $record) {
-                                                    Notification::make()
-                                                        ->title('Save the server first')
-                                                        ->body('Create or update the cPanel server before testing the API token.')
-                                                        ->warning()
-                                                        ->send();
 
-                                                    return;
-                                                }
-
-                                                if ((int) ($get('cpanel_api_port') ?: 2083) === (int) ($get('ssh_port') ?: 22)) {
-                                                    Notification::make()
-                                                        ->title('Wrong cPanel API port')
-                                                        ->body('The cPanel API port matches the SSH port. Change it to the cPanel HTTPS/API port, usually 2083, then try again.')
-                                                        ->danger()
-                                                        ->send();
-
-                                                    return;
-                                                }
-
-                                                try {
-                                                    app(CpanelApiClient::class)->ping($record->fresh());
-
-                                                    $record->update([
-                                                        'status' => 'online',
-                                                        'last_connected_at' => now(),
-                                                    ]);
-
-                                                    Notification::make()
-                                                        ->title('cPanel API responded')
-                                                        ->body('The cPanel token and API port are reachable.')
-                                                        ->success()
-                                                        ->send();
-                                                } catch (Throwable $throwable) {
-                                                    Notification::make()
-                                                        ->title('Unable to reach the cPanel API')
-                                                        ->body($throwable->getMessage())
-                                                        ->danger()
-                                                        ->send();
-                                                }
-                                            }),
-                                    )
-                                    ->helperText('Stored encrypted. Leave blank to inherit the cPanel API token from your selected Credential Profile.'),
-                                TextInput::make('cpanel_api_port')
-                                    ->label('cPanel API port')
-                                    ->numeric()
-                                    ->default(2083)
-                                    ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
-                                    ->helperText(fn (Get $get): string => ((int) ($get('cpanel_api_port') ?: 2083) === (int) ($get('ssh_port') ?: 22))
-                                        ? 'This must be the cPanel HTTPS/API port, not the SSH port. If it matches SSH, change it to the actual cPanel API port (usually 2083).'
-                                        : 'This should be the cPanel HTTPS/API port. It is usually 2083 and should not match the SSH port.'),
                                 Select::make('cpanel_credential_profile_id')
                                     ->label('cPanel credential profile')
                                     ->options(fn (): array => CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
@@ -327,21 +240,7 @@ class ServerForm
                                                 }
                                             })
                                             ->helperText('Choose the DNS provider that can manage zones and records for this server.'),
-                                        TextInput::make('dns_zone_id')
-                                            ->label('Cloudflare zone ID')
-                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                            ->helperText('Leave blank to inherit the zone ID from your selected DNS Credential Profile.'),
-                                        TextInput::make('dns_api_token')
-                                            ->label('Cloudflare API token')
-                                            ->password()
-                                            ->revealable()
-                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                            ->helperText('Leave blank to inherit the API token from your selected Credential Profile.'),
-                                        Toggle::make('dns_proxy_records')
-                                            ->label('Proxy DNS records')
-                                            ->default(true)
-                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                            ->helperText('Turn this off if you want DNS records to resolve directly to the origin server.'),
+
                                     ])
                                     ->columns(2),
                                 View::make('filament.servers.provider-mode-help')
