@@ -141,74 +141,7 @@ class AppSettingsForm
                                             ->helperText('Select the shared webhook profile that new site webhook settings should inherit by default.'),
                                     ])
                                     ->columns(2),
-                                Section::make('Shared server credentials')
-                                    ->schema([
-                                        TextInput::make('default_ssh_user')
-                                            ->label('Default SSH user')
-                                            ->placeholder('root')
-                                            ->helperText('New servers can inherit this username instead of entering it again.')
-                                            ->columnSpanFull(),
-                                        Textarea::make('default_ssh_key')
-                                            ->label('Default SSH private key')
-                                            ->rows(10)
-                                            ->columnSpanFull()
-                                            ->helperText('Stored encrypted. Leave blank to keep the saved key.'),
-                                        TextInput::make('default_sudo_password')
-                                            ->label('Default sudo / SSH password')
-                                            ->password()
-                                            ->revealable()
-                                            ->columnSpanFull()
-                                            ->helperText('Stored encrypted. New password-based servers can inherit this value.'),
-                                        TextInput::make('default_cpanel_username')
-                                            ->label('Default cPanel username')
-                                            ->placeholder('cpanel-user')
-                                            ->columnSpanFull()
-                                            ->helperText('Useful for new cPanel servers that share the same account name pattern.'),
-                                        TextInput::make('default_cpanel_api_token')
-                                            ->label('Default cPanel API token')
-                                            ->password()
-                                            ->revealable()
-                                            ->columnSpanFull()
-                                            ->helperText('Stored encrypted. New cPanel servers can inherit this token during setup.'),
-                                        TextInput::make('default_cpanel_api_port')
-                                            ->label('Default cPanel API port')
-                                            ->numeric()
-                                            ->columnSpanFull()
-                                            ->helperText('Usually 2083. Used when new cPanel servers omit the port.'),
-                                        Select::make('default_dns_provider')
-                                            ->label('Default DNS provider')
-                                            ->options([
-                                                'manual' => 'Manual / Custom',
-                                                'cloudflare' => 'Cloudflare',
-                                            ])
-                                            ->required()
-                                            ->columnSpanFull(),
-                                        TextInput::make('default_dns_zone_id')
-                                            ->label('Default DNS zone ID')
-                                            ->columnSpanFull()
-                                            ->helperText('Used when multiple new servers point at the same DNS zone.'),
-                                        TextInput::make('default_dns_api_token')
-                                            ->label('Default DNS API token')
-                                            ->password()
-                                            ->revealable()
-                                            ->columnSpanFull()
-                                            ->helperText('Stored encrypted. Leave blank if DNS stays manual.'),
-                                        Toggle::make('default_dns_proxy_records')
-                                            ->label('Proxy DNS records by default')
-                                            ->default(true)
-                                            ->helperText('Turn this off if you want new Cloudflare DNS entries to resolve directly to the origin server.'),
-                                    ])
-                                    ->columns(2),
-                                Section::make('Site credentials')
-                                    ->schema([
-                                        TextInput::make('default_webhook_secret')
-                                            ->label('Default site webhook secret')
-                                            ->password()
-                                            ->revealable()
-                                            ->columnSpanFull()
-                                            ->helperText('New site webhook settings can inherit this secret instead of generating a new one.'),
-                                    ])
-                                    ->columns(1),
+
                             ]),
                         Tab::make('GitHub')
                             ->badge('GitHub')
@@ -241,12 +174,7 @@ class AppSettingsForm
                                 Section::make('GitHub integration')
                                     ->extraAttributes(['id' => 'github-integration'])
                                     ->schema([
-                                        TextInput::make('github_api_token')
-                                            ->label('GitHub PAT')
-                                            ->password()
-                                            ->revealable()
-                                            ->helperText('Optional fallback if GitHub OAuth is not connected. Leave blank to keep the saved token.')
-                                            ->columnSpanFull(),
+
                                         TextInput::make('github_oauth_client_id')
                                             ->label('GitHub OAuth client ID')
                                             ->helperText('Used to connect GitHub without a PAT.')

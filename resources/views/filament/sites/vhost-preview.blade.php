@@ -78,8 +78,8 @@
                 <span>Preview snippet</span>
                 <x-info-tooltip text="This is the generated server config snippet for the current site mapping." label="Preview snippet help" />
             </div>
-            <div class="mt-3 max-h-[320px] overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
-                <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $preview['snippet'] ?? 'No vhost snippet available yet.' }}</pre>
+            <div class="mt-3 max-h-80 overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
+                <pre class="whitespace-pre-wrap wrap-break-word font-mono text-xs leading-6 text-slate-100">{{ $preview['snippet'] ?? 'No vhost snippet available yet.' }}</pre>
             </div>
         </div>
     @endif

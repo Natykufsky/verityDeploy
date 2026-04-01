@@ -65,7 +65,7 @@
         </x-slot>
 
         <div wire:ignore>
-            <div x-ref="terminal" class="h-[24rem] w-full overflow-hidden rounded-2xl border border-white/5 bg-slate-950"></div>
+            <div x-ref="terminal" class="h-96 w-full overflow-hidden rounded-2xl border border-white/5 bg-slate-950"></div>
             <div x-show="autocompleteHint" x-cloak class="mt-3 rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100" x-text="autocompleteHint"></div>
         </div>
     </x-terminal-panel>
@@ -79,7 +79,7 @@
             <div class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{{ $runsCount }} runs</div>
         </div>
 
-        <div class="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+        <div class="max-h-112 space-y-2 overflow-y-auto pr-1">
             @forelse ($runs as $run)
                 <details @class([
                     'group rounded-2xl border border-white/5 bg-black/20 px-4 py-3 transition-all duration-300',
@@ -119,8 +119,8 @@
                         @endif
 
                         @if (filled($run['output']))
-                            <div class="mt-3 max-h-[11rem] overflow-y-auto rounded-xl border border-white/5 bg-slate-950 px-3 py-3">
-                                <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $run['output'] }}</pre>
+                            <div class="mt-3 max-h-44 overflow-y-auto rounded-xl border border-white/5 bg-slate-950 px-3 py-3">
+                                <pre class="whitespace-pre-wrap wrap-break-word font-mono text-xs leading-6 text-slate-100">{{ $run['output'] }}</pre>
                             </div>
                         @else
                             <div class="mt-3 text-slate-500">no terminal output yet.</div>

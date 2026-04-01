@@ -1,4 +1,4 @@
-<div id="deployment-terminal" class="max-h-[620px] space-y-4 overflow-y-auto pr-1">
+<div id="deployment-terminal" class="max-h-155 space-y-4 overflow-y-auto pr-1">
     <div class="deployment-frost-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
         <div>
             <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">

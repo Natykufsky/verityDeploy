@@ -206,7 +206,7 @@
                             <div wire:ignore class="relative min-h-0 flex-1">
                                 <div
                                     x-ref="terminal"
-                                    class="h-full min-h-[26rem] w-full overflow-hidden rounded-2xl border border-white/5 bg-slate-950 transition-shadow duration-300"
+                                    class="h-full min-h-104 w-full overflow-hidden rounded-2xl border border-white/5 bg-slate-950 transition-shadow duration-300"
                                     :class="bridgeState === 'connected' ? 'shadow-[0_0_0_1px_rgba(16,185,129,0.18),0_0_32px_rgba(16,185,129,0.08)] ring-1 ring-emerald-400/15' : bridgeState === 'reconnecting' ? 'shadow-[0_0_0_1px_rgba(251,191,36,0.16),0_0_32px_rgba(251,191,36,0.08)] ring-1 ring-amber-400/15' : 'shadow-none'"
                                 ></div>
                                 <div
@@ -261,7 +261,7 @@
                                             </div>
 
                                             @if (filled($run['output']))
-                                                <pre class="mt-3 whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $run['output'] }}</pre>
+                                                <pre class="mt-3 whitespace-pre-wrap wrap-break-word rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $run['output'] }}</pre>
                                             @else
                                                 <div class="mt-3 text-slate-500">no terminal output yet.</div>
                                             @endif

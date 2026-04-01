@@ -273,9 +273,8 @@ class SiteForm
                                     TextInput::make('webhook_secret')
                                         ->password()
                                         ->revealable()
-                                        ->default(fn ($record): ?string => filled($record?->webhook_secret) ? (string) $record->webhook_secret : app(AppSettings::class)->defaultWebhookSecret())
                                         ->columnSpanFull()
-                                        ->helperText('Leave blank to inherit the shared default site webhook secret from App Settings.'),
+                                        ->helperText('Leave blank to inherit the webhook secret from your selected Credential Profile.'),
                                     Toggle::make('active')
                                         ->default(true),
                                     DateTimePicker::make('last_deployed_at'),

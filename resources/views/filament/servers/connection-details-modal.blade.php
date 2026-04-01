@@ -49,7 +49,7 @@
     <div class="space-y-3">
         <h4 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Recent check results</h4>
 
-        <div class="max-h-[380px] overflow-y-auto pr-1">
+        <div class="max-h-95 overflow-y-auto pr-1">
             @forelse ($record->connectionTests->take(5) as $test)
                 <div class="mb-3 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-black/10 backdrop-blur-md">
                     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -62,8 +62,8 @@
                         </div>
                     </div>
 
-                    <div class="mt-3 max-h-[180px] overflow-y-auto rounded-xl border border-white/5 bg-black/25 p-3 font-mono text-xs leading-6 text-slate-100">
-                        <pre class="whitespace-pre-wrap break-words">{{ $test->output ?: $test->error_message ?: 'No output captured.' }}</pre>
+                    <div class="mt-3 max-h-45 overflow-y-auto rounded-xl border border-white/5 bg-black/25 p-3 font-mono text-xs leading-6 text-slate-100">
+                        <pre class="whitespace-pre-wrap wrap-break-word">{{ $test->output ?: $test->error_message ?: 'No output captured.' }}</pre>
                     </div>
                 </div>
             @empty

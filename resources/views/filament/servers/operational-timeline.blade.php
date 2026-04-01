@@ -64,7 +64,7 @@
                         <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                             <div class="rounded-xl bg-black/30 p-2.5">
                                 <div class="text-[11px] uppercase tracking-wide text-slate-500">Command</div>
-                                <div class="mt-1 max-h-[64px] overflow-y-auto font-mono text-[11px] leading-5 text-slate-100">
+                                <div class="mt-1 max-h-16 overflow-y-auto font-mono text-[11px] leading-5 text-slate-100">
                                     {{ $item['command'] ?? 'n/a' }}
                                 </div>
                             </div>
@@ -88,7 +88,7 @@
                                     <summary class="cursor-pointer list-none text-[11px] uppercase tracking-wide text-slate-500">
                                         Output
                                     </summary>
-                                    <pre class="mt-2 max-h-[180px] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-white/5 bg-slate-950 px-3 py-2 font-mono text-[11px] leading-5 text-slate-100">{{ $item['output'] }}</pre>
+                                    <pre class="mt-2 max-h-45 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-white/5 bg-slate-950 px-3 py-2 font-mono text-[11px] leading-5 text-slate-100">{{ $item['output'] }}</pre>
                                 </details>
                             @endif
 
@@ -97,7 +97,7 @@
                                     <summary class="cursor-pointer list-none text-[11px] uppercase tracking-wide text-rose-300">
                                         Error
                                     </summary>
-                                    <pre class="mt-2 max-h-[180px] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-rose-500/20 bg-rose-950/30 px-3 py-2 font-mono text-[11px] leading-5 text-rose-100">{{ $item['error_message'] }}</pre>
+                                    <pre class="mt-2 max-h-45 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-rose-500/20 bg-rose-950/30 px-3 py-2 font-mono text-[11px] leading-5 text-rose-100">{{ $item['error_message'] }}</pre>
                                 </details>
                             @endif
                         </div>

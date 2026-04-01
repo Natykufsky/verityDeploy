@@ -138,7 +138,7 @@
                     <span>Live vhost output</span>
                     <x-info-tooltip text="This is the raw output from the remote web server inventory command." label="Live output help" />
                 </div>
-                <div class="mt-3 max-h-[320px] overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
+                <div class="mt-3 max-h-80 overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
                     <pre class="whitespace-pre-wrap break-word font-mono text-xs leading-6 text-slate-100">{{ $live['raw_output'] ?? 'No live output captured yet.' }}</pre>
                 </div>
             </div>
