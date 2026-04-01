@@ -1,5 +1,7 @@
 @php
-    $backups = collect($record->recent_admin_backups ?? []);
+    $backups = collect($record->recent_admin_backups ?? [])
+        ->sortByDesc(fn (array $backup) => filled($backup['started_at'] ?? null) ? \Illuminate\Support\Carbon::parse($backup['started_at']) : \Illuminate\Support\Carbon::createFromTimestamp(0))
+        ->values();
 @endphp
 
 <div
@@ -33,8 +35,8 @@
             @php
                 $status = $backup['status'] ?? 'unknown';
                 $opened = $index === 0;
-                $startedAt = filled($backup['started_at'] ?? null) ? \Illuminate\Support\Carbon::parse($backup['started_at'])->toDayDateTimeString() : null;
-                $finishedAt = filled($backup['finished_at'] ?? null) ? \Illuminate\Support\Carbon::parse($backup['finished_at'])->toDayDateTimeString() : null;
+                $startedAt = filled($backup['started_at'] ?? null) ? \Illuminate\Support\Carbon::parse($backup['started_at']) : null;
+                $finishedAt = filled($backup['finished_at'] ?? null) ? \Illuminate\Support\Carbon::parse($backup['finished_at']) : null;
             @endphp
 
             <details @class([
@@ -45,7 +47,7 @@
                     <div class="min-w-0 flex-1 space-y-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="text-sm font-semibold text-white">
-                                {{ $startedAt ?? 'Backup' }}
+                                {{ $startedAt?->format('M d, Y H:i:s') ?? 'Backup' }}
                             </span>
                             <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] {{ $status === 'successful' ? 'bg-emerald-500/15 text-emerald-300' : ($status === 'running' ? 'bg-cyan-500/15 text-cyan-300' : ($status === 'failed' ? 'bg-rose-500/15 text-rose-300' : 'bg-slate-500/15 text-slate-300')) }}">
                                 {{ $status }}
@@ -58,11 +60,14 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
                             <span>snapshot: {{ \Illuminate\Support\Str::limit((string) ($backup['snapshot_path'] ?? 'n/a'), 20) }}</span>
-                            <span>•</span>
+                            <span>·</span>
                             <span>{{ filled($backup['restored_release_path'] ?? null) ? \Illuminate\Support\Str::limit((string) $backup['restored_release_path'], 20) : 'No restore path' }}</span>
-                            <span>•</span>
-                            <span>{{ $finishedAt ? 'Finished ' . $finishedAt : 'Running or pending' }}</span>
+                            <span>·</span>
+                            <span>{{ $finishedAt ? 'Finished ' . $finishedAt->format('M d, Y H:i:s') : 'Running or pending' }}</span>
                         </div>
+                        @if ($startedAt)
+                            <div class="text-xs text-slate-400">{{ $startedAt->diffForHumans() }}</div>
+                        @endif
                     </div>
                 </summary>
 
@@ -88,7 +93,10 @@
                             <span>started</span>
                             <x-info-tooltip text="When the backup job began." label="Started help" />
                         </div>
-                        <div class="mt-1 text-sm text-slate-100">{{ $startedAt ?? 'n/a' }}</div>
+                        <div class="mt-1 text-sm text-slate-100">{{ $startedAt?->format('M d, Y H:i:s') ?? 'n/a' }}</div>
+                        @if ($startedAt)
+                            <div class="mt-1 text-xs text-slate-400">{{ $startedAt->diffForHumans() }}</div>
+                        @endif
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
@@ -96,7 +104,10 @@
                             <span>finished</span>
                             <x-info-tooltip text="When the backup job finished, or the latest recorded stop time." label="Finished help" />
                         </div>
-                        <div class="mt-1 text-sm text-slate-100">{{ $finishedAt ?? 'n/a' }}</div>
+                        <div class="mt-1 text-sm text-slate-100">{{ $finishedAt?->format('M d, Y H:i:s') ?? 'n/a' }}</div>
+                        @if ($finishedAt)
+                            <div class="mt-1 text-xs text-slate-400">{{ $finishedAt->diffForHumans() }}</div>
+                        @endif
                     </div>
 
                     @if (filled($backup['error_message'] ?? null))

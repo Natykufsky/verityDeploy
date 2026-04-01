@@ -5,6 +5,12 @@
     if ($filter !== 'all') {
         $timeline = $timeline->where('type', $filter);
     }
+
+    $timeline = $timeline->sortByDesc(function (array $item) {
+        return filled($item['tested_at'] ?? null)
+            ? \Illuminate\Support\Carbon::parse($item['tested_at'])
+            : \Illuminate\Support\Carbon::createFromTimestamp(0);
+    })->values();
 @endphp
 
 <div x-data="{ expanded: false }" class="space-y-4">
@@ -67,9 +73,16 @@
                                     {{ strtolower($item['status'] ?? 'unknown') }}
                                 </span>
                             </div>
-                            <div class="text-xs text-slate-400">
-                                {{ filled($item['tested_at'] ?? null) ? \Illuminate\Support\Carbon::parse($item['tested_at'])->toDayDateTimeString() : '' }}
-                            </div>
+                            @if (filled($item['tested_at'] ?? null))
+                                @php
+                                    $testedAt = \Illuminate\Support\Carbon::parse($item['tested_at']);
+                                @endphp
+                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
+                                    <span>{{ $testedAt->format('M d, Y H:i:s') }}</span>
+                                    <span class="text-slate-600">·</span>
+                                    <span>{{ $testedAt->diffForHumans() }}</span>
+                                </div>
+                            @endif
                         </div>
                     </summary>
 

@@ -1,5 +1,5 @@
 @php
-    $tests = $record->connectionTests ?? collect();
+    $tests = ($record->connectionTests ?? collect())->sortByDesc(fn ($test) => $test->tested_at ?? $test->created_at ?? null)->values();
 @endphp
 
 <div x-data="{ expanded: false }" class="space-y-4">
@@ -37,7 +37,10 @@
             ]) x-bind:open="expanded || {{ $opened ? 'true' : 'false' }}">
                 <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
                     <div class="space-y-1">
-                        <p class="text-sm font-semibold text-white">{{ $test->tested_at?->format('Y-m-d H:i:s') ?? 'Pending' }}</p>
+                        <p class="text-sm font-semibold text-white">{{ $test->tested_at?->format('M d, Y H:i:s') ?? 'Pending' }}</p>
+                        @if ($test->tested_at)
+                            <p class="text-xs text-slate-400">{{ $test->tested_at->diffForHumans() }}</p>
+                        @endif
                         <p class="text-xs lowercase tracking-[0.2em] text-slate-100">{{ strtolower($test->command) }}</p>
                     </div>
                     <div class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $test->status === 'successful' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300' }}">

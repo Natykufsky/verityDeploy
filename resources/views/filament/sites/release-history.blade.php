@@ -1,5 +1,7 @@
 @php
-    $releases = collect($record->recent_admin_deployments ?? []);
+    $releases = collect($record->recent_admin_deployments ?? [])
+        ->sortByDesc(fn (array $release) => filled($release['started_at'] ?? null) ? \Illuminate\Support\Carbon::parse($release['started_at']) : \Illuminate\Support\Carbon::createFromTimestamp(0))
+        ->values();
 @endphp
 
 <div
@@ -33,8 +35,8 @@
             @php
                 $status = $release['status'] ?? 'unknown';
                 $opened = $index === 0;
-                $startedAt = filled($release['started_at'] ?? null) ? \Illuminate\Support\Carbon::parse($release['started_at'])->toDayDateTimeString() : null;
-                $finishedAt = filled($release['finished_at'] ?? null) ? \Illuminate\Support\Carbon::parse($release['finished_at'])->toDayDateTimeString() : null;
+                $startedAt = filled($release['started_at'] ?? null) ? \Illuminate\Support\Carbon::parse($release['started_at']) : null;
+                $finishedAt = filled($release['finished_at'] ?? null) ? \Illuminate\Support\Carbon::parse($release['finished_at']) : null;
             @endphp
 
             <details @class([
@@ -45,7 +47,7 @@
                     <div class="min-w-0 flex-1 space-y-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="text-sm font-semibold text-white">
-                                {{ $startedAt ?? 'Release' }}
+                                {{ $startedAt?->format('M d, Y H:i:s') ?? 'Release' }}
                             </span>
                             <span class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] {{ $status === 'successful' ? 'bg-emerald-500/15 text-emerald-300' : ($status === 'running' ? 'bg-cyan-500/15 text-cyan-300' : ($status === 'failed' ? 'bg-rose-500/15 text-rose-300' : 'bg-slate-500/15 text-slate-300')) }}">
                                 {{ $status }}
@@ -63,11 +65,14 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
                             <span>commit: {{ \Illuminate\Support\Str::limit((string) ($release['commit_hash'] ?? 'n/a'), 12) }}</span>
-                            <span>•</span>
+                            <span>·</span>
                             <span>{{ filled($release['release_path'] ?? null) ? basename((string) $release['release_path']) : 'Release details' }}</span>
-                            <span>•</span>
-                            <span>{{ $finishedAt ? 'Finished ' . $finishedAt : 'Running or pending' }}</span>
+                            <span>·</span>
+                            <span>{{ $finishedAt ? 'Finished ' . $finishedAt->format('M d, Y H:i:s') : 'Running or pending' }}</span>
                         </div>
+                        @if ($startedAt)
+                            <div class="text-xs text-slate-400">{{ $startedAt->diffForHumans() }}</div>
+                        @endif
                     </div>
                 </summary>
 
@@ -93,7 +98,10 @@
                             <span>started</span>
                             <x-info-tooltip text="When the deployment or release work began." label="Started help" />
                         </div>
-                        <div class="mt-1 text-sm text-slate-100">{{ $startedAt ?? 'n/a' }}</div>
+                        <div class="mt-1 text-sm text-slate-100">{{ $startedAt?->format('M d, Y H:i:s') ?? 'n/a' }}</div>
+                        @if ($startedAt)
+                            <div class="mt-1 text-xs text-slate-400">{{ $startedAt->diffForHumans() }}</div>
+                        @endif
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
@@ -101,7 +109,10 @@
                             <span>finished</span>
                             <x-info-tooltip text="When the release finished, or the latest recorded stop time." label="Finished help" />
                         </div>
-                        <div class="mt-1 text-sm text-slate-100">{{ $finishedAt ?? 'n/a' }}</div>
+                        <div class="mt-1 text-sm text-slate-100">{{ $finishedAt?->format('M d, Y H:i:s') ?? 'n/a' }}</div>
+                        @if ($finishedAt)
+                            <div class="mt-1 text-xs text-slate-400">{{ $finishedAt->diffForHumans() }}</div>
+                        @endif
                     </div>
 
                     @if (filled($release['error_message'] ?? null))
