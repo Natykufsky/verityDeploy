@@ -52,7 +52,7 @@
                             <span x-show="copied">Copied</span>
                         </button>
                     </div>
-                    <pre class="mt-3 overflow-x-auto whitespace-pre-wrap break-words">{{ $snippet['command'] }}</pre>
+                    <pre class="mt-3 overflow-x-auto whitespace-pre-wrap wrap-break-word">{{ $snippet['command'] }}</pre>
                 </div>
             </article>
         @endforeach

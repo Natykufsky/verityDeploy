@@ -43,7 +43,7 @@
                     <span class="font-medium text-slate-200">{{ $snapshot['timing']['finished'] }}</span>
                 </div>
                 <div class="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
-                    <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-sky-400" style="width: {{ $snapshot['progress']['percentage'] }}%"></div>
+                    <div class="h-full rounded-full bg-linear-to-r from-emerald-400 via-cyan-400 to-sky-400" style="width: {{ $snapshot['progress']['percentage'] }}%"></div>
                 </div>
                 <div class="flex items-center justify-between gap-4 text-xs text-slate-400">
                     <span>{{ $snapshot['progress']['summary'] }}</span>

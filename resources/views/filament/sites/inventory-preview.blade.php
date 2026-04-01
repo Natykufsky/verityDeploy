@@ -139,7 +139,7 @@
                     <x-info-tooltip text="This is the raw output from the remote web server inventory command." label="Live output help" />
                 </div>
                 <div class="mt-3 max-h-[320px] overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
-                    <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $live['raw_output'] ?? 'No live output captured yet.' }}</pre>
+                    <pre class="whitespace-pre-wrap break-word font-mono text-xs leading-6 text-slate-100">{{ $live['raw_output'] ?? 'No live output captured yet.' }}</pre>
                 </div>
             </div>
 
@@ -295,19 +295,19 @@
                             <div class="mt-3 space-y-2">
                                 <div class="rounded-lg border border-white/5 bg-slate-950/70 p-3">
                                     <div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">command</div>
-                                    <pre class="mt-1 whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $step['command'] ?: 'n/a' }}</pre>
+                                    <pre class="mt-1 whitespace-pre-wrap wrap-break-word font-mono text-xs leading-6 text-slate-100">{{ $step['command'] ?: 'n/a' }}</pre>
                                 </div>
                                 <div class="rounded-lg border border-white/5 bg-slate-950/70 p-3">
                                     <div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">output</div>
-                                    <pre class="mt-1 max-h-[240px] overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $step['output'] ?: 'no output captured.' }}</pre>
+                                    <pre class="mt-1 max-h-60 overflow-y-auto whitespace-pre-wrap break-word font-mono text-xs leading-6 text-slate-100">{{ $step['output'] ?: 'no output captured.' }}</pre>
                                 </div>
                             </div>
                         </details>
                     @endforeach
                 </div>
             @elseif (filled(data_get($preview, 'apply.last_output')))
-                <div class="mt-3 max-h-[280px] overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
-                    <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ data_get($preview, 'apply.last_output') }}</pre>
+                <div class="mt-3 max-h-70 overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
+                    <pre class="whitespace-pre-wrap break-word font-mono text-xs leading-6 text-slate-100">{{ data_get($preview, 'apply.last_output') }}</pre>
                 </div>
             @endif
         </div>

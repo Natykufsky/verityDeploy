@@ -57,8 +57,8 @@
                             <div>{{ $test->exit_code ?? 'pending' }}</div>
                         </div>
 
-                    <div class="mt-3 max-h-[180px] overflow-y-auto rounded-xl border border-white/5 bg-black/25 p-3 font-mono text-xs leading-6 text-slate-100">
-                        <pre class="whitespace-pre-wrap break-words">{{ $test->output ?: $test->error_message ?: 'No output captured.' }}</pre>
+                    <div class="mt-3 max-h-45 overflow-y-auto rounded-xl border border-white/5 bg-black/25 p-3 font-mono text-xs leading-6 text-slate-100">
+                        <pre class="whitespace-pre-wrap wrap-break-word">{{ $test->output ?: $test->error_message ?: 'No output captured.' }}</pre>
                     </div>
                 </div>
             </details>

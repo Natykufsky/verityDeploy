@@ -205,7 +205,7 @@
                             Copy command
                         </button>
                     </div>
-                    <pre class="mt-3 max-h-[180px] overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['command'] }}</pre>
+                    <pre class="mt-3 max-h-45 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['command'] }}</pre>
                 </div>
 
                 <div class="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
@@ -213,7 +213,7 @@
                         <span>Output</span>
                         <x-info-tooltip text="Captured command output for the selected deployment step." label="Output help" />
                     </div>
-                    <pre class="mt-3 max-h-[220px] overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['output'] ?: 'No output captured.' }}</pre>
+                    <pre class="mt-3 max-h-55 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-xl border border-white/5 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">{{ $selectedStepDetail['output'] ?: 'No output captured.' }}</pre>
                 </div>
 
                 <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

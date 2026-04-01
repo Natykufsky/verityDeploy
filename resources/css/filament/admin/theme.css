@@ -634,3 +634,11 @@ samp {
 [x-cloak] {
     display: none !important;
 }
+
+/* Improve Select Input Dropdown UX with higher z-index */
+.fi-select-options,
+.fi-dropdown-panel,
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+    z-index: 9999 !important;
+}

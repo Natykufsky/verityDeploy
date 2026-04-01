@@ -180,7 +180,7 @@
 
     @if ($activeNotification)
         <div
-            class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm"
+            class="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm"
             wire:click.self="closeNotification"
             x-data
             x-on:keydown.window.arrow-left.prevent="$wire.previousNotification()"
@@ -288,7 +288,7 @@
                                 @foreach ($context as $key => $value)
                                     <div class="rounded-xl border border-white/5 bg-slate-950/70 p-3">
                                         <dt class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">{{ $key }}</dt>
-                                        <dd class="mt-1 break-words text-sm text-slate-100">
+                                        <dd class="mt-1 wrap-break-word text-sm text-slate-100">
                                             {{ is_scalar($value) || is_null($value) ? (string) $value : json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}
                                         </dd>
                                     </div>
