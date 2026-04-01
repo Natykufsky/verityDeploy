@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Servers\Schemas;
 
 use App\Models\Server;
 use App\Models\Team;
+use App\Models\CredentialProfile;
 use App\Services\AppSettings;
 use App\Services\Cpanel\CpanelApiClient;
 use Filament\Actions\Action;
@@ -92,11 +93,21 @@ class ServerForm
                                     ->helperText('Use Discover after saving a cPanel server to fetch the account SSH port from the API.'),
                                 TextInput::make('ssh_user')
                                     ->label('SSH user')
-                                    ->required(),
+                                    ->default(fn (?Server $record): ?string => filled($record?->ssh_user) ? (string) $record->ssh_user : app(AppSettings::class)->defaultSshUser())
+                                    ->helperText('Leave blank to inherit the shared default SSH user from App Settings.'),
+                                Select::make('ssh_credential_profile_id')
+                                    ->label('SSH credential profile')
+                                    ->options(fn (): array => CredentialProfile::query()->ofType('ssh')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                    ->default(fn (): ?int => app(AppSettings::class)->defaultSshCredentialProfileId())
+                                    ->searchable()
+                                    ->placeholder('Use default or enter manually')
+                                    ->helperText('Select a shared SSH profile to avoid repeating host, key, and password details.')
+                                    ->columnSpanFull(),
                                 TextInput::make('cpanel_username')
                                     ->label('cPanel username')
+                                    ->default(fn (?Server $record): ?string => filled($record?->cpanel_username) ? (string) $record->cpanel_username : app(AppSettings::class)->defaultCpanelUsername())
                                     ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
-                                    ->helperText('If your cPanel login username is different from the SSH user, enter it here. The API token must belong to this exact cPanel account.')
+                                    ->helperText('Leave blank to inherit the shared cPanel username from App Settings. If your login differs, enter it here. The API token must belong to this exact cPanel account.')
                                     ->columnSpanFull(),
                                 Select::make('team_id')
                                     ->label('Team')
@@ -133,12 +144,15 @@ class ServerForm
                                     ->label('SSH private key')
                                     ->rows(12)
                                     ->columnSpanFull()
-                                    ->helperText('Stored encrypted in the database. Use the generate key action to create a new Ed25519 pair.'),
+                                    ->default(fn (?Server $record): ?string => filled($record?->ssh_key) ? (string) $record->ssh_key : app(AppSettings::class)->defaultSshKey())
+                                    ->helperText('Stored encrypted in the database. Leave blank to inherit the shared default SSH key from App Settings. Use the generate key action to create a new Ed25519 pair.'),
                                 TextInput::make('sudo_password')
                                     ->label('Sudo / SSH password')
                                     ->password()
                                     ->revealable()
-                                    ->columnSpanFull(),
+                                    ->columnSpanFull()
+                                    ->default(fn (?Server $record): ?string => filled($record?->sudo_password) ? (string) $record->sudo_password : app(AppSettings::class)->defaultSudoPassword())
+                                    ->helperText('Leave blank to inherit the shared default sudo / SSH password from App Settings.'),
                                 Textarea::make('notes')
                                     ->columnSpanFull(),
                             ])
@@ -152,6 +166,7 @@ class ServerForm
                                     ->password()
                                     ->revealable()
                                     ->columnSpanFull()
+                                    ->default(fn (?Server $record): ?string => filled($record?->cpanel_api_token) ? (string) $record->cpanel_api_token : app(AppSettings::class)->defaultCpanelApiToken())
                                     ->suffixAction(
                                         Action::make('testCpanelApi')
                                             ->label('Test API')
@@ -200,15 +215,23 @@ class ServerForm
                                                 }
                                             }),
                                     )
-                                    ->helperText('Stored encrypted. Use the cPanel account username either here or in the SSH user field, and use Test API to verify the token and port.'),
+                                    ->helperText('Stored encrypted. Leave blank to inherit the shared default cPanel API token from App Settings. Use the cPanel account username either here or in the SSH user field, and use Test API to verify the token and port.'),
                                 TextInput::make('cpanel_api_port')
                                     ->label('cPanel API port')
                                     ->numeric()
-                                    ->default(2083)
+                                    ->default(fn (?Server $record): int => (int) ($record?->cpanel_api_port ?: app(AppSettings::class)->defaultCpanelApiPort()))
                                     ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
                                     ->helperText(fn (Get $get): string => ((int) ($get('cpanel_api_port') ?: 2083) === (int) ($get('ssh_port') ?: 22))
                                         ? 'This must be the cPanel HTTPS/API port, not the SSH port. If it matches SSH, change it to the actual cPanel API port (usually 2083).'
                                         : 'This should be the cPanel HTTPS/API port. It is usually 2083 and should not match the SSH port.'),
+                                Select::make('cpanel_credential_profile_id')
+                                    ->label('cPanel credential profile')
+                                    ->options(fn (): array => CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                    ->default(fn (): ?int => app(AppSettings::class)->defaultCpanelCredentialProfileId())
+                                    ->searchable()
+                                    ->placeholder('Use default or enter manually')
+                                    ->helperText('Select a shared cPanel profile to avoid repeating the account token and login details.')
+                                    ->columnSpanFull(),
                               ])
                               ->columns(2),
                         Tab::make('Provider')
@@ -245,6 +268,14 @@ class ServerForm
                                     ->label('Provider region')
                                     ->placeholder('fra1 / us-east-1 / ewr1')
                                     ->helperText('Use the vendor region or datacenter name so the server is easy to locate later.'),
+                                Select::make('dns_credential_profile_id')
+                                    ->label('DNS credential profile')
+                                    ->options(fn (): array => CredentialProfile::query()->ofType('dns')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                    ->default(fn (): ?int => app(AppSettings::class)->defaultDnsCredentialProfileId())
+                                    ->searchable()
+                                    ->placeholder('Use default or enter manually')
+                                    ->helperText('Select a shared DNS profile to avoid repeating API tokens and zone details.')
+                                    ->columnSpanFull(),
                                 KeyValue::make('provider_metadata')
                                     ->label('Provider metadata')
                                     ->keyLabel('Field')
@@ -290,32 +321,34 @@ class ServerForm
                                     ->visible(fn (?Server $record, Get $get): bool => (($get('connection_type') ?? $record?->connection_type) !== 'cpanel') && (bool) ($get('can_manage_vhosts') ?? $record?->can_manage_vhosts)),
                                 Section::make('DNS provider')
                                     ->schema([
-                                        Select::make('dns_provider')
-                                            ->label('DNS provider')
-                                            ->options(Server::dnsProviderOptions())
-                                            ->default('manual')
-                                            ->live()
+                                Select::make('dns_provider')
+                                    ->label('DNS provider')
+                                    ->options(Server::dnsProviderOptions())
+                                    ->default(fn (?Server $record): string => filled($record?->dns_provider) ? (string) $record->dns_provider : app(AppSettings::class)->defaultDnsProvider())
+                                    ->live()
                                             ->afterStateUpdated(function (Set $set, ?string $state): void {
                                                 if ($state === 'cloudflare') {
                                                     $set('can_manage_dns', true);
                                                 }
                                             })
                                             ->helperText('Choose the DNS provider that can manage zones and records for this server.'),
-                                        TextInput::make('dns_zone_id')
-                                            ->label('Cloudflare zone ID')
-                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                            ->helperText('Optional if you want to pin the provisioning flow to a specific Cloudflare zone.'),
-                                        TextInput::make('dns_api_token')
-                                            ->label('Cloudflare API token')
-                                            ->password()
-                                            ->revealable()
-                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                            ->helperText('Token needs DNS edit access for the target zone.'),
-                                        Toggle::make('dns_proxy_records')
-                                            ->label('Proxy DNS records')
-                                            ->default(true)
-                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                            ->helperText('Turn this off if you want DNS records to resolve directly to the origin server.'),
+                                TextInput::make('dns_zone_id')
+                                    ->label('Cloudflare zone ID')
+                                    ->default(fn (?Server $record): ?string => filled($record?->dns_zone_id) ? (string) $record->dns_zone_id : app(AppSettings::class)->defaultDnsZoneId())
+                                    ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                    ->helperText('Leave blank to inherit the shared Cloudflare zone ID from App Settings.'),
+                                TextInput::make('dns_api_token')
+                                    ->label('Cloudflare API token')
+                                    ->password()
+                                    ->revealable()
+                                    ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                    ->default(fn (?Server $record): ?string => filled($record?->dns_api_token) ? (string) $record->dns_api_token : app(AppSettings::class)->defaultDnsApiToken())
+                                    ->helperText('Leave blank to inherit the shared Cloudflare API token from App Settings. Token needs DNS edit access for the target zone.'),
+                                Toggle::make('dns_proxy_records')
+                                    ->label('Proxy DNS records')
+                                    ->default(fn (?Server $record): bool => (bool) ($record?->dns_proxy_records ?? app(AppSettings::class)->defaultDnsProxyRecords()))
+                                    ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                    ->helperText('Turn this off if you want DNS records to resolve directly to the origin server.'),
                                     ])
                                     ->columns(2),
                                 View::make('filament.servers.provider-mode-help')

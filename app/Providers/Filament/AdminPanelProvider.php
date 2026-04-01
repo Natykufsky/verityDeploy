@@ -43,6 +43,9 @@ class AdminPanelProvider extends PanelProvider
             ->simplePageMaxContentWidth(Width::Full)
             ->sidebarCollapsibleOnDesktop()
             ->brandName(app(AppSettings::class)->appName())
+            ->brandLogo(fn (): ?string => app(AppSettings::class)->brandLogoUrl())
+            ->brandLogoHeight('3rem')
+            ->favicon(fn (): ?string => app(AppSettings::class)->faviconUrl())
             ->colors([
                 'primary' => Color::Amber,
             ])

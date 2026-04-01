@@ -3,9 +3,18 @@
     <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent"></div>
     <div class="pointer-events-none absolute -right-12 top-6 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl motion-safe:animate-pulse"></div>
 
+    @php
+        $branding = app(\App\Services\AppSettings::class);
+        $logoUrl = $branding->brandLogoUrl();
+    @endphp
+
     <div class="flex flex-col items-center gap-4 md:flex-row md:items-start md:text-left">
-        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-500/15 text-sm font-black tracking-[0.2em] text-amber-200">
-            VD
+        <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-amber-400/20 bg-amber-500/15 shadow-lg shadow-amber-950/20">
+            @if (filled($logoUrl))
+                <img src="{{ $logoUrl }}" alt="{{ $appName }} logo" class="h-full w-full object-contain p-2.5" />
+            @else
+                <span class="text-base font-black tracking-[0.24em] text-amber-200">VD</span>
+            @endif
         </div>
 
         <div class="min-w-0 flex-1">
@@ -14,10 +23,10 @@
             </div>
 
             <h1 class="mt-3 text-2xl font-semibold tracking-tight text-white md:text-3xl">
-                Deploy with control, not chaos.
+                {{ filled($branding->appTagline()) ? $branding->appTagline() : 'Deploy with control, not chaos.' }}
             </h1>
             <p class="mt-2 text-sm leading-7 text-slate-300">
-                Sign in to manage servers, track deployments, and recover quickly when something needs attention.
+                {{ filled($branding->appDescription()) ? $branding->appDescription() : 'Sign in to manage servers, track deployments, and recover quickly when something needs attention.' }}
             </p>
 
             <div class="mt-4 flex flex-wrap justify-center gap-3 text-xs text-slate-400 md:justify-start">

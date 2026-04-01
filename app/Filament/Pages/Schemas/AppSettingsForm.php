@@ -2,102 +2,293 @@
 
 namespace App\Filament\Pages\Schemas;
 
-use Filament\Schemas\Components\Section;
+use App\Models\CredentialProfile;
+use App\Services\AppSettings;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class AppSettingsForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $settings = app(AppSettings::class);
+
         return $schema
             ->components([
-                Section::make('Branding')
-                    ->extraAttributes(['id' => 'branding-settings'])
-                    ->schema([
-                        TextInput::make('app_name')
-                            ->required()
-                            ->maxLength(120),
-                    ])
-                    ->columns(1),
-                Section::make('Deployment Defaults')
-                    ->extraAttributes(['id' => 'deployment-defaults'])
-                    ->schema([
-                        Select::make('default_deploy_source')
-                            ->options([
-                                'git' => 'Git',
-                                'local' => 'Local',
-                            ])
-                            ->required(),
-                        TextInput::make('default_branch')
-                            ->required(),
-                        TextInput::make('default_web_root')
-                            ->required(),
-                        TextInput::make('default_php_version')
-                            ->placeholder('8.3'),
-                        TextInput::make('default_ssh_port')
-                            ->numeric()
-                            ->required(),
-                    ])
-                    ->columns(2),
-                Section::make('Webhook Defaults')
-                    ->extraAttributes(['id' => 'webhook-defaults'])
-                    ->schema([
-                        TextInput::make('github_webhook_path')
-                            ->required()
-                            ->helperText('The endpoint GitHub should call when push events happen.')
-                            ->columnSpanFull(),
-                        TextInput::make('github_webhook_events')
-                            ->required()
-                            ->helperText('Comma-separated GitHub events to subscribe to, such as push.')
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(1),
-                Section::make('GitHub Integration')
-                    ->extraAttributes(['id' => 'github-integration'])
-                    ->schema([
-                        TextInput::make('github_api_token')
-                            ->label('GitHub PAT')
-                            ->password()
-                            ->revealable()
-                            ->helperText('Optional fallback if GitHub OAuth is not connected. Leave blank to keep the saved token.')
-                            ->columnSpanFull(),
-                        TextInput::make('github_oauth_client_id')
-                            ->label('GitHub OAuth client ID')
-                            ->helperText('Used to connect GitHub without a PAT.')
-                            ->columnSpanFull(),
-                        TextInput::make('github_oauth_client_secret')
-                            ->label('GitHub OAuth client secret')
-                            ->password()
-                            ->revealable()
-                            ->helperText('Stored encrypted. Leave blank to keep the saved secret.')
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(1),
-                Section::make('Alert Delivery')
-                    ->extraAttributes(['id' => 'alert-delivery'])
-                    ->schema([
-                        Toggle::make('alert_email_enabled')
-                            ->label('Email alerts')
-                            ->helperText('When enabled, operational alerts are emailed to users who can access the Filament panel.'),
-                        Toggle::make('alert_webhooks_enabled')
-                            ->label('Webhook alerts')
-                            ->helperText('When enabled, operational alerts are posted to each URL below as JSON payloads.'),
-                        Textarea::make('alert_webhook_urls')
-                            ->label('Webhook URLs')
-                            ->rows(4)
-                            ->placeholder("https://example.com/webhooks/veritydeploy\nhttps://backup.example.com/alerts")
-                            ->helperText('Enter one endpoint per line. Leave blank to disable webhook delivery.'),
-                        TextInput::make('alert_webhook_secret')
-                            ->label('Webhook signing secret')
-                            ->password()
-                            ->revealable()
-                            ->helperText('Optional shared secret used to sign outbound webhook payloads.'),
-                    ])
-                    ->columns(1),
+                Tabs::make('App settings')
+                    ->columnSpanFull()
+                    ->persistTab()
+                    ->persistTabInQueryString('tab')
+                    ->tabs([
+                        Tab::make('General')
+                            ->badge('Base')
+                            ->badgeColor('primary')
+                            ->schema([
+                                Section::make('Branding')
+                                    ->extraAttributes(['id' => 'branding-settings'])
+                                    ->schema([
+                                        TextInput::make('app_name')
+                                            ->required()
+                                            ->maxLength(120)
+                                            ->columnSpanFull(),
+                                        FileUpload::make('app_logo_path')
+                                            ->label('App logo')
+                                            ->image()
+                                            ->disk('public')
+                                            ->directory('branding')
+                                            ->visibility('public')
+                                            ->preserveFilenames()
+                                            ->columnSpanFull()
+                                            ->helperText('Upload the primary app logo used in the panel header and brand surfaces.'),
+                                        FileUpload::make('app_favicon_path')
+                                            ->label('Favicon')
+                                            ->image()
+                                            ->disk('public')
+                                            ->directory('branding')
+                                            ->visibility('public')
+                                            ->preserveFilenames()
+                                            ->columnSpanFull()
+                                            ->helperText('Upload a square icon used as the browser favicon.'),
+                                        TextInput::make('app_tagline')
+                                            ->label('App tagline')
+                                            ->placeholder('Deploy apps with confidence')
+                                            ->columnSpanFull()
+                                            ->helperText('Short brand line shown in the settings page and future marketing surfaces.'),
+                                        Textarea::make('app_description')
+                                            ->label('App description')
+                                            ->rows(4)
+                                            ->columnSpanFull()
+                                            ->helperText('A longer description of what VerityDeploy does and how it should be presented.'),
+                                        TextInput::make('app_support_url')
+                                            ->label('Support URL')
+                                            ->url()
+                                            ->placeholder('https://support.example.com')
+                                            ->columnSpanFull()
+                                            ->helperText('Optional support or help link for footer and login surface references.'),
+                                        View::make('filament.pages.app-settings-branding-preview')
+                                            ->columnSpanFull()
+                                            ->viewData(fn (Get $get): array => [
+                                                'appName' => filled($get('app_name')) ? (string) $get('app_name') : app(AppSettings::class)->appName(),
+                                                'logoUrl' => filled($get('app_logo_path')) ? Storage::disk('public')->url((string) $get('app_logo_path')) : app(AppSettings::class)->brandLogoUrl(),
+                                                'faviconUrl' => filled($get('app_favicon_path')) ? Storage::disk('public')->url((string) $get('app_favicon_path')) : app(AppSettings::class)->faviconUrl(),
+                                                'tagline' => filled($get('app_tagline')) ? (string) $get('app_tagline') : app(AppSettings::class)->appTagline(),
+                                                'description' => filled($get('app_description')) ? (string) $get('app_description') : app(AppSettings::class)->appDescription(),
+                                                'supportUrl' => filled($get('app_support_url')) ? (string) $get('app_support_url') : app(AppSettings::class)->appSupportUrl(),
+                                            ]),
+                                    ])
+                                    ->columns(1),
+                                Section::make('Deployment Defaults')
+                                    ->extraAttributes(['id' => 'deployment-defaults'])
+                                    ->schema([
+                                        Select::make('default_deploy_source')
+                                            ->options([
+                                                'git' => 'Git',
+                                                'local' => 'Local',
+                                            ])
+                                            ->required(),
+                                        TextInput::make('default_branch')
+                                            ->required(),
+                                        TextInput::make('default_web_root')
+                                            ->required(),
+                                        TextInput::make('default_php_version')
+                                            ->placeholder('8.3'),
+                                        TextInput::make('default_ssh_port')
+                                            ->numeric()
+                                            ->required(),
+                                    ])
+                                    ->columns(2),
+                            ]),
+                        Tab::make('Credentials')
+                            ->badge('Shared')
+                            ->badgeColor('warning')
+                            ->schema([
+                                Section::make('Profile defaults')
+                                    ->extraAttributes(['id' => 'credential-defaults'])
+                                    ->schema([
+                                        Select::make('default_ssh_credential_profile_id')
+                                            ->label('Default SSH profile')
+                                            ->options(fn (): array => CredentialProfile::query()->ofType('ssh')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                            ->searchable()
+                                            ->placeholder('None selected')
+                                            ->helperText('Select the shared SSH profile that new servers should inherit by default.'),
+                                        Select::make('default_cpanel_credential_profile_id')
+                                            ->label('Default cPanel profile')
+                                            ->options(fn (): array => CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                            ->searchable()
+                                            ->placeholder('None selected')
+                                            ->helperText('Select the shared cPanel profile that new servers should inherit by default.'),
+                                        Select::make('default_dns_credential_profile_id')
+                                            ->label('Default DNS profile')
+                                            ->options(fn (): array => CredentialProfile::query()->ofType('dns')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                            ->searchable()
+                                            ->placeholder('None selected')
+                                            ->helperText('Select the shared DNS profile that new servers or sites should inherit by default.'),
+                                        Select::make('default_webhook_credential_profile_id')
+                                            ->label('Default webhook profile')
+                                            ->options(fn (): array => CredentialProfile::query()->ofType('webhook')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                            ->searchable()
+                                            ->placeholder('None selected')
+                                            ->helperText('Select the shared webhook profile that new site webhook settings should inherit by default.'),
+                                    ])
+                                    ->columns(2),
+                                Section::make('Shared server credentials')
+                                    ->schema([
+                                        TextInput::make('default_ssh_user')
+                                            ->label('Default SSH user')
+                                            ->placeholder('root')
+                                            ->helperText('New servers can inherit this username instead of entering it again.')
+                                            ->columnSpanFull(),
+                                        Textarea::make('default_ssh_key')
+                                            ->label('Default SSH private key')
+                                            ->rows(10)
+                                            ->columnSpanFull()
+                                            ->helperText('Stored encrypted. Leave blank to keep the saved key.'),
+                                        TextInput::make('default_sudo_password')
+                                            ->label('Default sudo / SSH password')
+                                            ->password()
+                                            ->revealable()
+                                            ->columnSpanFull()
+                                            ->helperText('Stored encrypted. New password-based servers can inherit this value.'),
+                                        TextInput::make('default_cpanel_username')
+                                            ->label('Default cPanel username')
+                                            ->placeholder('cpanel-user')
+                                            ->columnSpanFull()
+                                            ->helperText('Useful for new cPanel servers that share the same account name pattern.'),
+                                        TextInput::make('default_cpanel_api_token')
+                                            ->label('Default cPanel API token')
+                                            ->password()
+                                            ->revealable()
+                                            ->columnSpanFull()
+                                            ->helperText('Stored encrypted. New cPanel servers can inherit this token during setup.'),
+                                        TextInput::make('default_cpanel_api_port')
+                                            ->label('Default cPanel API port')
+                                            ->numeric()
+                                            ->columnSpanFull()
+                                            ->helperText('Usually 2083. Used when new cPanel servers omit the port.'),
+                                        Select::make('default_dns_provider')
+                                            ->label('Default DNS provider')
+                                            ->options([
+                                                'manual' => 'Manual / Custom',
+                                                'cloudflare' => 'Cloudflare',
+                                            ])
+                                            ->required()
+                                            ->columnSpanFull(),
+                                        TextInput::make('default_dns_zone_id')
+                                            ->label('Default DNS zone ID')
+                                            ->columnSpanFull()
+                                            ->helperText('Used when multiple new servers point at the same DNS zone.'),
+                                        TextInput::make('default_dns_api_token')
+                                            ->label('Default DNS API token')
+                                            ->password()
+                                            ->revealable()
+                                            ->columnSpanFull()
+                                            ->helperText('Stored encrypted. Leave blank if DNS stays manual.'),
+                                        Toggle::make('default_dns_proxy_records')
+                                            ->label('Proxy DNS records by default')
+                                            ->default(true)
+                                            ->helperText('Turn this off if you want new Cloudflare DNS entries to resolve directly to the origin server.'),
+                                    ])
+                                    ->columns(2),
+                                Section::make('Site credentials')
+                                    ->schema([
+                                        TextInput::make('default_webhook_secret')
+                                            ->label('Default site webhook secret')
+                                            ->password()
+                                            ->revealable()
+                                            ->columnSpanFull()
+                                            ->helperText('New site webhook settings can inherit this secret instead of generating a new one.'),
+                                    ])
+                                    ->columns(1),
+                            ]),
+                        Tab::make('GitHub')
+                            ->badge('GitHub')
+                            ->badgeColor('info')
+                            ->schema([
+                                Section::make('Profile defaults')
+                                    ->extraAttributes(['id' => 'github-defaults'])
+                                    ->schema([
+                                        Select::make('default_github_credential_profile_id')
+                                            ->label('Default GitHub profile')
+                                            ->options(fn (): array => CredentialProfile::query()->ofType('github')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                            ->searchable()
+                                            ->placeholder('None selected')
+                                            ->helperText('Select the shared GitHub profile new integrations should inherit.'),
+                                    ])
+                                    ->columns(1),
+                                Section::make('Webhook defaults')
+                                    ->extraAttributes(['id' => 'webhook-defaults'])
+                                    ->schema([
+                                        TextInput::make('github_webhook_path')
+                                            ->required()
+                                            ->helperText('The endpoint GitHub should call when push events happen.')
+                                            ->columnSpanFull(),
+                                        TextInput::make('github_webhook_events')
+                                            ->required()
+                                            ->helperText('Comma-separated GitHub events to subscribe to, such as push.')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns(1),
+                                Section::make('GitHub integration')
+                                    ->extraAttributes(['id' => 'github-integration'])
+                                    ->schema([
+                                        TextInput::make('github_api_token')
+                                            ->label('GitHub PAT')
+                                            ->password()
+                                            ->revealable()
+                                            ->helperText('Optional fallback if GitHub OAuth is not connected. Leave blank to keep the saved token.')
+                                            ->columnSpanFull(),
+                                        TextInput::make('github_oauth_client_id')
+                                            ->label('GitHub OAuth client ID')
+                                            ->helperText('Used to connect GitHub without a PAT.')
+                                            ->columnSpanFull(),
+                                        TextInput::make('github_oauth_client_secret')
+                                            ->label('GitHub OAuth client secret')
+                                            ->password()
+                                            ->revealable()
+                                            ->helperText('Stored encrypted. Leave blank to keep the saved secret.')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns(1),
+                            ]),
+                        Tab::make('Alerts')
+                            ->badge('Notify')
+                            ->badgeColor('success')
+                            ->schema([
+                                Section::make('Alert delivery')
+                                    ->extraAttributes(['id' => 'alert-delivery'])
+                                    ->schema([
+                                        Toggle::make('alert_email_enabled')
+                                            ->label('Email alerts')
+                                            ->helperText('When enabled, operational alerts are emailed to users who can access the Filament panel.'),
+                                        Toggle::make('alert_webhooks_enabled')
+                                            ->label('Webhook alerts')
+                                            ->helperText('When enabled, operational alerts are posted to each URL below as JSON payloads.'),
+                                        Textarea::make('alert_webhook_urls')
+                                            ->label('Webhook URLs')
+                                            ->rows(4)
+                                            ->placeholder("https://example.com/webhooks/veritydeploy\nhttps://backup.example.com/alerts")
+                                            ->helperText('Enter one endpoint per line. Leave blank to disable webhook delivery.')
+                                            ->columnSpanFull(),
+                                        TextInput::make('alert_webhook_secret')
+                                            ->label('Webhook signing secret')
+                                            ->password()
+                                            ->revealable()
+                                            ->helperText('Optional shared secret used to sign outbound webhook payloads.')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns(1),
+                            ]),
+                    ]),
             ]);
     }
 }

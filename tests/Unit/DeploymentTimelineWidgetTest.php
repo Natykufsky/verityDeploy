@@ -84,7 +84,7 @@ class DeploymentTimelineWidgetTest extends TestCase
         $this->assertSame($baselineFailed, $viewData['failedCount']);
         $this->assertSame($baselineRunning, $viewData['runningCount']);
         $this->assertCount(2, $viewData['stepChips']);
-        $this->assertSame('Fetch latest code', $viewData['stepChips'][0]['label']);
+        $this->assertSame('Install dependencies', $viewData['stepChips'][0]['label']);
         $this->assertSame('Successful', $viewData['stepChips'][0]['status']);
 
         $widget->openStepDetail($deployment->id, 2);

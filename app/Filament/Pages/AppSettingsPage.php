@@ -61,6 +61,16 @@ class AppSettingsPage extends Page
     protected function fillForm(): void
     {
         $data = $this->getSettings()->attributesToArray();
+        $data['app_logo_path'] = $data['app_logo_path'] ?? null;
+        $data['app_favicon_path'] = $data['app_favicon_path'] ?? null;
+        $data['app_tagline'] = $data['app_tagline'] ?? null;
+        $data['app_description'] = $data['app_description'] ?? null;
+        $data['app_support_url'] = $data['app_support_url'] ?? null;
+        $data['default_ssh_key'] = null;
+        $data['default_sudo_password'] = null;
+        $data['default_cpanel_api_token'] = null;
+        $data['default_dns_api_token'] = null;
+        $data['default_webhook_secret'] = null;
         $data['github_api_token'] = null;
         $data['github_oauth_client_secret'] = null;
         $data['alert_webhook_secret'] = null;
@@ -86,7 +96,27 @@ class AppSettingsPage extends Page
 
             $settings = $this->getSettings();
 
-            foreach (['github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret', 'alert_webhook_secret'] as $field) {
+            foreach ([
+                'app_logo_path',
+                'app_favicon_path',
+                'app_tagline',
+                'app_description',
+                'app_support_url',
+                'default_ssh_key',
+                'default_sudo_password',
+                'default_ssh_credential_profile_id',
+                'default_cpanel_api_token',
+                'default_cpanel_credential_profile_id',
+                'default_dns_api_token',
+                'default_dns_credential_profile_id',
+                'default_webhook_secret',
+                'default_webhook_credential_profile_id',
+                'github_api_token',
+                'github_oauth_client_id',
+                'github_oauth_client_secret',
+                'default_github_credential_profile_id',
+                'alert_webhook_secret',
+            ] as $field) {
                 if (blank($data[$field] ?? null)) {
                     unset($data[$field]);
                 }
@@ -160,6 +190,10 @@ class AppSettingsPage extends Page
             return filled($value) ? 'updated' : 'cleared';
         }
 
+        if (in_array($key, ['default_ssh_key', 'default_sudo_password', 'default_cpanel_api_token', 'default_dns_api_token', 'default_webhook_secret'], true)) {
+            return filled($value) ? 'updated' : 'cleared';
+        }
+
         if (in_array($key, ['alert_webhook_secret', 'alert_webhook_urls'], true)) {
             return filled($value) ? 'updated' : 'cleared';
         }
@@ -182,11 +216,32 @@ class AppSettingsPage extends Page
     {
         return match ($key) {
             'app_name' => 'app name',
+            'app_logo_path' => 'app logo',
+            'app_favicon_path' => 'favicon',
+            'app_tagline' => 'app tagline',
+            'app_description' => 'app description',
+            'app_support_url' => 'support URL',
             'default_branch' => 'default branch',
             'default_web_root' => 'default web root',
             'default_php_version' => 'default PHP version',
             'default_deploy_source' => 'default deploy source',
             'default_ssh_port' => 'default SSH port',
+            'default_ssh_credential_profile_id' => 'default SSH profile',
+            'default_ssh_user' => 'default SSH user',
+            'default_ssh_key' => 'default SSH key',
+            'default_sudo_password' => 'default sudo password',
+            'default_cpanel_username' => 'default cPanel username',
+            'default_cpanel_api_token' => 'default cPanel API token',
+            'default_cpanel_api_port' => 'default cPanel API port',
+            'default_cpanel_credential_profile_id' => 'default cPanel profile',
+            'default_dns_provider' => 'default DNS provider',
+            'default_dns_zone_id' => 'default DNS zone ID',
+            'default_dns_api_token' => 'default DNS API token',
+            'default_dns_proxy_records' => 'default DNS proxy records',
+            'default_dns_credential_profile_id' => 'default DNS profile',
+            'default_webhook_secret' => 'default site webhook secret',
+            'default_github_credential_profile_id' => 'default GitHub profile',
+            'default_webhook_credential_profile_id' => 'default webhook profile',
             'github_webhook_path' => 'webhook path',
             'github_webhook_events' => 'webhook events',
             'github_api_token' => 'GitHub PAT',
@@ -207,9 +262,11 @@ class AppSettingsPage extends Page
     {
         return match ($key) {
             'app_name' => 'branding-settings',
+            'app_logo_path', 'app_favicon_path', 'app_tagline', 'app_description', 'app_support_url' => 'branding-settings',
             'default_branch', 'default_web_root', 'default_php_version', 'default_deploy_source', 'default_ssh_port' => 'deployment-defaults',
+            'default_ssh_credential_profile_id', 'default_ssh_user', 'default_ssh_key', 'default_sudo_password', 'default_cpanel_username', 'default_cpanel_api_token', 'default_cpanel_api_port', 'default_cpanel_credential_profile_id', 'default_dns_provider', 'default_dns_zone_id', 'default_dns_api_token', 'default_dns_proxy_records', 'default_dns_credential_profile_id', 'default_webhook_secret', 'default_webhook_credential_profile_id' => 'credential-defaults',
             'github_webhook_path', 'github_webhook_events' => 'webhook-defaults',
-            'github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret', 'github_oauth_access_token' => 'github-integration',
+            'default_github_credential_profile_id', 'github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret', 'github_oauth_access_token' => 'github-integration',
             'alert_email_enabled', 'alert_webhooks_enabled', 'alert_webhook_urls', 'alert_webhook_secret' => 'alert-delivery',
             default => 'branding-settings',
         };
@@ -260,8 +317,8 @@ class AppSettingsPage extends Page
                 ->visible(fn (): bool => filled($this->getSettings()->github_oauth_client_id) && filled($this->getSettings()->github_oauth_client_secret))
                 ->url(fn (): string => route('github.oauth.redirect'))
                 ->openUrlInNewTab(),
-            Action::make('disconnectGitHubOauth')
-                ->label('Disconnect GitHub OAuth')
+                Action::make('disconnectGitHubOauth')
+                    ->label('Disconnect GitHub OAuth')
                 ->icon('heroicon-o-link-slash')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -270,11 +327,49 @@ class AppSettingsPage extends Page
                 ->modalDescription('This removes the stored GitHub OAuth token and falls back to the saved PAT or environment token.')
                 ->modalSubmitActionLabel('Disconnect OAuth')
                 ->action(fn () => $this->disconnectGitHubOauth()),
-            Action::make('save')
-                ->label('Save settings')
-                ->submit('save')
-                ->keyBindings(['mod+s']),
+                Action::make('save')
+                    ->label('Save settings')
+                    ->submit('save')
+                    ->keyBindings(['mod+s']),
+                Action::make('resetBranding')
+                    ->label('Reset branding')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset branding?')
+                    ->modalDescription('This clears the uploaded logo, favicon, tagline, description, and support URL while keeping the app name and the rest of the settings untouched.')
+                    ->modalSubmitActionLabel('Reset branding')
+                    ->action(fn () => $this->resetBranding()),
+            ];
+    }
+
+    protected function resetBranding(): void
+    {
+        $settings = $this->getSettings();
+
+        $data = [
+            'app_logo_path' => null,
+            'app_favicon_path' => null,
+            'app_tagline' => null,
+            'app_description' => null,
+            'app_support_url' => null,
         ];
+
+        $changes = $this->buildChangeSet($settings, $data);
+
+        $settings->update($data);
+
+        if (filled($changes)) {
+            $this->recordChange($settings, $changes);
+        }
+
+        $this->fillForm();
+
+        Notification::make()
+            ->success()
+            ->title('Branding reset')
+            ->body('The logo, favicon, tagline, description, and support URL were cleared.')
+            ->send();
     }
 
     protected function disconnectGitHubOauth(): void

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\EncryptedTextOrPlain;
+use App\Models\CredentialProfile;
 use App\Models\ReleaseCleanupRun;
 use App\Models\SiteTerminalRun;
 use App\Support\SiteDnsPreview;
@@ -47,6 +48,9 @@ class Site extends Model
         'github_webhook_status',
         'github_webhook_synced_at',
         'github_webhook_last_error',
+        'github_credential_profile_id',
+        'dns_credential_profile_id',
+        'webhook_credential_profile_id',
         'live_configuration_snapshot',
         'live_configuration_synced_at',
         'live_configuration_last_error',
@@ -76,6 +80,9 @@ class Site extends Model
             'live_configuration_snapshot' => 'array',
             'live_configuration_synced_at' => 'datetime',
             'live_configuration_last_error' => 'string',
+            'github_credential_profile_id' => 'integer',
+            'dns_credential_profile_id' => 'integer',
+            'webhook_credential_profile_id' => 'integer',
             'vhost_apply_last_run_at' => 'datetime',
             'vhost_apply_last_output' => 'string',
             'vhost_apply_last_error' => 'string',
@@ -91,6 +98,21 @@ class Site extends Model
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
+    }
+
+    public function githubCredentialProfile(): BelongsTo
+    {
+        return $this->belongsTo(CredentialProfile::class, 'github_credential_profile_id');
+    }
+
+    public function dnsCredentialProfile(): BelongsTo
+    {
+        return $this->belongsTo(CredentialProfile::class, 'dns_credential_profile_id');
+    }
+
+    public function webhookCredentialProfile(): BelongsTo
+    {
+        return $this->belongsTo(CredentialProfile::class, 'webhook_credential_profile_id');
     }
 
     public function team(): BelongsTo
@@ -641,6 +663,27 @@ class Site extends Model
                 'Enable HTTPS redirects when force https is turned on.',
             ],
         ];
+    }
+
+    public function getGithubCredentialProfileLabelAttribute(): string
+    {
+        return $this->githubCredentialProfile?->name
+            ?? app(\App\Services\AppSettings::class)->defaultGithubCredentialProfile()?->name
+            ?? 'No GitHub profile';
+    }
+
+    public function getDnsCredentialProfileLabelAttribute(): string
+    {
+        return $this->dnsCredentialProfile?->name
+            ?? app(\App\Services\AppSettings::class)->defaultDnsCredentialProfile()?->name
+            ?? 'No DNS profile';
+    }
+
+    public function getWebhookCredentialProfileLabelAttribute(): string
+    {
+        return $this->webhookCredentialProfile?->name
+            ?? app(\App\Services\AppSettings::class)->defaultWebhookCredentialProfile()?->name
+            ?? 'No webhook profile';
     }
 
     /**

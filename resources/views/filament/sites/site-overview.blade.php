@@ -90,4 +90,33 @@
             <div class="mt-1 text-sm text-slate-400">{{ $record->active ? 'The site is active.' : 'The site is inactive.' }}</div>
         </div>
     </div>
+
+    <div class="mt-4 grid gap-3 md:grid-cols-3">
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>GitHub profile</span>
+                <x-info-tooltip text="This is the shared GitHub profile linked to the site, or the default profile inherited from App Settings." label="GitHub profile help" />
+            </div>
+            <div class="mt-2 text-sm font-semibold text-white">{{ $record->github_credential_profile_label }}</div>
+            <div class="mt-1 text-sm text-slate-400">{{ filled($record->github_credential_profile_id) ? 'Linked directly to this site.' : 'Inherited from the shared default.' }}</div>
+        </div>
+
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>DNS profile</span>
+                <x-info-tooltip text="This is the shared DNS profile linked to the site, or the default profile inherited from App Settings." label="DNS profile help" />
+            </div>
+            <div class="mt-2 text-sm font-semibold text-white">{{ $record->dns_credential_profile_label }}</div>
+            <div class="mt-1 text-sm text-slate-400">{{ filled($record->dns_credential_profile_id) ? 'Linked directly to this site.' : 'Inherited from the shared default.' }}</div>
+        </div>
+
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Webhook profile</span>
+                <x-info-tooltip text="This is the shared webhook profile linked to the site, or the default profile inherited from App Settings." label="Webhook profile help" />
+            </div>
+            <div class="mt-2 text-sm font-semibold text-white">{{ $record->webhook_credential_profile_label }}</div>
+            <div class="mt-1 text-sm text-slate-400">{{ filled($record->webhook_credential_profile_id) ? 'Linked directly to this site.' : 'Inherited from the shared default.' }}</div>
+        </div>
+    </div>
 </details>

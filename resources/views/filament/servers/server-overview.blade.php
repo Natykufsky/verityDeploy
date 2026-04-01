@@ -78,4 +78,33 @@
             <div class="mt-1 text-sm text-slate-400">{{ $record->provider_region ?: 'No region set' }}</div>
         </div>
     </div>
+
+    <div class="mt-3 grid gap-3 md:grid-cols-3">
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>SSH profile</span>
+                <x-info-tooltip text="This is the shared SSH credential profile linked to the server, or the default profile inherited from App Settings." label="SSH profile help" />
+            </div>
+            <div class="mt-2 text-sm font-semibold text-white">{{ $record->ssh_credential_profile_label }}</div>
+            <div class="mt-1 text-sm text-slate-400">{{ filled($record->ssh_credential_profile_id) ? 'Linked directly to this server.' : 'Inherited from the shared default.' }}</div>
+        </div>
+
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>cPanel profile</span>
+                <x-info-tooltip text="This is the shared cPanel credential profile linked to the server, or the default profile inherited from App Settings." label="cPanel profile help" />
+            </div>
+            <div class="mt-2 text-sm font-semibold text-white">{{ $record->cpanel_credential_profile_label }}</div>
+            <div class="mt-1 text-sm text-slate-400">{{ filled($record->cpanel_credential_profile_id) ? 'Linked directly to this server.' : 'Inherited from the shared default.' }}</div>
+        </div>
+
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>DNS profile</span>
+                <x-info-tooltip text="This is the shared DNS credential profile linked to the server, or the default profile inherited from App Settings." label="DNS profile help" />
+            </div>
+            <div class="mt-2 text-sm font-semibold text-white">{{ $record->dns_credential_profile_label }}</div>
+            <div class="mt-1 text-sm text-slate-400">{{ filled($record->dns_credential_profile_id) ? 'Linked directly to this server.' : 'Inherited from the shared default.' }}</div>
+        </div>
+    </div>
 </details>

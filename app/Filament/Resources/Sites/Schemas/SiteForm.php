@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Sites\Schemas;
 
 use App\Models\Server;
 use App\Models\Team;
+use App\Models\CredentialProfile;
 use App\Services\AppSettings;
 use App\Support\SiteDomainPreview;
 use App\Support\SiteEnvironmentPreview;
@@ -56,6 +57,14 @@ class SiteForm
                                         ->helperText('Leave blank to inherit the team from the assigned server.'),
                                     TextInput::make('repository_url')
                                         ->url(),
+                                    Select::make('github_credential_profile_id')
+                                        ->label('GitHub credential profile')
+                                        ->options(fn (): array => CredentialProfile::query()->ofType('github')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                        ->default(fn (): ?int => app(AppSettings::class)->defaultGithubCredentialProfileId())
+                                        ->searchable()
+                                        ->placeholder('Use default or leave blank')
+                                        ->helperText('Select the shared GitHub profile that this site should use for repository access and webhook setup.')
+                                        ->columnSpanFull(),
                                     TextInput::make('default_branch')
                                         ->required()
                                         ->default(fn (): string => app(AppSettings::class)->defaultBranch()),
@@ -136,6 +145,14 @@ class SiteForm
                                 ->columns(1),
                             Section::make('SSL and routing')
                                 ->schema([
+                                    Select::make('dns_credential_profile_id')
+                                        ->label('DNS credential profile')
+                                        ->options(fn (): array => CredentialProfile::query()->ofType('dns')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                        ->default(fn (): ?int => app(AppSettings::class)->defaultDnsCredentialProfileId())
+                                        ->searchable()
+                                        ->placeholder('Use default or leave blank')
+                                        ->helperText('Select the shared DNS profile that should be used for domain and record management.')
+                                        ->columnSpanFull(),
                                     Select::make('ssl_state')
                                         ->label('SSL state')
                                         ->options([
@@ -243,12 +260,22 @@ class SiteForm
                         ->badge('Lock')
                         ->badgeColor('warning')
                         ->schema([
+                            Select::make('webhook_credential_profile_id')
+                                ->label('Webhook credential profile')
+                                ->options(fn (): array => CredentialProfile::query()->ofType('webhook')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                ->default(fn (): ?int => app(AppSettings::class)->defaultWebhookCredentialProfileId())
+                                ->searchable()
+                                ->placeholder('Use default or leave blank')
+                                ->helperText('Select the shared webhook profile that should be used for inbound deployment and alert hooks.')
+                                ->columnSpanFull(),
                             Section::make('Security and lifecycle')
                                 ->schema([
                                     TextInput::make('webhook_secret')
                                         ->password()
                                         ->revealable()
-                                        ->columnSpanFull(),
+                                        ->default(fn ($record): ?string => filled($record?->webhook_secret) ? (string) $record->webhook_secret : app(AppSettings::class)->defaultWebhookSecret())
+                                        ->columnSpanFull()
+                                        ->helperText('Leave blank to inherit the shared default site webhook secret from App Settings.'),
                                     Toggle::make('active')
                                         ->default(true),
                                     DateTimePicker::make('last_deployed_at'),
