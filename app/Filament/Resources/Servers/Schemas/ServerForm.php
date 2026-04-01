@@ -271,6 +271,23 @@ class ServerForm
                                             ->default(false),
                                     ])
                                     ->columns(2),
+                                Section::make('VPS vhost paths')
+                                    ->schema([
+                                        TextInput::make('vhost_config_path')
+                                            ->label('Vhost config path')
+                                            ->placeholder('/etc/nginx/sites-available/site.conf')
+                                            ->helperText('Optional override for the file path shown in the VPS repair plan.'),
+                                        TextInput::make('vhost_enabled_path')
+                                            ->label('Vhost enabled path')
+                                            ->placeholder('/etc/nginx/sites-enabled/site.conf')
+                                            ->helperText('Optional override for the active or enabled path used by the web server.'),
+                                        TextInput::make('vhost_reload_command')
+                                            ->label('Reload command')
+                                            ->placeholder('systemctl reload nginx')
+                                            ->helperText('Optional override for the command used to reload the web server after config changes.'),
+                                    ])
+                                    ->columns(1)
+                                    ->visible(fn (?Server $record, Get $get): bool => (($get('connection_type') ?? $record?->connection_type) !== 'cpanel') && (bool) ($get('can_manage_vhosts') ?? $record?->can_manage_vhosts)),
                                 Section::make('DNS provider')
                                     ->schema([
                                         Select::make('dns_provider')

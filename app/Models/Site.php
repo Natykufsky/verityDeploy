@@ -271,6 +271,248 @@ class Site extends Model
             : 'No live inventory errors recorded.';
     }
 
+    public function getLiveConfigurationDriftStatusAttribute(): string
+    {
+        $snapshot = (array) ($this->live_configuration_snapshot ?? []);
+        $source = strtolower((string) data_get($snapshot, 'source', ''));
+
+        if (blank($snapshot)) {
+            return 'not synced';
+        }
+
+        if ($source === 'cpanel') {
+            $domainPreview = $this->domainPreviewFromSite();
+            $dnsPreview = $this->dns_preview;
+            $sslPreview = $this->ssl_preview;
+            $liveDomains = (array) data_get($snapshot, 'domains', []);
+            $liveDns = (array) data_get($snapshot, 'dns.records', []);
+            $liveSsl = (array) data_get($snapshot, 'ssl.hosts', []);
+
+            $mismatches = 0;
+
+            if (filled($domainPreview['primary_domain'] ?? null) && filled(data_get($liveDomains, 'main.domain')) && data_get($liveDomains, 'main.domain') !== $domainPreview['primary_domain']) {
+                $mismatches++;
+            }
+
+            $mismatches += abs(count((array) data_get($domainPreview, 'subdomains', [])) - count((array) data_get($liveDomains, 'subdomains', [])));
+            $mismatches += abs(count((array) data_get($domainPreview, 'alias_domains', [])) - count((array) data_get($liveDomains, 'parked_domains', [])));
+            $mismatches += abs(count((array) data_get($dnsPreview, 'records', [])) - count($liveDns));
+
+            $expectedSslState = strtolower((string) data_get($sslPreview, 'ssl_state', $this->ssl_state ?: 'unconfigured'));
+            $liveSslState = $this->liveSslStateFromSnapshot($liveSsl);
+            if ($expectedSslState !== $liveSslState && ! ($expectedSslState === 'unconfigured' && $liveSslState === 'unknown')) {
+                $mismatches++;
+            }
+
+            return $mismatches > 0 ? 'drift' : 'in sync';
+        }
+
+        if ($source === 'vps') {
+            $expected = $this->vhostPreviewFromSite();
+            $live = (array) data_get($snapshot, 'live', []);
+            $expectedHosts = array_map('strtolower', array_values(array_filter((array) data_get($expected, 'hostnames', []))));
+            $liveHosts = array_map('strtolower', array_values(array_filter((array) data_get($live, 'hostnames', []))));
+            $expectedRoot = strtolower((string) data_get($expected, 'document_root', ''));
+            $liveRoot = strtolower((string) data_get($live, 'document_root', ''));
+
+            $mismatches = count(array_diff($expectedHosts, $liveHosts))
+                + count(array_diff($liveHosts, $expectedHosts))
+                + (($expectedRoot !== '' && $liveRoot !== '' && $expectedRoot !== $liveRoot) ? 1 : 0);
+
+            return $mismatches > 0 ? 'drift' : 'in sync';
+        }
+
+        return 'unknown';
+    }
+
+    public function getLiveConfigurationDriftBadgeAttribute(): string
+    {
+        return match ($this->live_configuration_drift_status) {
+            'in sync' => 'in sync',
+            'drift' => 'drift',
+            'not synced' => 'not synced',
+            default => 'unknown',
+        };
+    }
+
+    public function getLiveConfigurationDriftSummaryAttribute(): string
+    {
+        return match ($this->live_configuration_drift_status) {
+            'in sync' => 'The live configuration matches the site intent closely.',
+            'drift' => 'The live configuration differs from the site intent and should be reviewed.',
+            'not synced' => 'Sync live inventory first to compare the server state.',
+            default => 'The drift state could not be determined.',
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLiveConfigurationDriftAttribute(): array
+    {
+        $snapshot = (array) ($this->live_configuration_snapshot ?? []);
+        $source = strtolower((string) data_get($snapshot, 'source', ''));
+
+        if (blank($snapshot)) {
+            return [
+                'source' => $source ?: 'unknown',
+                'status' => 'not synced',
+                'summary' => 'Sync live inventory first to compare the server state.',
+                'sections' => [],
+            ];
+        }
+
+        if ($source === 'cpanel') {
+            $domainPreview = $this->domainPreviewFromSite();
+            $dnsPreview = $this->dns_preview;
+            $sslPreview = $this->ssl_preview;
+            $liveDomains = (array) data_get($snapshot, 'domains', []);
+            $liveDns = (array) data_get($snapshot, 'dns.records', []);
+            $liveSsl = (array) data_get($snapshot, 'ssl.hosts', []);
+
+            $sections = [
+                [
+                    'label' => 'Primary domain',
+                    'expected' => filled($domainPreview['primary_domain'] ?? null) ? $domainPreview['primary_domain'] : 'not set',
+                    'actual' => data_get($liveDomains, 'main.domain') ?? 'not synced',
+                ],
+                [
+                    'label' => 'Subdomains',
+                    'expected' => (string) count((array) data_get($domainPreview, 'subdomains', [])),
+                    'actual' => (string) count((array) data_get($liveDomains, 'subdomains', [])),
+                ],
+                [
+                    'label' => 'Alias domains',
+                    'expected' => (string) count((array) data_get($domainPreview, 'alias_domains', [])),
+                    'actual' => (string) count((array) data_get($liveDomains, 'parked_domains', [])),
+                ],
+                [
+                    'label' => 'DNS records',
+                    'expected' => (string) count((array) data_get($dnsPreview, 'records', [])),
+                    'actual' => (string) count($liveDns),
+                ],
+                [
+                    'label' => 'SSL state',
+                    'expected' => (string) data_get($sslPreview, 'ssl_badge', $this->ssl_badge),
+                    'actual' => (string) $this->liveSslStateFromSnapshot($liveSsl),
+                ],
+            ];
+
+            return [
+                'source' => $source,
+                'status' => $this->live_configuration_drift_status,
+                'summary' => $this->live_configuration_drift_summary,
+                'sections' => $sections,
+            ];
+        }
+
+        if ($source === 'vps') {
+            $expected = $this->vhostPreviewFromSite();
+            $live = (array) data_get($snapshot, 'live', []);
+
+            $sections = [
+                [
+                    'label' => 'Engine',
+                    'expected' => (string) data_get($expected, 'engine_label', 'nginx'),
+                    'actual' => (string) data_get($live, 'engine', 'unknown'),
+                ],
+                [
+                    'label' => 'Hostnames',
+                    'expected' => (string) count((array) data_get($expected, 'hostnames', [])),
+                    'actual' => (string) count((array) data_get($live, 'hostnames', [])),
+                ],
+                [
+                    'label' => 'Document root',
+                    'expected' => (string) data_get($expected, 'document_root', 'n/a'),
+                    'actual' => (string) data_get($live, 'document_root', 'n/a'),
+                ],
+                [
+                    'label' => 'SSL state',
+                    'expected' => (string) data_get($expected, 'ssl_state', 'unconfigured'),
+                    'actual' => (string) data_get($live, 'ssl_state', 'unconfigured'),
+                ],
+                [
+                    'label' => 'HTTPS',
+                    'expected' => data_get($expected, 'force_https') ? 'enabled' : 'disabled',
+                    'actual' => data_get($live, 'force_https') ? 'enabled' : 'disabled',
+                ],
+            ];
+
+            return [
+                'source' => $source,
+                'status' => $this->live_configuration_drift_status,
+                'summary' => $this->live_configuration_drift_summary,
+                'sections' => $sections,
+            ];
+        }
+
+        return [
+            'source' => $source ?: 'unknown',
+            'status' => 'unknown',
+            'summary' => 'The drift state could not be determined.',
+            'sections' => [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function domainPreviewFromSite(): array
+    {
+        return SiteDomainPreview::build(
+            $this->primary_domain,
+            (array) ($this->subdomains ?? []),
+            (array) ($this->alias_domains ?? []),
+            $this->server?->connection_type,
+            $this->deploy_path,
+            $this->web_root,
+            $this->ssl_state,
+            (bool) $this->force_https,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function vhostPreviewFromSite(): array
+    {
+        return SiteVhostPreview::build($this);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $hosts
+     */
+    protected function liveSslStateFromSnapshot(array $hosts): string
+    {
+        if ($hosts === []) {
+            return 'unknown';
+        }
+
+        $states = collect($hosts)
+            ->map(function (array $host): ?string {
+                $installed = (bool) data_get($host, 'installed', false);
+                $domain = filled(data_get($host, 'domain')) ? (string) data_get($host, 'domain') : null;
+
+                if (! $installed && ! $domain) {
+                    return null;
+                }
+
+                return $installed ? 'valid' : 'installed';
+            })
+            ->filter()
+            ->values();
+
+        if ($states->contains('valid')) {
+            return 'ssl ready';
+        }
+
+        if ($states->isNotEmpty()) {
+            return 'installed';
+        }
+
+        return 'unknown';
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -280,16 +522,20 @@ class Site extends Model
         $domains = (array) data_get($snapshot, 'domains', []);
         $dns = (array) data_get($snapshot, 'dns', []);
         $ssl = (array) data_get($snapshot, 'ssl', []);
+        $live = (array) data_get($snapshot, 'live', []);
 
         return [
             'supported' => ($this->server?->connection_type ?? null) === 'cpanel',
             'message' => ($this->server?->connection_type ?? null) === 'cpanel'
                 ? 'This tab shows the live cPanel inventory that was last synced for this site.'
-                : 'Live inventory sync is currently cPanel-first.',
+                : 'This tab also stores VPS vhost inventory when the server supports SSH inspection.',
             'source' => data_get($snapshot, 'source', 'cPanel'),
             'synced_at' => $this->live_configuration_synced_at?->format('M d, Y H:i') ?? 'never synced',
             'last_error' => $this->live_configuration_last_error ?: 'No sync errors recorded.',
             'snapshot' => $snapshot,
+            'live' => $live,
+            'expected' => (array) data_get($snapshot, 'expected', []),
+            'drift' => $this->live_configuration_drift,
             'counts' => [
                 'main_domain' => filled(data_get($domains, 'main')) ? 1 : 0,
                 'addon_domains' => count((array) data_get($domains, 'addon_domains', [])),
@@ -297,14 +543,10 @@ class Site extends Model
                 'parked_domains' => count((array) data_get($domains, 'parked_domains', [])),
                 'dns_records' => count((array) data_get($dns, 'records', [])),
                 'ssl_hosts' => count((array) data_get($ssl, 'hosts', [])),
+                'live_highlights' => count((array) data_get($live, 'highlights', [])),
             ],
             'notes' => (array) data_get($snapshot, 'notes', []),
         ];
-    }
-
-    public function getDnsBadgeAttribute(): string
-    {
-        return $this->server?->dns_provider_badge ?? 'manual';
     }
 
     public function getDomainBadgeAttribute(): string

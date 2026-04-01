@@ -60,6 +60,15 @@ class ServerInfolist
                                             ->copyable(),
                                         TextEntry::make('provider_region')
                                             ->label('Provider region'),
+                                        TextEntry::make('vhost_config_path')
+                                            ->label('Vhost config path')
+                                            ->placeholder('Auto-derived from provider settings'),
+                                        TextEntry::make('vhost_enabled_path')
+                                            ->label('Vhost enabled path')
+                                            ->placeholder('Auto-derived from provider settings'),
+                                        TextEntry::make('vhost_reload_command')
+                                            ->label('Reload command')
+                                            ->placeholder('Auto-derived from provider settings'),
                                         TextEntry::make('notes')
                                             ->label('Notes')
                                             ->columnSpanFull(),

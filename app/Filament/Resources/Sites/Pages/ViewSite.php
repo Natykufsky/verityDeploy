@@ -10,10 +10,13 @@ use App\Models\SiteBackup;
 use App\Services\Dns\CloudflareDnsProvisioner;
 use App\Services\Cpanel\CpanelDomainProvisioner;
 use App\Services\Cpanel\CpanelInventorySyncService;
+use App\Services\Cpanel\CpanelInventoryRepairService;
 use App\Services\Cpanel\CpanelSslProvisioner;
 use App\Services\Backups\SiteBackupService;
 use App\Services\Deployment\ReleaseManager;
 use App\Services\GitHub\WebhookProvisioner;
+use App\Services\Server\VpsVhostInventorySyncService;
+use App\Services\Server\VpsVhostRepairPlanService;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
@@ -116,6 +119,46 @@ class ViewSite extends ViewRecord
                 ]))
                 ->modalSubmitActionLabel('Sync inventory')
                 ->action(fn () => $this->syncInventory()),
+            Action::make('repairInventory')
+                ->label('Repair drift')
+                ->icon('heroicon-o-wrench-screwdriver')
+                ->color('warning')
+                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->server?->cpanel_api_token))
+                ->modalWidth('7xl')
+                ->modalHeading('Repair the live cPanel inventory?')
+                ->modalDescription('This reapplies the managed domain and SSL provisioning steps that match the site intent, then refreshes the live inventory snapshot.')
+                ->modalContent(fn (): View => view('filament.sites.cpanel-inventory-repair-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Repair drift')
+                ->requiresConfirmation()
+                ->action(fn () => $this->repairInventory()),
+            Action::make('syncVhostInventory')
+                ->label('Sync vhost inventory')
+                ->icon('heroicon-o-arrows-right-left')
+                ->color('info')
+                ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
+                ->modalWidth('7xl')
+                ->modalHeading('Sync the live vhost inventory?')
+                ->modalDescription('This reads the current web server config and stores a normalized vhost snapshot on the site record without changing the server configuration.')
+                ->modalContent(fn (): View => view('filament.sites.vhost-inventory-sync-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Sync vhost inventory')
+                ->action(fn () => $this->syncVhostInventory()),
+            Action::make('repairVhostPlan')
+                ->label('Repair vhost plan')
+                ->icon('heroicon-o-wrench-screwdriver')
+                ->color('warning')
+                ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
+                ->modalWidth('7xl')
+                ->modalHeading('Review the VPS repair plan?')
+                ->modalDescription('This does not change the server. It shows the commands and paths that would be used to align the live vhost config with the site intent. Use the copy button to grab the plan.')
+                ->modalContent(fn (): View => view('filament.sites.vhost-repair-plan-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Close')
+                ->action(fn () => $this->repairVhostPlan()),
             ActionGroup::make([
                 Action::make('provisionCpanelSite')
                     ->label('cPanel site wizard')
@@ -370,6 +413,63 @@ class ViewSite extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to sync inventory')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function syncVhostInventory(): void
+    {
+        try {
+            $summary = app(VpsVhostInventorySyncService::class)->sync($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('Vhost inventory synced')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to sync vhost inventory')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function repairVhostPlan(): void
+    {
+        try {
+            $preview = app(VpsVhostRepairPlanService::class)->preview($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('VPS repair plan ready')
+                ->body(sprintf('%s %s', $preview['engine_label'] ?? 'VPS', $preview['message'] ?? 'Repair plan generated.'))
+                ->info()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to build repair plan')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function repairInventory(): void
+    {
+        try {
+            $summary = app(CpanelInventoryRepairService::class)->repair($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('Inventory repair finished')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to repair inventory')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();

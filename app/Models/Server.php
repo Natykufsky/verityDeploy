@@ -31,6 +31,9 @@ class Server extends Model
         'can_manage_vhosts',
         'can_manage_dns',
         'can_manage_ssl',
+        'vhost_config_path',
+        'vhost_enabled_path',
+        'vhost_reload_command',
         'dns_provider',
         'dns_zone_id',
         'dns_api_token',
@@ -66,6 +69,9 @@ class Server extends Model
             'can_manage_vhosts' => 'boolean',
             'can_manage_dns' => 'boolean',
             'can_manage_ssl' => 'boolean',
+            'vhost_config_path' => 'string',
+            'vhost_enabled_path' => 'string',
+            'vhost_reload_command' => 'string',
             'dns_provider' => 'string',
             'dns_zone_id' => 'string',
             'dns_api_token' => EncryptedTextOrPlain::class,
@@ -249,6 +255,54 @@ class Server extends Model
         }
 
         return sprintf('This server can manage %s.', implode(', ', $items));
+    }
+
+    public function getVhostConfigPathAttribute(): string
+    {
+        if (filled($this->attributes['vhost_config_path'] ?? null)) {
+            return (string) $this->attributes['vhost_config_path'];
+        }
+
+        return match ($this->vhost_engine) {
+            'apache' => sprintf('/etc/apache2/sites-available/%s.conf', $this->vhostSlug()),
+            default => sprintf('/etc/nginx/sites-available/%s.conf', $this->vhostSlug()),
+        };
+    }
+
+    public function getVhostEnabledPathAttribute(): string
+    {
+        if (filled($this->attributes['vhost_enabled_path'] ?? null)) {
+            return (string) $this->attributes['vhost_enabled_path'];
+        }
+
+        return match ($this->vhost_engine) {
+            'apache' => sprintf('/etc/apache2/sites-enabled/%s.conf', $this->vhostSlug()),
+            default => sprintf('/etc/nginx/sites-enabled/%s.conf', $this->vhostSlug()),
+        };
+    }
+
+    public function getVhostReloadCommandAttribute(): string
+    {
+        if (filled($this->attributes['vhost_reload_command'] ?? null)) {
+            return (string) $this->attributes['vhost_reload_command'];
+        }
+
+        return match ($this->vhost_engine) {
+            'apache' => 'systemctl reload apache2 || systemctl reload httpd',
+            default => 'systemctl reload nginx',
+        };
+    }
+
+    public function getVhostEngineAttribute(): string
+    {
+        return in_array($this->provider_type, ['aws', 'digitalocean', 'hetzner', 'vultr', 'linode', 'local', 'manual'], true)
+            ? 'nginx'
+            : 'apache';
+    }
+
+    protected function vhostSlug(): string
+    {
+        return preg_replace('/[^a-z0-9]+/', '-', strtolower((string) ($this->provider_reference ?: $this->name ?: 'site'))) ?: 'site';
     }
 
     /**
