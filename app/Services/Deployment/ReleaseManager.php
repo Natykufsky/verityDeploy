@@ -4,8 +4,8 @@ namespace App\Services\Deployment;
 
 use App\Models\ReleaseCleanupRun;
 use App\Models\Site;
-use App\Support\SiteEnvironmentPreview;
 use App\Services\SSH\SshCommandRunner;
+use App\Support\SiteEnvironmentPreview;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Process\Process;
@@ -15,8 +15,7 @@ class ReleaseManager
 {
     public function __construct(
         protected SshCommandRunner $sshCommandRunner,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>

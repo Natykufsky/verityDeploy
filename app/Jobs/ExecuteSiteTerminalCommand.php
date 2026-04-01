@@ -13,9 +13,7 @@ class ExecuteSiteTerminalCommand implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $terminalRunId)
-    {
-    }
+    public function __construct(public int $terminalRunId) {}
 
     public function handle(ServerConnector $connector): void
     {

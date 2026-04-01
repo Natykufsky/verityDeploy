@@ -23,11 +23,9 @@ class DeliverOperationalAlertWebhooks implements ShouldQueue
     public int $timeout = 20;
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
-    public function __construct(public array $payload)
-    {
-    }
+    public function __construct(public array $payload) {}
 
     public function handle(AppSettings $settings): void
     {

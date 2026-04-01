@@ -12,9 +12,8 @@ use App\Services\Terminal\TerminalTransport;
 use Carbon\CarbonInterval;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
-use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
-use Throwable;
+use Livewire\Component;
 
 class ServerTerminalConsole extends Component
 {

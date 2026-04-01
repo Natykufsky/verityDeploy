@@ -14,7 +14,7 @@ class CpanelBootstrapWizard extends ViewSite
 {
     public array $wizardLog = [];
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         parent::mount($record);
 
@@ -26,7 +26,7 @@ class CpanelBootstrapWizard extends ViewSite
         return CpanelBootstrapWizardInfolist::configure($schema);
     }
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
         return sprintf('%s - cPanel bootstrap wizard', $this->record->name);
     }

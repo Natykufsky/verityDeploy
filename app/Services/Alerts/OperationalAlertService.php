@@ -2,17 +2,17 @@
 
 namespace App\Services\Alerts;
 
-use App\Jobs\DeliverOperationalAlertEmail;
-use App\Jobs\DeliverOperationalAlertWebhooks;
 use App\Filament\Resources\Deployments\DeploymentResource;
 use App\Filament\Resources\Servers\ServerResource;
 use App\Filament\Resources\Sites\SiteResource;
+use App\Jobs\DeliverOperationalAlertEmail;
+use App\Jobs\DeliverOperationalAlertWebhooks;
 use App\Models\Deployment;
 use App\Models\Server;
 use App\Models\Site;
 use App\Models\User;
-use App\Services\AppSettings;
 use App\Notifications\OperationalAlertNotification;
+use App\Services\AppSettings;
 
 class OperationalAlertService
 {

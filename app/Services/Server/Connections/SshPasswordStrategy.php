@@ -15,8 +15,7 @@ class SshPasswordStrategy implements ConnectionStrategy
     public function __construct(
         protected Server $server,
         protected int $timeout = 0,
-    ) {
-    }
+    ) {}
 
     public function run(string $command): string
     {

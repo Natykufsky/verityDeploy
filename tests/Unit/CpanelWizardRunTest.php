@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Actions\BootstrapDeployPath;
 use App\Models\CpanelWizardRun;
 use App\Models\Server;
 use App\Models\ServerConnectionTest;
@@ -9,7 +10,6 @@ use App\Models\Site;
 use App\Services\Cpanel\CpanelApiClient;
 use App\Services\Cpanel\CpanelWizardRunner;
 use App\Services\Server\ServerProvisioner;
-use App\Actions\BootstrapDeployPath;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Mockery;
 use Tests\TestCase;
@@ -226,7 +226,7 @@ class CpanelWizardRunTest extends TestCase
 
     protected function makePreflightResult(string $output): ServerConnectionTest
     {
-        $test = new ServerConnectionTest();
+        $test = new ServerConnectionTest;
         $test->forceFill([
             'output' => $output,
         ]);

@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Jobs\DeliverOperationalAlertWebhooks;
 use App\Models\AppSetting;
+use App\Services\AppSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -39,7 +40,7 @@ class DeliverOperationalAlertWebhooksTest extends TestCase
             ],
         ]);
 
-        $job->handle(app(\App\Services\AppSettings::class));
+        $job->handle(app(AppSettings::class));
 
         Http::assertSentCount(2);
         Http::assertSent(function ($request): bool {

@@ -40,7 +40,7 @@ class AlertsInboxWidgetTest extends TestCase
             ['site_id' => 1],
         ));
 
-        $widget = new AlertsInboxWidget();
+        $widget = new AlertsInboxWidget;
         $viewData = $this->invokeProtected($widget, 'getViewData');
 
         $this->assertSame(2, $viewData['unreadCount']);
@@ -71,7 +71,7 @@ class AlertsInboxWidgetTest extends TestCase
             ['server_id' => 1],
         ));
 
-        $widget = new AlertsInboxWidget();
+        $widget = new AlertsInboxWidget;
         $redirect = $widget->openInbox();
 
         $this->assertInstanceOf(RedirectResponse::class, $redirect);

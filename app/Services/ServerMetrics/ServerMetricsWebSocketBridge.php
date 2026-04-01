@@ -4,7 +4,6 @@ namespace App\Services\ServerMetrics;
 
 use App\Models\Server;
 use RuntimeException;
-use Throwable;
 
 class ServerMetricsWebSocketBridge
 {
@@ -15,8 +14,7 @@ class ServerMetricsWebSocketBridge
 
     public function __construct(
         protected ServerMetricsBridgeAuth $auth,
-    ) {
-    }
+    ) {}
 
     public function serve(string $host, int $port): void
     {

@@ -2,12 +2,12 @@
 
 namespace Tests\Unit;
 
+use App\Filament\Resources\Servers\ServerResource;
+use App\Filament\Resources\Sites\SiteResource;
 use App\Filament\Widgets\CpanelSetupCard;
 use App\Models\CpanelWizardRun;
 use App\Models\Server;
 use App\Models\Site;
-use App\Filament\Resources\Servers\ServerResource;
-use App\Filament\Resources\Sites\SiteResource;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -19,7 +19,7 @@ class CpanelSetupCardTest extends TestCase
     #[DataProvider('overallStateProvider')]
     public function test_it_resolves_the_overall_state(string $expected, ?string $serverStatus, ?string $siteStatus): void
     {
-        $widget = new CpanelSetupCard();
+        $widget = new CpanelSetupCard;
 
         $serverRun = $serverStatus ? new CpanelWizardRun(['status' => $serverStatus]) : null;
         $siteRun = $siteStatus ? new CpanelWizardRun(['status' => $siteStatus]) : null;
@@ -40,7 +40,7 @@ class CpanelSetupCardTest extends TestCase
 
     public function test_it_maps_statuses_to_colored_badges_and_tones(): void
     {
-        $widget = new CpanelSetupCard();
+        $widget = new CpanelSetupCard;
 
         $successful = new CpanelWizardRun(['status' => 'successful']);
         $failed = new CpanelWizardRun(['status' => 'failed']);
@@ -103,7 +103,7 @@ class CpanelSetupCardTest extends TestCase
             'summary' => 'Site run.',
         ]);
 
-        $widget = new CpanelSetupCard();
+        $widget = new CpanelSetupCard;
 
         $this->assertSame(
             ServerResource::getUrl('cpanel-wizard', ['record' => $server]),

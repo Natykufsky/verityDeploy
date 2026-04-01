@@ -14,7 +14,7 @@ class CpanelConnectionWizard extends ViewServer
 {
     public array $wizardLog = [];
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         parent::mount($record);
 
@@ -26,7 +26,7 @@ class CpanelConnectionWizard extends ViewServer
         return CpanelConnectionWizardInfolist::configure($schema);
     }
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
         return sprintf('%s - cPanel connection wizard', $this->record->name);
     }

@@ -2,26 +2,26 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\AlertsInboxWidget;
+use App\Filament\Widgets\CpanelSetupCard;
+use App\Filament\Widgets\DeploymentOverviewStats;
+use App\Filament\Widgets\DeploymentTimelineWidget;
+use App\Filament\Widgets\GithubSyncDriftCard;
+use App\Filament\Widgets\ReleaseCleanupOverviewCard;
+use App\Filament\Widgets\ServerHealthOverviewCard;
+use App\Filament\Widgets\SiteBackupOverviewCard;
+use App\Filament\Widgets\WebhookSyncHealthCard;
+use App\Services\AppSettings;
+use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Enums\ThemeMode;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
-use App\Filament\Widgets\AlertsInboxWidget;
-use App\Filament\Widgets\DeploymentOverviewStats;
-use App\Filament\Widgets\DeploymentTimelineWidget;
-use App\Filament\Widgets\CpanelSetupCard;
-use App\Filament\Widgets\GithubSyncDriftCard;
-use App\Filament\Widgets\ServerHealthOverviewCard;
-use App\Filament\Widgets\ReleaseCleanupOverviewCard;
-use App\Filament\Widgets\SiteBackupOverviewCard;
-use App\Filament\Widgets\WebhookSyncHealthCard;
-use App\Services\AppSettings;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;

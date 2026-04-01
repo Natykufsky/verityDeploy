@@ -16,8 +16,7 @@ class BootstrapDeployPath
         protected ServerProvisioner $serverProvisioner,
         protected CpanelSiteProvisioner $cpanelSiteProvisioner,
         protected SshCommandRunner $sshCommandRunner,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>

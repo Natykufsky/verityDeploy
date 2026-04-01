@@ -49,7 +49,7 @@ class AlertsInboxPageTest extends TestCase
         $readNotification = $user->notifications()->where('data->title', 'Server healthy')->firstOrFail();
         $readNotification->markAsRead();
 
-        $page = new AlertsInboxPage();
+        $page = new AlertsInboxPage;
         $page->filter = 'unread';
 
         $this->assertSame(3, $page->totalCount());

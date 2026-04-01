@@ -4,7 +4,6 @@ namespace App\Services\Terminal;
 
 use App\Models\ServerTerminalSession;
 use RuntimeException;
-use App\Services\Terminal\TerminalSessionManager;
 
 class TerminalWebSocketBridge
 {
@@ -15,8 +14,7 @@ class TerminalWebSocketBridge
 
     public function __construct(
         protected TerminalBridgeAuth $auth,
-    ) {
-    }
+    ) {}
 
     public function serve(string $host, int $port): void
     {

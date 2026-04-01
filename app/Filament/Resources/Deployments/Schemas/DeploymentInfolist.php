@@ -6,10 +6,10 @@ use App\Livewire\DeploymentCommandToolbar;
 use App\Livewire\DeploymentTerminal;
 use App\Models\Deployment;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 
@@ -144,7 +144,7 @@ class DeploymentInfolist
                                     ])
                                     ->columns(1),
                             ]),
-                    ])
+                    ]),
             ]);
     }
 }

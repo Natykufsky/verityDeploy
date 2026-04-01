@@ -23,13 +23,12 @@ class DeliverOperationalAlertEmail implements ShouldQueue
     public int $timeout = 15;
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function __construct(
         public int $userId,
         public array $payload,
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {

@@ -41,7 +41,7 @@ class ReleaseCleanupOverviewCardTest extends TestCase
             'finished_at' => now()->subMinutes(9),
         ]);
 
-        $widget = new ReleaseCleanupOverviewCard();
+        $widget = new ReleaseCleanupOverviewCard;
         $viewData = $this->invokeProtected($widget, 'getViewData');
 
         $this->assertSame(1, $viewData['totalRuns']);

@@ -14,9 +14,7 @@ class ExecuteServerTerminalCommand implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $terminalRunId)
-    {
-    }
+    public function __construct(public int $terminalRunId) {}
 
     public function handle(TerminalTransport $transport): void
     {

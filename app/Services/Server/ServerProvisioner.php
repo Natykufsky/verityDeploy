@@ -12,8 +12,7 @@ class ServerProvisioner
     public function __construct(
         protected ServerConnector $connector,
         protected CpanelApiClient $cpanelApiClient,
-    ) {
-    }
+    ) {}
 
     public function preflight(Server $server, ?string $path = null): ServerConnectionTest
     {

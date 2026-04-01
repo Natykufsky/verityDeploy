@@ -7,6 +7,7 @@ use App\Models\AppSetting;
 use App\Models\AppSettingChange;
 use App\Services\AppSettings;
 use App\Services\GitHub\GitHubOAuthService;
+use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -20,7 +21,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Exceptions\Halt;
 use Filament\Support\Icons\Heroicon;
-use BackedEnum;
 use Throwable;
 use UnitEnum;
 
@@ -179,7 +179,7 @@ class AppSettingsPage extends Page
         AppSettingChange::query()->create([
             'app_setting_id' => $settings->id,
             'user_id' => auth()->id(),
-            'summary' => 'Updated ' . implode(', ', $labels) . '.',
+            'summary' => 'Updated '.implode(', ', $labels).'.',
             'changes' => $changes,
         ]);
     }
@@ -317,8 +317,8 @@ class AppSettingsPage extends Page
                 ->visible(fn (): bool => filled($this->getSettings()->github_oauth_client_id) && filled($this->getSettings()->github_oauth_client_secret))
                 ->url(fn (): string => route('github.oauth.redirect'))
                 ->openUrlInNewTab(),
-                Action::make('disconnectGitHubOauth')
-                    ->label('Disconnect GitHub OAuth')
+            Action::make('disconnectGitHubOauth')
+                ->label('Disconnect GitHub OAuth')
                 ->icon('heroicon-o-link-slash')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -327,20 +327,20 @@ class AppSettingsPage extends Page
                 ->modalDescription('This removes the stored GitHub OAuth token and falls back to the saved PAT or environment token.')
                 ->modalSubmitActionLabel('Disconnect OAuth')
                 ->action(fn () => $this->disconnectGitHubOauth()),
-                Action::make('save')
-                    ->label('Save settings')
-                    ->submit('save')
-                    ->keyBindings(['mod+s']),
-                Action::make('resetBranding')
-                    ->label('Reset branding')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('gray')
-                    ->requiresConfirmation()
-                    ->modalHeading('Reset branding?')
-                    ->modalDescription('This clears the uploaded logo, favicon, tagline, description, and support URL while keeping the app name and the rest of the settings untouched.')
-                    ->modalSubmitActionLabel('Reset branding')
-                    ->action(fn () => $this->resetBranding()),
-            ];
+            Action::make('save')
+                ->label('Save settings')
+                ->submit('save')
+                ->keyBindings(['mod+s']),
+            Action::make('resetBranding')
+                ->label('Reset branding')
+                ->icon('heroicon-o-arrow-path')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Reset branding?')
+                ->modalDescription('This clears the uploaded logo, favicon, tagline, description, and support URL while keeping the app name and the rest of the settings untouched.')
+                ->modalSubmitActionLabel('Reset branding')
+                ->action(fn () => $this->resetBranding()),
+        ];
     }
 
     protected function resetBranding(): void

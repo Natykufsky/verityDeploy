@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Teams\Pages;
 
 use App\Filament\Resources\Teams\TeamResource;
 use App\Services\Teams\TeamInvitationService;
-use Filament\Actions\EditAction;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;

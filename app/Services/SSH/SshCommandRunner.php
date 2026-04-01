@@ -167,17 +167,17 @@ class SshCommandRunner
         $line = $this->parseHostKeyScanOutput($scanOutput);
 
         if (! is_string($line)) {
-            throw new \RuntimeException(trim($scanOutput) ?: 'Unable to determine the SSH host key.');
+            throw new RuntimeException(trim($scanOutput) ?: 'Unable to determine the SSH host key.');
         }
 
         if (! preg_match('/^(\S+)\s+(\S+)\s+(\S+)$/', trim($line), $matches)) {
-            throw new \RuntimeException('Unable to parse the SSH host key line.');
+            throw new RuntimeException('Unable to parse the SSH host key line.');
         }
 
         $rawKey = base64_decode($matches[3], true);
 
         if ($rawKey === false) {
-            throw new \RuntimeException('Unable to decode the SSH host key blob.');
+            throw new RuntimeException('Unable to decode the SSH host key blob.');
         }
 
         $fingerprint = rtrim(base64_encode(hash('sha256', $rawKey, true)), '=');

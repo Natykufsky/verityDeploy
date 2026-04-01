@@ -13,8 +13,7 @@ class TeamInvitationController extends Controller
 {
     public function __construct(
         protected TeamInvitationService $invitationService,
-    ) {
-    }
+    ) {}
 
     public function show(string $token): View
     {

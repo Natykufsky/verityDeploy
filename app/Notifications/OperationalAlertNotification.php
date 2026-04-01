@@ -15,8 +15,7 @@ class OperationalAlertNotification extends Notification
         public string $level = 'warning',
         public ?string $url = null,
         public array $context = [],
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>

@@ -11,8 +11,7 @@ class CpanelInventoryRepairService
         protected CpanelDomainProvisioner $domainProvisioner,
         protected CpanelSslProvisioner $sslProvisioner,
         protected CpanelInventorySyncService $inventorySyncService,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>

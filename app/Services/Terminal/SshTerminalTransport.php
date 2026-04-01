@@ -11,8 +11,7 @@ class SshTerminalTransport implements TerminalTransport
     public function __construct(
         protected TerminalSessionManager $sessions,
         protected ServerConnector $connector,
-    ) {
-    }
+    ) {}
 
     public function open(Server $server, ?int $userId = null, array $metadata = []): ServerTerminalSession
     {

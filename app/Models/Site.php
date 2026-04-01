@@ -3,15 +3,13 @@
 namespace App\Models;
 
 use App\Casts\EncryptedTextOrPlain;
-use App\Models\CredentialProfile;
-use App\Models\ReleaseCleanupRun;
-use App\Models\SiteTerminalRun;
+use App\Services\AppSettings;
 use App\Support\SiteDnsPreview;
 use App\Support\SiteDomainPreview;
 use App\Support\SiteVhostPreview;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -575,7 +573,7 @@ class Site extends Model
                 'parked_domains' => count((array) data_get($domains, 'parked_domains', [])),
                 'dns_records' => count((array) data_get($dns, 'records', [])),
                 'ssl_hosts' => count((array) data_get($ssl, 'hosts', [])),
-            'live_highlights' => count((array) data_get($live, 'highlights', [])),
+                'live_highlights' => count((array) data_get($live, 'highlights', [])),
             ],
             'notes' => (array) data_get($snapshot, 'notes', []),
             'apply' => [
@@ -668,21 +666,21 @@ class Site extends Model
     public function getGithubCredentialProfileLabelAttribute(): string
     {
         return $this->githubCredentialProfile?->name
-            ?? app(\App\Services\AppSettings::class)->defaultGithubCredentialProfile()?->name
+            ?? app(AppSettings::class)->defaultGithubCredentialProfile()?->name
             ?? 'No GitHub profile';
     }
 
     public function getDnsCredentialProfileLabelAttribute(): string
     {
         return $this->dnsCredentialProfile?->name
-            ?? app(\App\Services\AppSettings::class)->defaultDnsCredentialProfile()?->name
+            ?? app(AppSettings::class)->defaultDnsCredentialProfile()?->name
             ?? 'No DNS profile';
     }
 
     public function getWebhookCredentialProfileLabelAttribute(): string
     {
         return $this->webhookCredentialProfile?->name
-            ?? app(\App\Services\AppSettings::class)->defaultWebhookCredentialProfile()?->name
+            ?? app(AppSettings::class)->defaultWebhookCredentialProfile()?->name
             ?? 'No webhook profile';
     }
 

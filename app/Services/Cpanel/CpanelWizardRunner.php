@@ -16,8 +16,7 @@ class CpanelWizardRunner
         protected CpanelApiClient $client,
         protected ServerProvisioner $serverProvisioner,
         protected BootstrapDeployPath $bootstrapDeployPath,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, array{step: string, status: string, message: string, timestamp: string}>

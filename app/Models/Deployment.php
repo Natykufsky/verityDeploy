@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Support\DeploymentCommandGuide;
+use Carbon\CarbonInterval;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\CarbonInterval;
-use App\Support\DeploymentCommandGuide;
 
 class Deployment extends Model
 {
@@ -72,7 +72,7 @@ class Deployment extends Model
                             $query->whereNull('finished_at')
                                 ->orWhere('finished_at', '>=', now()->subDays($days));
                         });
-            });
+                });
         });
     }
 

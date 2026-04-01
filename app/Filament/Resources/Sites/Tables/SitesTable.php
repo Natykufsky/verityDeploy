@@ -12,8 +12,8 @@ use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 

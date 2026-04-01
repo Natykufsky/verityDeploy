@@ -5,10 +5,10 @@ namespace App\Filament\Resources\Servers\Pages;
 use App\Filament\Resources\Servers\ServerResource;
 use App\Jobs\CheckServerHealth;
 use App\Models\ServerConnectionTest;
-use App\Services\Server\ServerPuTTYKeyExporter;
 use App\Services\Server\ServerConnector;
 use App\Services\Server\ServerKeyGenerator;
 use App\Services\Server\ServerProvisioner;
+use App\Services\Server\ServerPuTTYKeyExporter;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -67,8 +67,7 @@ class ViewServer extends ViewRecord
                     'record' => $this->record,
                     'generatedPublicKey' => $this->generatedSshKeyPublicKey,
                 ]))
-                ->action(function (): void {
-                }),
+                ->action(function (): void {}),
             Action::make('exportPuTTYKey')
                 ->label('Export PuTTY Key')
                 ->icon('heroicon-o-document-arrow-down')
@@ -82,8 +81,7 @@ class ViewServer extends ViewRecord
                     'record' => $this->record,
                     'generatedPuTTYKey' => $this->generatedPuTTYKey,
                 ]))
-                ->action(function (): void {
-                }),
+                ->action(function (): void {}),
             Action::make('provisionServer')
                 ->label('Provision server')
                 ->icon('heroicon-o-server-stack')

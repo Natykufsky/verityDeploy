@@ -1,27 +1,26 @@
-<div class="verity-login-help mx-auto w-full rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-center text-xs leading-6 text-slate-300 sm:text-sm">
-    <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">What happens after sign-in</div>
+<div class="verity-login-help mx-auto w-full rounded-2xl border border-white/10 bg-gradient-to-br from-slate-950 to-slate-800 p-6 text-center text-sm leading-6 text-slate-300 shadow-lg sm:text-base">
+    <div class="text-[12px] font-bold uppercase tracking-[0.25em] text-slate-400">What happens after sign-in</div>
 
-    <div class="mt-3 grid gap-2">
-        <div class="mx-auto flex items-center gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-3 text-left">
-            <span class="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-[11px] font-bold text-emerald-300">1</span>
-            <span>Open the dashboard and jump straight into deployments, alerts, and health checks.</span>
+    <div class="mt-4 grid gap-4">
+        <div class="mx-auto flex items-center gap-4 rounded-xl border border-white/10 bg-black/30 px-4 py-4 text-left shadow-md">
+            <span class="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[12px] font-bold text-emerald-300">1</span>
+            <span>Access the dashboard to manage deployments, alerts, and health checks seamlessly.</span>
         </div>
-        <div class="mx-auto flex items-center gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-3 text-left">
-            <span class="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-[11px] font-bold text-amber-300">2</span>
-            <span>Use the server and site wizards to verify access before you deploy.</span>
+        <div class="mx-auto flex items-center gap-4 rounded-xl border border-white/10 bg-black/30 px-4 py-4 text-left shadow-md">
+            <span class="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[12px] font-bold text-amber-300">2</span>
+            <span>Utilize server and site wizards to verify access before deployment.</span>
         </div>
-        <div class="mx-auto flex items-center gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-3 text-left">
-            <span class="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-[11px] font-bold text-sky-300">3</span>
-            <span>Watch progress, review logs, and resume from the exact step that failed if needed.</span>
+        <div class="mx-auto flex items-center gap-4 rounded-xl border border-white/10 bg-black/30 px-4 py-4 text-left shadow-md">
+            <span class="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/20 text-[12px] font-bold text-sky-300">3</span>
+            <span>Monitor progress, review logs, and resume from any failed step effortlessly.</span>
         </div>
     </div>
 
-    <div class="mt-3 rounded-xl border border-white/5 bg-black/25 px-3 py-3 text-xs leading-5 text-slate-400">
-        If this is a shared workstation, sign out when you finish so the next operator starts from a clean session.
+    <div class="mt-4 rounded-xl border border-white/10 bg-black/40 px-4 py-4 text-sm leading-6 text-slate-400 shadow-md">
+        For shared workstations, ensure you sign out after use to maintain session security.
     </div>
 
-    <div class="mt-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-        Need help signing in? Contact the account owner or your team admin.
+    <div class="mt-3 text-[12px] font-bold uppercase tracking-[0.22em] text-slate-400">
+        Need help signing in? Contact your team admin or account owner.
     </div>
-</div>
 </div>

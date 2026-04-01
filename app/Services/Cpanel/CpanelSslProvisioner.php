@@ -7,9 +7,7 @@ use RuntimeException;
 
 class CpanelSslProvisioner
 {
-    public function __construct(protected CpanelApiClient $client)
-    {
-    }
+    public function __construct(protected CpanelApiClient $client) {}
 
     /**
      * @return array<string, mixed>

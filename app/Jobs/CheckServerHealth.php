@@ -11,7 +11,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use RuntimeException;
 use Throwable;
 
 class CheckServerHealth implements ShouldQueue
@@ -24,8 +23,7 @@ class CheckServerHealth implements ShouldQueue
 
     public function __construct(
         public int $serverId,
-    ) {
-    }
+    ) {}
 
     public function handle(ServerConnector $connector, CpanelApiClient $cpanelApiClient): void
     {
@@ -159,7 +157,7 @@ class CheckServerHealth implements ShouldQueue
                 return null;
             }
 
-            return round(($used / $total) * 100, 1) . '%';
+            return round(($used / $total) * 100, 1).'%';
         }
 
         return null;
@@ -181,7 +179,7 @@ class CheckServerHealth implements ShouldQueue
             $usePercent = (string) ($parts[4] ?? '');
 
             if ($usePercent !== '' && str_ends_with($usePercent, '%')) {
-                return (string) (100 - (int) rtrim($usePercent, '%')) . '%';
+                return (string) (100 - (int) rtrim($usePercent, '%')).'%';
             }
         }
 

@@ -19,8 +19,7 @@ class DeployJob implements ShouldQueue
 
     public function __construct(
         public int $deploymentId,
-    ) {
-    }
+    ) {}
 
     public function handle(DeployProject $deployProject): void
     {

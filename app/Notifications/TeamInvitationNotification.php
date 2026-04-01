@@ -16,8 +16,7 @@ class TeamInvitationNotification extends Notification
         public TeamInvitation $invitation,
         public string $token,
         public ?User $invitedBy = null,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {

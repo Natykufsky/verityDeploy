@@ -20,8 +20,7 @@ class SiteBackupService
         protected CpanelSiteProvisioner $cpanelSiteProvisioner,
         protected ReleaseManager $releaseManager,
         protected SshCommandRunner $sshCommandRunner,
-    ) {
-    }
+    ) {}
 
     public function backup(Site $site, ?User $user = null, ?string $label = null): SiteBackup
     {

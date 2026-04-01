@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AppSettings;
 use App\Services\GitHub\GitHubOAuthService;
 use Filament\Notifications\Notification;
 use Illuminate\Http\RedirectResponse;
@@ -39,7 +40,7 @@ class GitHubOAuthController
 
             return redirect('/admin/app-settings');
         } catch (Throwable $throwable) {
-            app(\App\Services\AppSettings::class)->record()->update([
+            app(AppSettings::class)->record()->update([
                 'github_oauth_last_error' => $throwable->getMessage(),
             ]);
 

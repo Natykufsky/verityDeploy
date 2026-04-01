@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Site;
 use App\Filament\Resources\Sites\SiteResource;
+use App\Models\Site;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 

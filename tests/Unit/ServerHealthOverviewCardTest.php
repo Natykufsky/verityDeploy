@@ -67,7 +67,7 @@ class ServerHealthOverviewCardTest extends TestCase
             'exit_code' => 0,
         ]);
 
-        $widget = new ServerHealthOverviewCard();
+        $widget = new ServerHealthOverviewCard;
         $viewData = $this->invokeProtected($widget, 'getViewData');
 
         $this->assertSame($baselineOnline + 1, $viewData['onlineCount']);

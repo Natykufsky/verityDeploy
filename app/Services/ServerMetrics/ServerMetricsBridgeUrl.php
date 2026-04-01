@@ -8,8 +8,7 @@ class ServerMetricsBridgeUrl
 {
     public function __construct(
         protected ServerMetricsBridgeAuth $auth,
-    ) {
-    }
+    ) {}
 
     public function make(Server $server): array
     {

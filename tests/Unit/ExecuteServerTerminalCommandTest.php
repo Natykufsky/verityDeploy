@@ -34,7 +34,8 @@ class ExecuteServerTerminalCommandTest extends TestCase
             'started_at' => now(),
         ]);
 
-        $strategy = new class () implements ConnectionStrategy {
+        $strategy = new class implements ConnectionStrategy
+        {
             public function run(string $command): string
             {
                 return $this->streamRun($command);
@@ -51,10 +52,9 @@ class ExecuteServerTerminalCommandTest extends TestCase
             }
         };
 
-        app()->instance(TerminalTransport::class, new class ($strategy) implements TerminalTransport {
-            public function __construct(protected ConnectionStrategy $strategy)
-            {
-            }
+        app()->instance(TerminalTransport::class, new class($strategy) implements TerminalTransport
+        {
+            public function __construct(protected ConnectionStrategy $strategy) {}
 
             public function open(Server $server, ?int $userId = null, array $metadata = []): ServerTerminalSession
             {

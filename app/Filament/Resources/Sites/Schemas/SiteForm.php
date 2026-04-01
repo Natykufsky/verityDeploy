@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\Sites\Schemas;
 
-use App\Models\Server;
-use App\Models\Team;
 use App\Models\CredentialProfile;
+use App\Models\Server;
+use App\Models\Site;
+use App\Models\Team;
 use App\Services\AppSettings;
 use App\Support\SiteDomainPreview;
 use App\Support\SiteEnvironmentPreview;
@@ -18,8 +19,8 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Schemas\Components\View;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 
 class SiteForm
@@ -287,9 +288,9 @@ class SiteForm
         ]);
     }
 
-    protected static function sitePreview(Get $get): \App\Models\Site
+    protected static function sitePreview(Get $get): Site
     {
-        $site = new \App\Models\Site([
+        $site = new Site([
             'primary_domain' => $get('primary_domain'),
             'subdomains' => (array) ($get('subdomains') ?? []),
             'alias_domains' => (array) ($get('alias_domains') ?? []),

@@ -7,7 +7,6 @@ use App\Services\Alerts\OperationalAlertService;
 use App\Services\Cpanel\CpanelApiClient;
 use App\Services\Cpanel\CpanelSiteProvisioner;
 use App\Services\SSH\SshCommandRunner;
-use Illuminate\Support\Facades\File;
 use RuntimeException;
 use Throwable;
 
@@ -18,8 +17,7 @@ class CpanelDeploymentRunner
         protected CpanelSiteProvisioner $siteProvisioner,
         protected FileTransportService $fileTransportService,
         protected SshCommandRunner $sshCommandRunner,
-    ) {
-    }
+    ) {}
 
     public function run(Deployment $deployment): Deployment
     {

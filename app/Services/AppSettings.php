@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\AppSetting;
 use App\Models\CredentialProfile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class AppSettings
@@ -153,14 +155,14 @@ class AppSettings
     {
         $path = $this->appLogoPath();
 
-        return filled($path) ? \Illuminate\Support\Facades\Storage::disk('public')->url($path) : null;
+        return filled($path) ? Storage::disk('public')->url($path) : null;
     }
 
     public function faviconUrl(): ?string
     {
         $path = $this->appFaviconPath();
 
-        return filled($path) ? \Illuminate\Support\Facades\Storage::disk('public')->url($path) : null;
+        return filled($path) ? Storage::disk('public')->url($path) : null;
     }
 
     public function defaultBranch(): string
@@ -358,7 +360,7 @@ class AppSettings
         return filled($value) ? (string) $value : null;
     }
 
-    public function githubOAuthConnectedAt(): ?\Illuminate\Support\Carbon
+    public function githubOAuthConnectedAt(): ?Carbon
     {
         return $this->record()->github_oauth_connected_at;
     }

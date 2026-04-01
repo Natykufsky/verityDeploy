@@ -2,23 +2,23 @@
 
 namespace App\Filament\Resources\Servers\Schemas;
 
+use App\Models\CredentialProfile;
 use App\Models\Server;
 use App\Models\Team;
-use App\Models\CredentialProfile;
 use App\Services\AppSettings;
 use App\Services\Cpanel\CpanelApiClient;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
@@ -227,8 +227,8 @@ class ServerForm
                                     ->placeholder('Use default or enter manually')
                                     ->helperText('Select a shared cPanel profile to avoid repeating the account token and login details.')
                                     ->columnSpanFull(),
-                              ])
-                              ->columns(2),
+                            ])
+                            ->columns(2),
                         Tab::make('Provider')
                             ->badge('Infra')
                             ->badgeColor('success')
@@ -316,32 +316,32 @@ class ServerForm
                                     ->visible(fn (?Server $record, Get $get): bool => (($get('connection_type') ?? $record?->connection_type) !== 'cpanel') && (bool) ($get('can_manage_vhosts') ?? $record?->can_manage_vhosts)),
                                 Section::make('DNS provider')
                                     ->schema([
-                                Select::make('dns_provider')
-                                    ->label('DNS provider')
-                                    ->options(Server::dnsProviderOptions())
-                                    ->default('manual')
-                                    ->live()
+                                        Select::make('dns_provider')
+                                            ->label('DNS provider')
+                                            ->options(Server::dnsProviderOptions())
+                                            ->default('manual')
+                                            ->live()
                                             ->afterStateUpdated(function (Set $set, ?string $state): void {
                                                 if ($state === 'cloudflare') {
                                                     $set('can_manage_dns', true);
                                                 }
                                             })
                                             ->helperText('Choose the DNS provider that can manage zones and records for this server.'),
-                                TextInput::make('dns_zone_id')
-                                    ->label('Cloudflare zone ID')
-                                    ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                    ->helperText('Leave blank to inherit the zone ID from your selected DNS Credential Profile.'),
-                                TextInput::make('dns_api_token')
-                                    ->label('Cloudflare API token')
-                                    ->password()
-                                    ->revealable()
-                                    ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                    ->helperText('Leave blank to inherit the API token from your selected Credential Profile.'),
-                                Toggle::make('dns_proxy_records')
-                                    ->label('Proxy DNS records')
-                                    ->default(true)
-                                    ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
-                                    ->helperText('Turn this off if you want DNS records to resolve directly to the origin server.'),
+                                        TextInput::make('dns_zone_id')
+                                            ->label('Cloudflare zone ID')
+                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                            ->helperText('Leave blank to inherit the zone ID from your selected DNS Credential Profile.'),
+                                        TextInput::make('dns_api_token')
+                                            ->label('Cloudflare API token')
+                                            ->password()
+                                            ->revealable()
+                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                            ->helperText('Leave blank to inherit the API token from your selected Credential Profile.'),
+                                        Toggle::make('dns_proxy_records')
+                                            ->label('Proxy DNS records')
+                                            ->default(true)
+                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                            ->helperText('Turn this off if you want DNS records to resolve directly to the origin server.'),
                                     ])
                                     ->columns(2),
                                 View::make('filament.servers.provider-mode-help')

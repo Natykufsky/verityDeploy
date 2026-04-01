@@ -60,7 +60,7 @@ class SiteBackupOverviewCardTest extends TestCase
             'finished_at' => now()->subMinutes(2),
         ]);
 
-        $widget = new SiteBackupOverviewCard();
+        $widget = new SiteBackupOverviewCard;
         $latestBackup = SiteBackup::query()
             ->where('operation', 'backup')
             ->latest('started_at')

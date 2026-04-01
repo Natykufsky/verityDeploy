@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Deployments;
 
 use App\Filament\Resources\Deployments\Pages\ListDeployments;
 use App\Filament\Resources\Deployments\Pages\ViewDeployment;
-use App\Filament\Resources\Deployments\Schemas\DeploymentInfolist;
 use App\Filament\Resources\Deployments\Schemas\DeploymentForm;
+use App\Filament\Resources\Deployments\Schemas\DeploymentInfolist;
 use App\Filament\Resources\Deployments\Tables\DeploymentsTable;
 use App\Models\Deployment;
 use BackedEnum;

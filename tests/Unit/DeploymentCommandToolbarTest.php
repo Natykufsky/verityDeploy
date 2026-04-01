@@ -45,7 +45,7 @@ class DeploymentCommandToolbarTest extends TestCase
             'exit_code' => 0,
         ]);
 
-        $widget = new DeploymentCommandToolbar();
+        $widget = new DeploymentCommandToolbar;
         $widget->record = $deployment;
 
         $view = $widget->render()->getData();

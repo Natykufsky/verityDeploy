@@ -2,16 +2,15 @@
 
 namespace App\Services\Server;
 
+use App\Models\Server;
 use App\Models\Site;
-use App\Services\Server\VpsVhostInventorySyncService;
 use App\Support\SiteVhostPreview;
 
 class VpsVhostRepairPlanService
 {
     public function __construct(
         protected ServerConnector $connector,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -89,7 +88,7 @@ class VpsVhostRepairPlanService
 
             $site->forceFill([
                 'vhost_apply_last_run_at' => $timestamp,
-                'vhost_apply_last_output' => trim(implode(PHP_EOL.PHP_EOL, array_filter(array_map(fn (array $step): string => sprintf("[%s] %s", $step['label'], $step['output']), $steps)))),
+                'vhost_apply_last_output' => trim(implode(PHP_EOL.PHP_EOL, array_filter(array_map(fn (array $step): string => sprintf('[%s] %s', $step['label'], $step['output']), $steps)))),
                 'vhost_apply_last_error' => null,
                 'vhost_apply_last_steps' => $steps,
             ])->save();
@@ -109,7 +108,7 @@ class VpsVhostRepairPlanService
 
             $site->forceFill([
                 'vhost_apply_last_run_at' => $timestamp,
-                'vhost_apply_last_output' => trim(implode(PHP_EOL.PHP_EOL, array_filter(array_map(fn (array $step): string => sprintf("[%s] %s", $step['label'], $step['output']), $steps)))),
+                'vhost_apply_last_output' => trim(implode(PHP_EOL.PHP_EOL, array_filter(array_map(fn (array $step): string => sprintf('[%s] %s', $step['label'], $step['output']), $steps)))),
                 'vhost_apply_last_error' => $throwable->getMessage(),
                 'vhost_apply_last_steps' => $steps,
             ])->save();
@@ -207,7 +206,7 @@ class VpsVhostRepairPlanService
         return preg_replace('/[^a-z0-9]+/', '-', strtolower((string) ($site->primary_domain ?: $site->name ?: 'site'))) ?: 'site';
     }
 
-    protected function isSupported(\App\Models\Server $server): bool
+    protected function isSupported(Server $server): bool
     {
         return (bool) $server->can_manage_vhosts && ($server->connection_type !== 'cpanel');
     }

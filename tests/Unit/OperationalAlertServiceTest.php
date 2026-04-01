@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
-use App\Jobs\DeliverOperationalAlertWebhooks;
 use App\Jobs\DeliverOperationalAlertEmail;
+use App\Jobs\DeliverOperationalAlertWebhooks;
 use App\Models\AppSetting;
 use App\Models\User;
 use App\Services\Alerts\OperationalAlertService;
@@ -60,7 +60,7 @@ class OperationalAlertServiceTest extends TestCase
             'default_deploy_source' => 'git',
             'default_ssh_port' => 22,
             'alert_webhooks_enabled' => true,
-            'alert_webhook_urls' => "https://example.com/webhooks/veritydeploy",
+            'alert_webhook_urls' => 'https://example.com/webhooks/veritydeploy',
             'alert_webhook_secret' => 'shared-secret',
         ]);
 

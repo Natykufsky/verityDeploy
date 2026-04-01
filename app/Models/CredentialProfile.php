@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Casts\EncryptedJsonOrPlain;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 
 class CredentialProfile extends Model
 {
@@ -74,7 +74,7 @@ class CredentialProfile extends Model
             ->values()
             ->all();
 
-        return implode(', ', $keys) . (count($settings) > 4 ? '...' : '');
+        return implode(', ', $keys).(count($settings) > 4 ? '...' : '');
     }
 
     /**

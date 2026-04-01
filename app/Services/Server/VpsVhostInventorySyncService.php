@@ -4,16 +4,12 @@ namespace App\Services\Server;
 
 use App\Models\Server;
 use App\Models\Site;
-use App\Services\Server\Connections\ConnectionStrategy;
 use App\Support\SiteVhostPreview;
 use RuntimeException;
-use Throwable;
 
 class VpsVhostInventorySyncService
 {
-    public function __construct(protected ServerConnector $connector)
-    {
-    }
+    public function __construct(protected ServerConnector $connector) {}
 
     /**
      * @return array<string, mixed>

@@ -75,7 +75,7 @@ class DeploymentTimelineWidgetTest extends TestCase
             'exit_code' => 0,
         ]);
 
-        $widget = new DeploymentTimelineWidget();
+        $widget = new DeploymentTimelineWidget;
         $viewData = $this->invokeProtected($widget, 'getViewData');
 
         $this->assertSame('timeline-site', $viewData['latestDeploymentLabel']);

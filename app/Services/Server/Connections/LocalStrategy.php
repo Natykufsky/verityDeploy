@@ -9,8 +9,7 @@ class LocalStrategy implements ConnectionStrategy
 {
     public function __construct(
         protected int $timeout = 0,
-    ) {
-    }
+    ) {}
 
     public function run(string $command): string
     {

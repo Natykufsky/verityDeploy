@@ -4,8 +4,8 @@ namespace App\Services\GitHub;
 
 use App\Models\Site;
 use App\Services\AppSettings;
-use Illuminate\Http\Client\Response;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -15,10 +15,13 @@ class WebhookProvisioner
     public function provision(Site $site): array
     {
         $settings = app(AppSettings::class);
-        $token = $settings->githubApiToken();
+        $token = $site->githubCredentialProfile?->settings['token']
+            ?? $site->githubCredentialProfile?->settings['api_token']
+            ?? $settings->record()->github_oauth_access_token
+            ?? env('GITHUB_API_TOKEN');
 
         if (blank($token)) {
-            throw new RuntimeException('Missing GitHub API token. Set GITHUB_API_TOKEN in your environment.');
+            throw new RuntimeException('Missing GitHub API token. Attach a GitHub Credential Profile to the site, or set GITHUB_API_TOKEN in your environment.');
         }
 
         $repository = $this->parseRepository($site->repository_url);
@@ -73,10 +76,13 @@ class WebhookProvisioner
     public function refreshStatus(Site $site): array
     {
         $settings = app(AppSettings::class);
-        $token = $settings->githubApiToken();
+        $token = $site->githubCredentialProfile?->settings['token']
+            ?? $site->githubCredentialProfile?->settings['api_token']
+            ?? $settings->record()->github_oauth_access_token
+            ?? env('GITHUB_API_TOKEN');
 
         if (blank($token)) {
-            throw new RuntimeException('Missing GitHub API token. Set GITHUB_API_TOKEN in your environment.');
+            throw new RuntimeException('Missing GitHub API token. Attach a GitHub Credential Profile to the site, or set GITHUB_API_TOKEN in your environment.');
         }
 
         $repository = $this->parseRepository($site->repository_url);
@@ -135,10 +141,14 @@ class WebhookProvisioner
 
     public function remove(Site $site): void
     {
-        $token = app(AppSettings::class)->githubApiToken();
+        $settings = app(AppSettings::class);
+        $token = $site->githubCredentialProfile?->settings['token']
+            ?? $site->githubCredentialProfile?->settings['api_token']
+            ?? $settings->record()->github_oauth_access_token
+            ?? env('GITHUB_API_TOKEN');
 
         if (blank($token)) {
-            throw new RuntimeException('Missing GitHub API token. Set GITHUB_API_TOKEN in your environment.');
+            throw new RuntimeException('Missing GitHub API token. Attach a GitHub Credential Profile to the site, or set GITHUB_API_TOKEN in your environment.');
         }
 
         $repository = $this->parseRepository($site->repository_url);

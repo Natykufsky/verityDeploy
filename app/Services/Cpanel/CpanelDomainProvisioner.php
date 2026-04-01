@@ -3,7 +3,6 @@
 namespace App\Services\Cpanel;
 
 use App\Models\Site;
-use App\Services\Cpanel\CpanelSiteProvisioner;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -12,8 +11,7 @@ class CpanelDomainProvisioner
     public function __construct(
         protected CpanelApiClient $client,
         protected CpanelSiteProvisioner $siteProvisioner,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, mixed>

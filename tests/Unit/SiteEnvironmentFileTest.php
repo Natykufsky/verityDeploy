@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
-use App\Models\Site;
 use App\Models\Server;
+use App\Models\Site;
+use App\Services\Deployment\ReleaseManager;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -45,7 +46,7 @@ class SiteEnvironmentFileTest extends TestCase
         );
         $this->assertSame(
             "APP_NAME=Env Site\nAPP_DEBUG=false",
-            $this->normalizeLineEndings(rtrim(app(\App\Services\Deployment\ReleaseManager::class)->environmentFileContents($site->fresh()))),
+            $this->normalizeLineEndings(rtrim(app(ReleaseManager::class)->environmentFileContents($site->fresh()))),
         );
         $this->assertSame('custom', $site->fresh()->shared_env_mode);
     }
@@ -75,7 +76,7 @@ class SiteEnvironmentFileTest extends TestCase
 
         $this->assertSame(
             "APP_NAME=\"Generated Site\"\nAPP_DEBUG=false\n",
-            $this->normalizeLineEndings(app(\App\Services\Deployment\ReleaseManager::class)->environmentFileContents($site->fresh())),
+            $this->normalizeLineEndings(app(ReleaseManager::class)->environmentFileContents($site->fresh())),
         );
         $this->assertSame('generated', $site->fresh()->shared_env_mode);
     }

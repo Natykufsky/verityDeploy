@@ -9,7 +9,6 @@ use Carbon\CarbonInterval;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
-use Throwable;
 
 class SiteTerminalConsole extends Component
 {

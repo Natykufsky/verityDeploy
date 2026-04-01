@@ -9,11 +9,9 @@ use Illuminate\Mail\Mailables\Envelope;
 class OperationalAlertMail extends Mailable
 {
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
-    public function __construct(public array $payload)
-    {
-    }
+    public function __construct(public array $payload) {}
 
     public function envelope(): Envelope
     {

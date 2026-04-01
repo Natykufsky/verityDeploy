@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Teams\Tables;
 
-use App\Models\Team;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;

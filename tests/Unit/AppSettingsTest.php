@@ -13,7 +13,7 @@ class AppSettingsTest extends TestCase
 
     public function test_github_oauth_token_takes_precedence_over_pat(): void
     {
-        $settings = new AppSettings();
+        $settings = new AppSettings;
 
         $record = new AppSetting([
             'app_name' => 'verityDeploy',
@@ -37,7 +37,7 @@ class AppSettingsTest extends TestCase
 
     public function test_alert_delivery_settings_are_parsed_correctly(): void
     {
-        $settings = new AppSettings();
+        $settings = new AppSettings;
 
         $record = new AppSetting([
             'app_name' => 'verityDeploy',

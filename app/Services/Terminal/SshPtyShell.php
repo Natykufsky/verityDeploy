@@ -14,8 +14,7 @@ class SshPtyShell
     public function __construct(
         protected Server $server,
         protected ServerTerminalSession $session,
-    ) {
-    }
+    ) {}
 
     public function connect(int $columns = 120, int $rows = 32): void
     {

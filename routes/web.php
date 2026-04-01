@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\GitHubOAuthController;
-use App\Http\Controllers\SiteTerminalFeedController;
 use App\Http\Controllers\ServerTerminalFeedController;
 use App\Http\Controllers\ServerTerminalSessionController;
+use App\Http\Controllers\SiteTerminalFeedController;
 use App\Http\Controllers\TeamInvitationController;
 use Illuminate\Support\Facades\Route;
 

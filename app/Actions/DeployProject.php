@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Jobs\DeployJob;
 use App\Models\Deployment;
+use App\Models\Server;
 use App\Models\Site;
 use App\Models\User;
 use App\Services\Alerts\OperationalAlertService;
@@ -20,8 +21,7 @@ class DeployProject
         protected FileTransportService $fileTransportService,
         protected CpanelDeploymentRunner $cpanelDeploymentRunner,
         protected ReleaseManager $releaseManager,
-    ) {
-    }
+    ) {}
 
     public function dispatch(
         Site $site,
@@ -29,8 +29,7 @@ class DeployProject
         string $source = 'manual',
         ?string $commitHash = null,
         ?string $branch = null,
-    ): Deployment
-    {
+    ): Deployment {
         $deployment = Deployment::create([
             'site_id' => $site->id,
             'triggered_by_user_id' => $user?->id,
@@ -313,8 +312,7 @@ class DeployProject
                 'label' => 'Restart queue workers',
                 'command' => sprintf('cd %s && php artisan queue:restart', escapeshellarg($currentPath)),
             ];
-        }
-        else {
+        } else {
             $commands[] = [
                 'label' => 'Restart queue workers',
                 'command' => sprintf('cd %s && php artisan queue:restart', escapeshellarg($basePath)),
@@ -332,7 +330,7 @@ class DeployProject
         return sprintf('%s/releases/%s-%s', $basePath, $stamp, $deployment->id);
     }
 
-    protected function assertCanDeploy(Deployment $deployment, Site $site, ?\App\Models\Server $server): void
+    protected function assertCanDeploy(Deployment $deployment, Site $site, ?Server $server): void
     {
         if (blank($server)) {
             throw new \RuntimeException('The site does not have a server configured.');

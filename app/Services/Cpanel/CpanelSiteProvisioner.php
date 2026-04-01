@@ -12,8 +12,7 @@ class CpanelSiteProvisioner
     public function __construct(
         protected CpanelApiClient $client,
         protected ReleaseManager $releaseManager,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, string>

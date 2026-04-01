@@ -62,7 +62,7 @@ class GithubSyncDriftCardTest extends TestCase
             'github_webhook_synced_at' => now()->subMinutes(20),
         ]);
 
-        $widget = new GithubSyncDriftCard();
+        $widget = new GithubSyncDriftCard;
         $viewData = $this->invokeProtected($widget, 'getViewData');
 
         $this->assertSame($baselineProvisioned + 1, $viewData['provisionedCount']);

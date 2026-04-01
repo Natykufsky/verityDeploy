@@ -2,18 +2,17 @@
 
 namespace App\Filament\Pages;
 
-use App\Notifications\OperationalAlertNotification;
 use App\Models\OperationalAlertDelivery;
+use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
-use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\DatabaseNotification;
-use BackedEnum;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use UnitEnum;
 
 class AlertsInboxPage extends Page
@@ -119,7 +118,7 @@ class AlertsInboxPage extends Page
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, DatabaseNotification>
+     * @return Collection<int, DatabaseNotification>
      */
     public function inboxNotifications()
     {
@@ -367,7 +366,7 @@ class AlertsInboxPage extends Page
             ->all();
     }
 
-    protected function updateNotificationReadState(string $notificationId, ?\Illuminate\Support\Carbon $readAt): void
+    protected function updateNotificationReadState(string $notificationId, ?Carbon $readAt): void
     {
         $notification = $this->findNotification($notificationId);
 

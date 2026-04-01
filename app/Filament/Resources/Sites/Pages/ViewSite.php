@@ -2,30 +2,30 @@
 
 namespace App\Filament\Resources\Sites\Pages;
 
-use App\Actions\DeployProject;
 use App\Actions\BootstrapDeployPath;
+use App\Actions\DeployProject;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Models\Deployment;
 use App\Models\SiteBackup;
-use App\Services\Dns\CloudflareDnsProvisioner;
-use App\Services\Cpanel\CpanelDomainProvisioner;
-use App\Services\Cpanel\CpanelInventorySyncService;
-use App\Services\Cpanel\CpanelInventoryRepairService;
-use App\Services\Cpanel\CpanelSslProvisioner;
 use App\Services\Backups\SiteBackupService;
+use App\Services\Cpanel\CpanelDomainProvisioner;
+use App\Services\Cpanel\CpanelInventoryRepairService;
+use App\Services\Cpanel\CpanelInventorySyncService;
+use App\Services\Cpanel\CpanelSslProvisioner;
 use App\Services\Deployment\ReleaseManager;
+use App\Services\Dns\CloudflareDnsProvisioner;
 use App\Services\GitHub\WebhookProvisioner;
 use App\Services\Server\VpsVhostInventorySyncService;
 use App\Services\Server\VpsVhostRepairPlanService;
-use Filament\Actions\ActionGroup;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Schemas\Components\View as SchemaView;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View as SchemaView;
 use Filament\Schemas\Components\Wizard\Step;
 use Illuminate\Contracts\View\View;
 use Throwable;
@@ -56,7 +56,7 @@ class ViewSite extends ViewRecord
                 ->url(fn (): string => static::getResource()::getUrl('view', [
                     'record' => $this->record,
                     'tab' => 'terminal',
-                ]) . '#site-terminal'),
+                ]).'#site-terminal'),
             Action::make('bootstrapDeployPath')
                 ->label('Bootstrap path')
                 ->icon('heroicon-o-cube-transparent')
@@ -561,17 +561,17 @@ class ViewSite extends ViewRecord
         try {
             app(WebhookProvisioner::class)->provision($this->record->fresh());
 
-        Notification::make()
-            ->title('Webhook re-provisioned')
-            ->body('The GitHub webhook was created or updated again.')
-            ->success()
-            ->send();
+            Notification::make()
+                ->title('Webhook re-provisioned')
+                ->body('The GitHub webhook was created or updated again.')
+                ->success()
+                ->send();
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to re-provision webhook')
-            ->body($throwable->getMessage())
-            ->danger()
-            ->send();
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
         }
     }
 
