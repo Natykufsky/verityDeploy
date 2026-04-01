@@ -23,30 +23,42 @@
             <h3 class="text-lg font-semibold text-white">
                 {{ $record->page_snapshot['headline'] }}
             </h3>
-            <p class="max-w-3xl text-sm leading-7 text-slate-300">
-                {{ $record->page_snapshot['summary'] }}
-            </p>
+            <div class="flex items-start gap-2">
+                <p class="max-w-3xl text-sm leading-7 text-slate-300">
+                    {{ $record->page_snapshot['summary'] }}
+                </p>
+                <x-info-tooltip text="A compact explanation of what happened and what to do next." label="Recovery summary help" />
+            </div>
         </div>
 
         <div class="mt-5 grid gap-3 md:grid-cols-2">
             <div class="deployment-frost-panel rounded-xl p-4">
-                <div class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Failure summary</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">
-                    {{ filled($record->error_message) ? $record->error_message : 'No failure message is available yet.' }}
-                </p>
+                <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                    <span>Failure summary</span>
+                    <x-info-tooltip text="The latest failure message captured for this deployment." label="Failure summary help" />
+                </div>
+                <div class="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-300">
+                    <p>{{ filled($record->error_message) ? $record->error_message : 'No failure message is available yet.' }}</p>
+                </div>
             </div>
 
             <div class="deployment-frost-panel rounded-xl p-4">
-                <div class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Recovery hint</div>
-                <p class="mt-2 text-sm leading-6 text-slate-300">
-                    {{ filled($record->recovery_hint) ? $record->recovery_hint : 'A recovery hint will appear once the deployment fails.' }}
-                </p>
+                <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                    <span>Recovery hint</span>
+                    <x-info-tooltip text="The recommended fix or retry guidance for the deployment." label="Recovery hint help" />
+                </div>
+                <div class="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-300">
+                    <p>{{ filled($record->recovery_hint) ? $record->recovery_hint : 'A recovery hint will appear once the deployment fails.' }}</p>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="deployment-frost-card rounded-2xl p-5">
-        <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">What to do next</div>
+        <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <span>What to do next</span>
+            <x-info-tooltip text="The next steps that should be taken after a failed or resumable deployment." label="What to do next help" />
+        </div>
         <div class="mt-3 space-y-3">
             @foreach ($record->page_snapshot['checklist'] as $item)
                 <div class="deployment-frost-panel flex items-start gap-3 rounded-xl px-3 py-3 text-sm leading-6 text-slate-300">

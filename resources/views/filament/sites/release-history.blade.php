@@ -8,8 +8,10 @@
 >
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Release history</div>
-            <p class="mt-1 text-sm text-slate-400">The first release stays open, and you can expand or collapse the rest in one click.</p>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Release history</span>
+                <x-info-tooltip text="Release entries stay collapsible so the history remains compact while preserving logs and errors." label="Release history help" />
+            </div>
         </div>
         <div class="flex items-center gap-2">
             <div class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -60,7 +62,7 @@
                             @endif
                         </div>
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-                            <span>Commit: {{ \Illuminate\Support\Str::limit((string) ($release['commit_hash'] ?? 'n/a'), 12) }}</span>
+                            <span>commit: {{ \Illuminate\Support\Str::limit((string) ($release['commit_hash'] ?? 'n/a'), 12) }}</span>
                             <span>•</span>
                             <span>{{ filled($release['release_path'] ?? null) ? basename((string) $release['release_path']) : 'Release details' }}</span>
                             <span>•</span>
@@ -71,34 +73,52 @@
 
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Commit</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>commit</span>
+                            <x-info-tooltip text="The deployed revision hash for this release." label="Commit help" />
+                        </div>
                         <div class="mt-1 font-mono text-xs text-slate-100">{{ $release['commit_hash'] ?? 'n/a' }}</div>
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Release path</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>release path</span>
+                            <x-info-tooltip text="The filesystem path where this release was created." label="Release path help" />
+                        </div>
                         <div class="mt-1 break-all font-mono text-xs text-slate-100">{{ $release['release_path'] ?? 'n/a' }}</div>
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Started</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>started</span>
+                            <x-info-tooltip text="When the deployment or release work began." label="Started help" />
+                        </div>
                         <div class="mt-1 text-sm text-slate-100">{{ $startedAt ?? 'n/a' }}</div>
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Finished</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>finished</span>
+                            <x-info-tooltip text="When the release finished, or the latest recorded stop time." label="Finished help" />
+                        </div>
                         <div class="mt-1 text-sm text-slate-100">{{ $finishedAt ?? 'n/a' }}</div>
                     </div>
 
                     @if (filled($release['error_message'] ?? null))
                         <div class="md:col-span-2 rounded-xl border border-rose-500/20 bg-rose-950/30 p-3 text-sm text-rose-100">
-                            <div class="text-[11px] uppercase tracking-wide text-rose-300/80">Error</div>
+                            <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-rose-300/80">
+                                <span>error</span>
+                                <x-info-tooltip text="Any error message captured during the release run." label="Error help" />
+                            </div>
                             <div class="mt-2">{{ $release['error_message'] }}</div>
                         </div>
                     @endif
 
                     <div class="md:col-span-2">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Log output</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>log output</span>
+                            <x-info-tooltip text="Captured command output stays scrollable so the release card remains compact." label="Log output help" />
+                        </div>
                         @if (filled($release['output'] ?? null))
                             <div class="mt-2 max-h-[220px] overflow-y-auto rounded-xl border border-white/5 bg-slate-950 px-4 py-3">
                                 <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ e((string) $release['output']) }}</pre>

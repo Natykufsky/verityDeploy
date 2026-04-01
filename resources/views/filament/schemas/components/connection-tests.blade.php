@@ -5,8 +5,10 @@
 <div x-data="{ expanded: false }" class="space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">recent check results</div>
-            <p class="mt-1 text-sm text-slate-400">connection and provisioning checks stay compact and open individually.</p>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>recent check results</span>
+                <x-info-tooltip text="Each check stays collapsible so recent results remain compact and readable." label="Recent check results help" />
+            </div>
         </div>
         <div class="flex items-center gap-2">
             <div class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -44,9 +46,13 @@
                 </summary>
 
                 <div class="mt-3">
-                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
-                        <div><span class="font-semibold text-slate-100">exit code:</span> {{ $test->exit_code ?? 'pending' }}</div>
-                    </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-slate-100">exit code:</span>
+                                <x-info-tooltip text="The process exit code returned by the command." label="Exit code help" />
+                            </div>
+                            <div>{{ $test->exit_code ?? 'pending' }}</div>
+                        </div>
 
                     <div class="mt-3 max-h-[180px] overflow-y-auto rounded-xl border border-white/5 bg-black/25 p-3 font-mono text-xs leading-6 text-slate-100">
                         <pre class="whitespace-pre-wrap break-words">{{ $test->output ?: $test->error_message ?: 'No output captured.' }}</pre>

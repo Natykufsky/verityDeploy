@@ -30,16 +30,16 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-3">
-                    <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Release cleanup</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Release cleanup</p>
+                        <x-info-tooltip text="A snapshot of cleanup runs and the latest rotation state." label="Release cleanup help" />
+                    </div>
                     <span class="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200">
                         {{ $totalRuns }} runs
                     </span>
                 </div>
 
                 <h3 class="text-lg font-semibold text-white">Release cleanup history</h3>
-                <p class="max-w-2xl text-sm leading-6 text-slate-400">
-                    Track recent cleanup activity, see the latest rotation status, and jump to the affected site.
-                </p>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -93,6 +93,7 @@
 
         <div class="mt-4 rounded-xl border bg-black/20 p-4 {{ $runTone['border'] }}">
             <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Latest cleanup</p>
+            <x-info-tooltip text="The latest cleanup run and its current status summary." label="Latest cleanup help" />
             <p class="mt-1 text-sm font-semibold text-white">{{ $latestRunLabel }}</p>
             <p class="mt-2 text-sm leading-6 text-slate-400">{{ $latestRunSummary }}</p>
         </div>

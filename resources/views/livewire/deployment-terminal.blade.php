@@ -1,7 +1,10 @@
 <div id="deployment-terminal" class="max-h-[620px] space-y-4 overflow-y-auto pr-1">
     <div class="deployment-frost-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
         <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Live deployment logs</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Live deployment logs</span>
+                <x-info-tooltip text="The log stream for the current or most recent deployment run." label="Live deployment logs help" />
+            </div>
             <div class="mt-1 text-sm font-semibold text-white">
                 {{ count($lines) }} log line{{ count($lines) === 1 ? '' : 's' }} tracked
             </div>
@@ -56,12 +59,13 @@
             </summary>
 
             <div class="deployment-frost-panel mt-3 space-y-3 rounded-xl px-4 py-3">
-                <div class="text-sm font-medium" @class([
+                <div class="flex items-center gap-2 text-sm font-medium" @class([
                     'text-emerald-200' => $line['is_running'],
                     'text-slate-300' => ! $line['is_running'] && $line['status'] !== 'failed',
                     'text-rose-200' => $line['status'] === 'failed',
                 ])>
-                    {{ $line['command'] }}
+                    <span>{{ $line['command'] }}</span>
+                    <x-info-tooltip text="The exact deployment command for this log entry." label="Command help" />
                 </div>
 
                 @if (filled($line['output']))
@@ -76,7 +80,10 @@
                         {{ $deployment->recovery_hint }}
                     </div>
                 @else
-                    <div class="text-slate-500">No terminal output yet.</div>
+                    <div class="flex items-center gap-2 text-slate-500">
+                        <span>No terminal output yet.</span>
+                        <x-info-tooltip text="No output has been captured for this deployment step yet." label="No output help" />
+                    </div>
                 @endif
             </div>
         </details>

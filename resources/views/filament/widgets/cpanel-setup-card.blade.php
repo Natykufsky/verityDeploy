@@ -57,16 +57,16 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-3">
-                    <p class="text-xs uppercase tracking-[0.28em] text-slate-400">cPanel setup</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-xs uppercase tracking-[0.28em] text-slate-400">cPanel setup</p>
+                        <x-info-tooltip text="The latest cPanel setup snapshot for server and site bootstrap runs." label="cPanel setup help" />
+                    </div>
                     <span class="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] {{ $badgeColor }}">
                         {{ $overallState }}
                     </span>
                 </div>
 
                 <h3 class="text-lg font-semibold text-white">Latest setup snapshot</h3>
-                <p class="max-w-2xl text-sm leading-6 text-slate-400">
-                    Open the latest wizard run or jump directly to the server or site setup record.
-                </p>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -91,7 +91,10 @@
             <div class="rounded-xl border bg-black/20 p-3 {{ $toneStyles[$serverRunTone]['border'] }}">
                 <div class="flex items-center gap-2">
                     <span class="h-2.5 w-2.5 rounded-full {{ $toneStyles[$serverRunTone]['dot'] }}"></span>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Server run</p>
+                    <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        <span>Server run</span>
+                        <x-info-tooltip text="The most recent cPanel wizard run for server checks." label="Server run help" />
+                    </div>
                 </div>
                 <p class="mt-1 text-sm font-semibold {{ $toneStyles[$serverRunTone]['value'] }}">{{ $serverRunBadge ?? 'No run' }}</p>
                 <p class="mt-1 text-xs text-slate-400">{{ $serverRunWhen }}</p>
@@ -100,7 +103,10 @@
             <div class="rounded-xl border bg-black/20 p-3 {{ $toneStyles[$siteRunTone]['border'] }}">
                 <div class="flex items-center gap-2">
                     <span class="h-2.5 w-2.5 rounded-full {{ $toneStyles[$siteRunTone]['dot'] }}"></span>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Site run</p>
+                    <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        <span>Site run</span>
+                        <x-info-tooltip text="The most recent cPanel wizard run for site bootstrap." label="Site run help" />
+                    </div>
                 </div>
                 <p class="mt-1 text-sm font-semibold {{ $toneStyles[$siteRunTone]['value'] }}">{{ $siteRunBadge ?? 'No run' }}</p>
                 <p class="mt-1 text-xs text-slate-400">{{ $siteRunWhen }}</p>
@@ -109,7 +115,10 @@
             <div class="rounded-xl border bg-black/20 p-3 {{ $toneStyles[$auditCountTone]['border'] }}">
                 <div class="flex items-center gap-2">
                     <span class="h-2.5 w-2.5 rounded-full {{ $toneStyles[$auditCountTone]['dot'] }}"></span>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Last 24 hours</p>
+                    <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        <span>Last 24 hours</span>
+                        <x-info-tooltip text="How many cPanel wizard audit records were created in the last day." label="Last 24 hours help" />
+                    </div>
                 </div>
                 <p class="mt-1 text-sm font-semibold {{ $toneStyles[$auditCountTone]['value'] }}">{{ $auditCountLast24Hours ?? 0 }}</p>
                 <p class="mt-1 text-xs text-slate-400">Audit records</p>
@@ -118,30 +127,48 @@
 
         <div class="mt-5 grid gap-3 sm:grid-cols-2">
             <div class="rounded-xl border border-white/5 bg-black/20 p-4 transition {{ $rowColor }}">
-                <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Server wizard</p>
+                <div class="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
+                    <span>Server wizard</span>
+                    <x-info-tooltip text="Jump to the cPanel checks run for the server." label="Server wizard help" />
+                </div>
                 <p class="mt-1 text-base font-semibold text-white">{{ $serverRunLabel ?? 'No run yet' }}</p>
                 <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
                     <div>
-                        <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Status</p>
+                        <div class="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                            <span>Status</span>
+                            <x-info-tooltip text="The current state of the server wizard run." label="Status help" />
+                        </div>
                         <p class="mt-1 font-medium text-slate-100">{{ $serverRunState }}</p>
                     </div>
                     <div>
-                        <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Updated</p>
+                        <div class="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                            <span>Updated</span>
+                            <x-info-tooltip text="When the server wizard run last changed state." label="Updated help" />
+                        </div>
                         <p class="mt-1 font-medium text-slate-100">{{ $serverRunWhen }}</p>
                     </div>
                 </div>
             </div>
 
             <div class="rounded-xl border border-white/5 bg-black/20 p-4 transition {{ $rowColor }}">
-                <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Site wizard</p>
+                <div class="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
+                    <span>Site wizard</span>
+                    <x-info-tooltip text="Jump to the cPanel bootstrap run for the site." label="Site wizard help" />
+                </div>
                 <p class="mt-1 text-base font-semibold text-white">{{ $siteRunLabel ?? 'No run yet' }}</p>
                 <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
                     <div>
-                        <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Status</p>
+                        <div class="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                            <span>Status</span>
+                            <x-info-tooltip text="The current state of the site bootstrap run." label="Status help" />
+                        </div>
                         <p class="mt-1 font-medium text-slate-100">{{ $siteRunState }}</p>
                     </div>
                     <div>
-                        <p class="text-xs uppercase tracking-[0.18em] text-slate-500">Updated</p>
+                        <div class="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                            <span>Updated</span>
+                            <x-info-tooltip text="When the site wizard run last changed state." label="Updated help" />
+                        </div>
                         <p class="mt-1 font-medium text-slate-100">{{ $siteRunWhen }}</p>
                     </div>
                 </div>

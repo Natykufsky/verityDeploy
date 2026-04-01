@@ -35,16 +35,16 @@
 
                 <div class="space-y-2">
                     <div class="flex flex-wrap items-center gap-3">
-                        <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Alerts inbox</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Alerts inbox</p>
+                            <x-info-tooltip text="A compact snapshot of unread and critical alerts from the dashboard." label="Alerts inbox help" />
+                        </div>
                         <span class="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200">
                             {{ $unreadCount }} unread
                         </span>
                     </div>
 
                     <h3 class="text-lg font-semibold text-white">Keep an eye on operational alerts</h3>
-                    <p class="max-w-2xl text-sm leading-6 text-slate-400">
-                        Review failed deploys, unhealthy servers, and webhook drift from the dashboard before they turn into surprises.
-                    </p>
                 </div>
             </div>
 
@@ -70,21 +70,28 @@
 
         <div class="mt-5 grid gap-3 sm:grid-cols-3">
             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Unread</p>
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Unread</span>
+                    <x-info-tooltip text="Alerts that still need to be reviewed." label="Unread help" />
+                </div>
                 <p class="mt-1 text-2xl font-semibold text-white">{{ $unreadCount }}</p>
-                <p class="mt-1 text-xs text-slate-400">Alerts waiting for review</p>
+                <p class="mt-1 text-xs text-slate-400">alerts waiting for review</p>
             </div>
 
             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Critical</p>
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Critical</span>
+                    <x-info-tooltip text="High-priority alerts that need attention first." label="Critical help" />
+                </div>
                 <p class="mt-1 text-2xl font-semibold text-white">{{ $criticalCount }}</p>
-                <p class="mt-1 text-xs text-slate-400">Warning and danger alerts</p>
+                <p class="mt-1 text-xs text-slate-400">warning and danger alerts</p>
             </div>
 
             <div class="rounded-xl border bg-black/20 p-3 {{ $latestAlertToneStyle['border'] }}">
                 <div class="flex items-center gap-2">
                     <span class="h-2.5 w-2.5 rounded-full {{ $latestAlertToneStyle['dot'] }}"></span>
                     <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Latest</p>
+                    <x-info-tooltip text="The most recent alert and its current state." label="Latest alert help" />
                 </div>
                 <p class="mt-1 text-sm font-semibold {{ $latestAlertToneStyle['value'] }}">{{ $latestAlertTitle }}</p>
                 <p class="mt-1 text-xs text-slate-400">{{ $latestAlertWhen }}</p>
@@ -92,7 +99,10 @@
         </div>
 
         <div class="mt-4 rounded-xl border border-white/5 bg-black/20 p-4">
-            <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Latest alert</p>
+            <div class="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-slate-500">
+                <span>Latest alert</span>
+                <x-info-tooltip text="A short preview of the most recent alert body." label="Latest alert help" />
+            </div>
             <p class="mt-1 text-sm font-semibold text-white">{{ $latestAlertTitle }}</p>
             <p class="mt-2 text-sm leading-6 text-slate-400">{{ $latestAlertBody }}</p>
         </div>

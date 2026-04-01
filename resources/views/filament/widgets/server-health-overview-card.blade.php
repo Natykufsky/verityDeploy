@@ -53,16 +53,16 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-3">
-                    <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Server health</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Server health</p>
+                        <x-info-tooltip text="A snapshot of server availability and the latest health check result." label="Server health help" />
+                    </div>
                     <span class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
                         {{ $onlineCount }} online
                     </span>
                 </div>
 
                 <h3 class="text-lg font-semibold text-white">Server health at a glance</h3>
-                <p class="max-w-2xl text-sm leading-6 text-slate-400">
-                    Monitor server status, open the server list, and jump directly to the latest health check when something needs attention.
-                </p>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -87,9 +87,12 @@
         <div class="mt-5 grid gap-3 sm:grid-cols-4">
             @foreach ($cards as $card)
                 <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">{{ $card['label'] }}</p>
+                    <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        <span>{{ $card['label'] }}</span>
+                        <x-info-tooltip text="Dashboard count for {{ strtolower($card['label']) }} servers." label="{{ $card['label'] }} help" />
+                    </div>
                     <p class="mt-1 text-2xl font-semibold {{ $toneStyles[$card['tone']]['value'] }}">{{ $card['value'] }}</p>
-                    <p class="mt-1 text-xs text-slate-400">Servers</p>
+                    <p class="mt-1 text-xs text-slate-400">servers</p>
                 </div>
             @endforeach
         </div>
@@ -98,6 +101,7 @@
             <div class="flex items-center gap-2">
                 <span class="h-2.5 w-2.5 rounded-full {{ $checkTone['dot'] }}"></span>
                 <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Latest health check</p>
+                <x-info-tooltip text="The most recent server health check and its summarized metrics." label="Latest health check help" />
             </div>
             <p class="mt-1 text-sm font-semibold {{ $checkTone['value'] }}">{{ $latestCheckLabel }}</p>
             <p class="mt-1 text-xs text-slate-400">{{ $latestCheckWhen }}</p>

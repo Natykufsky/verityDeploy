@@ -24,24 +24,36 @@
 @endphp
 
 <div class="space-y-5" wire:poll.15s>
-    <div class="grid gap-3 md:grid-cols-4">
-        <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Unread</p>
-            <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['unread'] ?? 0 }}</p>
+        <div class="grid gap-3 md:grid-cols-4">
+            <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Unread</span>
+                    <x-info-tooltip text="Alerts that still need to be reviewed." label="Unread help" />
+                </div>
+                <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['unread'] ?? 0 }}</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Critical</span>
+                    <x-info-tooltip text="High-priority alerts that need attention first." label="Critical help" />
+                </div>
+                <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['critical'] ?? 0 }}</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Last 24 hours</span>
+                    <x-info-tooltip text="Alerts created in the last 24 hours." label="Last 24 hours help" />
+                </div>
+                <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['recent'] ?? 0 }}</p>
+            </div>
+            <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Total</span>
+                    <x-info-tooltip text="All alerts currently stored in the inbox." label="Total help" />
+                </div>
+                <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['total'] ?? 0 }}</p>
+            </div>
         </div>
-        <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Critical</p>
-            <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['critical'] ?? 0 }}</p>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Last 24 hours</p>
-            <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['recent'] ?? 0 }}</p>
-        </div>
-        <div class="rounded-2xl border border-white/5 bg-slate-950/70 p-4">
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Total</p>
-            <p class="mt-2 text-2xl font-semibold text-white">{{ $stats['total'] ?? 0 }}</p>
-        </div>
-    </div>
 
     <div class="flex flex-wrap gap-2">
         @foreach ($filters as $key => $label)
@@ -79,7 +91,10 @@
                                 <div class="flex flex-wrap items-center gap-3">
                                     <div class="flex items-center gap-2">
                                         <span class="h-2.5 w-2.5 rounded-full {{ $toneStyles[$tone]['dot'] }}"></span>
-                                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Alert</p>
+                                        <div class="flex items-center gap-2">
+                                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Alert</p>
+                                            <x-info-tooltip text="This card represents a single operational alert." label="Alert help" />
+                                        </div>
                                     </div>
                                     <span class="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] {{ $isUnread ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300' }}">
                                         {{ $isUnread ? 'Unread' : 'Read' }}
@@ -131,15 +146,24 @@
 
                         <div class="mt-4 grid gap-3 sm:grid-cols-3">
                             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Level</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Level</p>
+                                    <x-info-tooltip text="The severity level attached to the alert." label="Level help" />
+                                </div>
                                 <p class="mt-1 text-sm font-semibold {{ $toneStyles[$tone]['value'] }}">{{ data_get($notification->data, 'level', 'warning') }}</p>
                             </div>
                             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">When</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">When</p>
+                                    <x-info-tooltip text="When the alert was created." label="When help" />
+                                </div>
                                 <p class="mt-1 text-sm font-semibold text-slate-100">{{ $this->notificationWhen($notification) }}</p>
                             </div>
                             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Context</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Context</p>
+                                    <x-info-tooltip text="Keys stored with the alert payload." label="Context help" />
+                                </div>
                                 <p class="mt-1 text-sm font-semibold text-slate-100">
                                     {{ filled($context) ? collect($context)->keys()->join(', ') : 'No extra context' }}
                                 </p>
@@ -170,7 +194,10 @@
 
                 <div class="relative z-10 flex flex-wrap items-start justify-between gap-3 border-b border-white/5 px-5 py-4">
                     <div class="space-y-1">
-                        <div class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Alert details</div>
+                        <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                            <span>Alert details</span>
+                            <x-info-tooltip text="The modal view for a single alert, including context and actions." label="Alert details help" />
+                        </div>
                         <h3 class="text-lg font-semibold text-white">{{ $this->notificationTitle($activeNotification) }}</h3>
                     </div>
 
@@ -215,17 +242,26 @@
                 <div class="relative z-10 flex-1 overflow-y-auto px-5 py-5">
                     <div class="grid gap-3 sm:grid-cols-3">
                         <div class="rounded-2xl border border-white/5 bg-black/20 p-3">
-                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Level</p>
+                            <div class="flex items-center gap-2">
+                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Level</p>
+                                <x-info-tooltip text="The alert severity shown in the modal." label="Level help" />
+                            </div>
                             <p class="mt-1 text-sm font-semibold {{ $toneStyles[$this->notificationTone($activeNotification)]['value'] }}">
                                 {{ data_get($activeNotification->data, 'level', 'warning') }}
                             </p>
                         </div>
                         <div class="rounded-2xl border border-white/5 bg-black/20 p-3">
-                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">When</p>
+                            <div class="flex items-center gap-2">
+                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">When</p>
+                                <x-info-tooltip text="When the alert was created." label="When help" />
+                            </div>
                             <p class="mt-1 text-sm font-semibold text-slate-100">{{ $this->notificationWhen($activeNotification) }}</p>
                         </div>
                         <div class="rounded-2xl border border-white/5 bg-black/20 p-3">
-                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">State</p>
+                            <div class="flex items-center gap-2">
+                                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">State</p>
+                                <x-info-tooltip text="Whether the alert is currently read or unread." label="State help" />
+                            </div>
                             <p class="mt-1 text-sm font-semibold text-slate-100">
                                 {{ $activeNotification->read_at ? 'Read' : 'Unread' }}
                             </p>
@@ -233,12 +269,18 @@
                     </div>
 
                     <div class="mt-4 rounded-2xl border border-white/5 bg-black/20 p-4">
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Message</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Message</p>
+                            <x-info-tooltip text="The alert body shown in full inside the modal." label="Message help" />
+                        </div>
                         <p class="mt-2 text-sm leading-7 text-slate-200">{{ $this->notificationBody($activeNotification) }}</p>
                     </div>
 
                     <div class="mt-4 rounded-2xl border border-white/5 bg-black/20 p-4">
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Context</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Context</p>
+                            <x-info-tooltip text="Extra context values attached to the alert payload." label="Context help" />
+                        </div>
                         @php($context = $this->notificationContext($activeNotification))
 
                         @if (filled($context))

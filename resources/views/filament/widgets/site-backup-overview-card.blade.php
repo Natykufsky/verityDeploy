@@ -53,16 +53,16 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-3">
-                    <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Backups</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Backups</p>
+                        <x-info-tooltip text="A snapshot of backup activity and the latest backup status." label="Backups help" />
+                    </div>
                     <span class="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200">
                         {{ $totalBackups }} backups
                     </span>
                 </div>
 
                 <h3 class="text-lg font-semibold text-white">Backup status at a glance</h3>
-                <p class="max-w-2xl text-sm leading-6 text-slate-400">
-                    See how many backups have completed, review the latest snapshot, and jump straight to the affected site.
-                </p>
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -87,9 +87,12 @@
         <div class="mt-5 grid gap-3 sm:grid-cols-4">
             @foreach ($cards as $card)
                 <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">{{ $card['label'] }}</p>
+                    <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        <span>{{ $card['label'] }}</span>
+                        <x-info-tooltip text="Backup count for {{ strtolower($card['label']) }} runs." label="{{ $card['label'] }} help" />
+                    </div>
                     <p class="mt-1 text-2xl font-semibold {{ $toneStyles[$card['tone']]['value'] }}">{{ $card['value'] }}</p>
-                    <p class="mt-1 text-xs text-slate-400">Backup runs</p>
+                    <p class="mt-1 text-xs text-slate-400">backup runs</p>
                 </div>
             @endforeach
         </div>
@@ -98,6 +101,7 @@
             <div class="flex items-center gap-2">
                 <span class="h-2.5 w-2.5 rounded-full {{ $backupTone['dot'] }}"></span>
                 <p class="text-xs uppercase tracking-[0.24em] text-slate-500">Latest backup</p>
+                <x-info-tooltip text="The latest backup run and its summarized state." label="Latest backup help" />
             </div>
             <p class="mt-1 text-sm font-semibold {{ $backupTone['value'] }}">{{ $latestBackupLabel }}</p>
             <p class="mt-1 text-xs text-slate-400">{{ $latestBackupWhen }}</p>

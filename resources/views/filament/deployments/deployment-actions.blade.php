@@ -35,20 +35,27 @@
     </div>
 
     <div class="deployment-frost-card rounded-2xl p-4">
-        <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Suggested action</div>
+        <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <span>Suggested action</span>
+            <x-info-tooltip text="The most relevant next action for this deployment state." label="Suggested action help" />
+        </div>
         <div class="mt-2 text-sm font-semibold text-white">
             {{ $record->page_snapshot['next_action'] }}
         </div>
-        <p class="mt-2 text-sm leading-6 text-slate-400">
-            {{ $record->page_snapshot['next_action_description'] }}
-        </p>
+        <div class="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-400">
+            <p>{{ $record->page_snapshot['next_action_description'] }}</p>
+            <x-info-tooltip text="Why that action is recommended right now." label="Suggested action description help" />
+        </div>
     </div>
 </div>
 
 <div class="deployment-frost-card mt-4 rounded-2xl p-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Quick checklist</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Quick checklist</span>
+                <x-info-tooltip text="A short checklist for the current deployment state." label="Quick checklist help" />
+            </div>
             <div class="mt-1 text-sm font-semibold text-white">{{ $record->page_snapshot['headline'] }}</div>
         </div>
         <div class="text-xs text-slate-400">

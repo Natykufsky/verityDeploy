@@ -10,9 +10,12 @@
                 <span class="h-2 w-2 rounded-full {{ ($preview['supported'] ?? false) ? 'bg-cyan-300' : 'bg-slate-400' }}"></span>
                 vhost preview
             </div>
-            <h3 class="text-lg font-semibold tracking-tight text-white">
-                {{ ($preview['engine_label'] ?? 'Vhost') . ' config' }}
-            </h3>
+            <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-lg font-semibold tracking-tight text-white">
+                    {{ ($preview['engine_label'] ?? 'Vhost') . ' config' }}
+                </h3>
+                <x-info-tooltip text="The vhost preview shows the server config that will route the domain to this site." label="Vhost help" />
+            </div>
             <p class="max-w-3xl text-sm leading-6 text-slate-300">
                 {{ $preview['message'] ?? 'Preview the vhost layout for this site.' }}
             </p>
@@ -33,22 +36,34 @@
 
     <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Document root</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Document root</span>
+                <x-info-tooltip text="The document root is the filesystem path the web server serves for this site." label="Document root help" />
+            </div>
             <div class="mt-2 break-all text-sm font-semibold text-white">{{ $preview['document_root'] ?? 'not set' }}</div>
         </div>
 
         <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">SSL state</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>SSL state</span>
+                <x-info-tooltip text="This reflects the certificate state that the vhost should use for the site." label="SSL state help" />
+            </div>
             <div class="mt-2 text-sm font-semibold text-white">{{ $preview['ssl_summary'] ?? 'ssl has not been configured yet.' }}</div>
         </div>
 
         <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">HTTPS redirect</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>HTTPS redirect</span>
+                <x-info-tooltip text="This shows whether plain HTTP should redirect to HTTPS in the generated config." label="HTTPS redirect help" />
+            </div>
             <div class="mt-2 text-sm font-semibold text-white">{{ $preview['force_https_summary'] ?? 'https redirects are disabled.' }}</div>
         </div>
 
         <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Hostnames</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Hostnames</span>
+                <x-info-tooltip text="These are the hostnames the generated vhost config will answer for." label="Hostnames help" />
+            </div>
             <div class="mt-2 text-sm font-semibold text-white">{{ count($hostnames) }} mapped host{{ count($hostnames) === 1 ? '' : 's' }}</div>
         </div>
     </div>
@@ -59,7 +74,10 @@
         </div>
     @else
         <div class="mt-5 rounded-2xl border border-white/5 bg-black/30 p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Preview snippet</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Preview snippet</span>
+                <x-info-tooltip text="This is the generated server config snippet for the current site mapping." label="Preview snippet help" />
+            </div>
             <div class="mt-3 max-h-[320px] overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
                 <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $preview['snippet'] ?? 'No vhost snippet available yet.' }}</pre>
             </div>
@@ -68,7 +86,10 @@
 
     <div class="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div class="rounded-2xl border border-white/5 bg-black/30 p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Configuration steps</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Configuration steps</span>
+                <x-info-tooltip text="These steps describe how the vhost config will be applied." label="Configuration steps help" />
+            </div>
             <div class="mt-3 space-y-2">
                 @forelse ($preview['steps'] ?? [] as $step)
                     <div class="flex items-start gap-2 text-sm text-slate-300">
@@ -82,7 +103,10 @@
         </div>
 
         <div class="rounded-2xl border border-white/5 bg-black/30 p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Mapped hosts</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Mapped hosts</span>
+                <x-info-tooltip text="These hosts will be routed by the generated vhost config." label="Mapped hosts help" />
+            </div>
             <div class="mt-3 flex flex-wrap gap-2">
                 @forelse ($hostnames as $hostname)
                     <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-200">

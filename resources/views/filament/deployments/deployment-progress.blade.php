@@ -1,7 +1,10 @@
 <div id="deployment-steps" class="space-y-4">
     <div class="deployment-frost-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
         <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Deployment progress</div>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Deployment progress</span>
+                <x-info-tooltip text="The current step count and progress summary for the deployment." label="Deployment progress help" />
+            </div>
             <div class="mt-1 text-sm font-semibold text-white">
                 {{ $record->steps->count() }} step{{ $record->steps->count() === 1 ? '' : 's' }} tracked
             </div>
@@ -59,12 +62,13 @@
             </summary>
 
             <div class="deployment-frost-panel mt-3 space-y-3 rounded-xl px-4 py-3">
-                <div class="text-sm font-medium" @class([
+                <div class="flex items-center gap-2 text-sm font-medium" @class([
                     'text-emerald-200' => $isRunning,
                     'text-slate-300' => ! $isRunning && $step->status !== 'failed',
                     'text-rose-200' => $step->status === 'failed',
                 ])>
-                    {{ $step->command }}
+                    <span>{{ $step->command }}</span>
+                    <x-info-tooltip text="The command for this deployment step." label="Step command help" />
                 </div>
 
                 @if (filled($step->output))

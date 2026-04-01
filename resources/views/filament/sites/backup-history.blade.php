@@ -8,8 +8,10 @@
 >
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Backup history</div>
-            <p class="mt-1 text-sm text-slate-400">The first backup stays open, and you can expand or collapse the rest together.</p>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                <span>Backup history</span>
+                <x-info-tooltip text="Backup entries stay collapsible so the history remains compact while preserving logs and restore details." label="Backup history help" />
+            </div>
         </div>
         <div class="flex items-center gap-2">
             <div class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -55,7 +57,7 @@
                             @endif
                         </div>
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
-                            <span>Snapshot: {{ \Illuminate\Support\Str::limit((string) ($backup['snapshot_path'] ?? 'n/a'), 20) }}</span>
+                            <span>snapshot: {{ \Illuminate\Support\Str::limit((string) ($backup['snapshot_path'] ?? 'n/a'), 20) }}</span>
                             <span>•</span>
                             <span>{{ filled($backup['restored_release_path'] ?? null) ? \Illuminate\Support\Str::limit((string) $backup['restored_release_path'], 20) : 'No restore path' }}</span>
                             <span>•</span>
@@ -66,34 +68,52 @@
 
                 <div class="mt-4 grid gap-4 md:grid-cols-2">
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Snapshot path</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>snapshot path</span>
+                            <x-info-tooltip text="The on-disk location of the backup snapshot." label="Snapshot path help" />
+                        </div>
                         <div class="mt-1 break-all font-mono text-xs text-slate-100">{{ $backup['snapshot_path'] ?? 'n/a' }}</div>
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Restored release</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>restored release</span>
+                            <x-info-tooltip text="The release path restored from this backup, if applicable." label="Restored release help" />
+                        </div>
                         <div class="mt-1 break-all font-mono text-xs text-slate-100">{{ $backup['restored_release_path'] ?? 'n/a' }}</div>
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Started</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>started</span>
+                            <x-info-tooltip text="When the backup job began." label="Started help" />
+                        </div>
                         <div class="mt-1 text-sm text-slate-100">{{ $startedAt ?? 'n/a' }}</div>
                     </div>
 
                     <div class="rounded-xl bg-black/30 p-3">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Finished</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>finished</span>
+                            <x-info-tooltip text="When the backup job finished, or the latest recorded stop time." label="Finished help" />
+                        </div>
                         <div class="mt-1 text-sm text-slate-100">{{ $finishedAt ?? 'n/a' }}</div>
                     </div>
 
                     @if (filled($backup['error_message'] ?? null))
                         <div class="md:col-span-2 rounded-xl border border-rose-500/20 bg-rose-950/30 p-3 text-sm text-rose-100">
-                            <div class="text-[11px] uppercase tracking-wide text-rose-300/80">Error</div>
+                            <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-rose-300/80">
+                                <span>error</span>
+                                <x-info-tooltip text="Any error message captured during the backup run." label="Error help" />
+                            </div>
                             <div class="mt-2">{{ $backup['error_message'] }}</div>
                         </div>
                     @endif
 
                     <div class="md:col-span-2">
-                        <div class="text-[11px] uppercase tracking-wide text-slate-500">Output</div>
+                        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                            <span>output</span>
+                            <x-info-tooltip text="Captured backup output stays scrollable so the backup card remains compact." label="Output help" />
+                        </div>
                         @if (filled($backup['output'] ?? null))
                             <div class="mt-2 max-h-[220px] overflow-y-auto rounded-xl border border-white/5 bg-slate-950 px-4 py-3">
                                 <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ e((string) $backup['output']) }}</pre>

@@ -59,6 +59,7 @@
                         <div class="min-w-0 flex-1 space-y-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <h3 class="text-sm font-semibold text-slate-100">{{ strtolower($item['title'] ?? 'event') }}</h3>
+                                <x-info-tooltip text="This timeline entry records the event type, status, and its captured command/output details." label="Timeline entry help" />
                                 <span class="rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide {{ ($item['type'] ?? 'gray') === 'connection' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300' }}">
                                     {{ strtolower($item['type'] ?? 'event') }}
                                 </span>
@@ -74,13 +75,19 @@
 
                     <div class="mt-4 grid gap-4 md:grid-cols-2">
                         <div class="rounded-xl bg-black/30 p-3">
-                            <div class="text-[11px] uppercase tracking-wide text-slate-500">command</div>
+                            <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                                <span>command</span>
+                                <x-info-tooltip text="The command that was run for this timeline item." label="Command help" />
+                            </div>
                             <div class="mt-1 font-mono text-xs text-slate-100">{{ $item['command'] ?? 'n/a' }}</div>
                         </div>
 
                         @if (! empty($item['metrics']))
                             <div class="rounded-xl bg-black/30 p-3">
-                                <div class="text-[11px] uppercase tracking-wide text-slate-500">metrics</div>
+                                <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                                    <span>metrics</span>
+                                    <x-info-tooltip text="Structured metrics captured during the check or action." label="Metrics help" />
+                                </div>
                                 <dl class="mt-2 grid grid-cols-2 gap-2 text-xs">
                                     @foreach ($item['metrics'] as $metricKey => $metricValue)
                                         <div class="rounded-lg bg-slate-900/70 px-2 py-1.5">
@@ -94,7 +101,10 @@
 
                         @if (filled($item['output'] ?? null))
                             <div class="md:col-span-2">
-                                <div class="text-[11px] uppercase tracking-wide text-slate-500">output</div>
+                                <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                                    <span>output</span>
+                                    <x-info-tooltip text="Captured command output stays scrollable so the event card remains compact." label="Output help" />
+                                </div>
                                 <div class="mt-2 max-h-[220px] overflow-y-auto rounded-xl border border-white/5 bg-slate-950 px-4 py-3">
                                     <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $item['output'] }}</pre>
                                 </div>
@@ -103,7 +113,10 @@
 
                         @if (filled($item['error_message'] ?? null))
                             <div class="md:col-span-2">
-                                <div class="text-[11px] uppercase tracking-wide text-slate-500">error</div>
+                                <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
+                                    <span>error</span>
+                                    <x-info-tooltip text="Any error output captured for this timeline event." label="Error help" />
+                                </div>
                                 <div class="mt-2 max-h-[220px] overflow-y-auto rounded-xl border border-rose-500/20 bg-rose-950/30 px-4 py-3">
                                     <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-rose-100">{{ $item['error_message'] }}</pre>
                                 </div>
