@@ -14,7 +14,7 @@ class DeploymentsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->visibleInAdmin()->accessibleTo())
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->visibleInAdmin()->accessibleTo()->latest('created_at')->latest('id'))
             ->columns([
                 TextColumn::make('site.team.name')
                     ->label('Team')

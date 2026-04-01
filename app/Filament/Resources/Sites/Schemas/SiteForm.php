@@ -79,6 +79,12 @@ class SiteForm
                                         ->visible(fn (Get $get): bool => $get('deploy_source') === 'local')
                                         ->helperText('Used when the dashboard server packages a local codebase and uploads it to the target server.')
                                         ->columnSpanFull(),
+                                    Toggle::make('ignore_local_source_ignored_files')
+                                        ->label('Ignore .gitignored files and folders')
+                                        ->visible(fn (Get $get): bool => $get('deploy_source') === 'local')
+                                        ->default(true)
+                                        ->helperText('Keep this on to match Git-style deploys. Turn it off if you want local-source deploys to include ignored files and folders.')
+                                        ->columnSpanFull(),
                                 ])
                                 ->columns(2),
                             Section::make('Lifecycle')

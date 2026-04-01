@@ -159,6 +159,20 @@ class ViewSite extends ViewRecord
                 ]))
                 ->modalSubmitActionLabel('Close')
                 ->action(fn () => $this->repairVhostPlan()),
+            Action::make('applyVhostConfig')
+                ->label('Apply vhost config')
+                ->icon('heroicon-o-shield-check')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
+                ->modalWidth('7xl')
+                ->modalHeading('Apply the VPS vhost config?')
+                ->modalDescription('This writes the vhost file, enables it, and reloads the web server using the explicit server paths configured for this server. Use the copy button if you want the raw commands first.')
+                ->modalContent(fn (): View => view('filament.sites.vhost-repair-plan-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Apply config')
+                ->requiresConfirmation()
+                ->action(fn () => $this->applyVhostConfig()),
             ActionGroup::make([
                 Action::make('provisionCpanelSite')
                     ->label('cPanel site wizard')
@@ -558,6 +572,25 @@ class ViewSite extends ViewRecord
             ->body($throwable->getMessage())
             ->danger()
             ->send();
+        }
+    }
+
+    protected function applyVhostConfig(): void
+    {
+        try {
+            $result = app(VpsVhostRepairPlanService::class)->apply($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('VPS vhost config applied')
+                ->body($result['summary'] ?? 'The live vhost config was applied successfully.')
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to apply vhost config')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
         }
     }
 

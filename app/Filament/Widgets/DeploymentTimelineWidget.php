@@ -124,7 +124,7 @@ class DeploymentTimelineWidget extends Widget
         }
 
         return $deployment->steps
-            ->sortBy('sequence')
+            ->sortByDesc(fn ($step): int => $step->started_at?->timestamp ?? ($step->finished_at?->timestamp ?? $step->sequence))
             ->map(function ($step): array {
                 return [
                     'sequence' => $step->sequence,
@@ -175,8 +175,10 @@ class DeploymentTimelineWidget extends Widget
             'sequence' => $step->sequence,
             'command' => $step->command,
             'output' => $step->output,
-            'started_at' => $step->started_at?->diffForHumans() ?? 'just now',
-            'finished_at' => $step->finished_at?->diffForHumans() ?? 'in progress',
+            'started_at' => $step->started_at?->format('M d, Y H:i:s') ?? 'just now',
+            'started_relative' => $step->started_at?->diffForHumans() ?? 'just now',
+            'finished_at' => $step->finished_at?->format('M d, Y H:i:s') ?? 'in progress',
+            'finished_relative' => $step->finished_at?->diffForHumans() ?? 'in progress',
             'exit_code' => $step->exit_code,
             'url' => DeploymentResource::getUrl('view', [
                 'record' => $deployment,

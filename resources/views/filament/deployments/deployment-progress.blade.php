@@ -14,7 +14,7 @@
         </div>
     </div>
 
-    @forelse ($record->steps as $step)
+    @forelse ($record->steps->sortByDesc(fn ($step): int => $step->started_at?->timestamp ?? ($step->finished_at?->timestamp ?? $step->sequence)) as $step)
         @php
             $isRunning = $step->status === 'running';
         @endphp
@@ -36,7 +36,10 @@
                     @else
                         <span class="inline-flex h-2.5 w-2.5 rounded-full bg-slate-500"></span>
                     @endif
-                    <span>[{{ $step->started_at?->format('H:i:s') ?? '--:--:--' }}]</span>
+                <span>[{{ $step->started_at?->format('M d, Y H:i:s') ?? '-- --, ---- --:--:--' }}]</span>
+                <span class="normal-case tracking-normal text-slate-500">
+                    {{ $step->started_at?->diffForHumans() ?? 'just now' }}
+                </span>
                 </span>
                 <span class="text-emerald-300">$</span>
                 <span>{{ $step->label }}</span>

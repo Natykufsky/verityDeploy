@@ -22,18 +22,20 @@ class DeploymentTerminal extends Component
     }
 
     /**
-     * @return array<int, array{timestamp: string, label: string, status: string, command: string, output: string, duration: string, is_running: bool}>
+     * @return array<int, array{timestamp: string, relative: string, label: string, status: string, command: string, output: string, duration: string, is_running: bool}>
      */
     protected function buildLines(Deployment $deployment): array
     {
         return $deployment->steps
+            ->sortByDesc(fn ($step): int => $step->started_at?->timestamp ?? ($step->finished_at?->timestamp ?? $step->sequence))
             ->map(function ($step): array {
                 $seconds = $step->started_at && $step->finished_at
                     ? $step->started_at->diffInSeconds($step->finished_at)
                     : ($step->started_at?->diffInSeconds(now()) ?? 0);
 
                 return [
-                    'timestamp' => $step->started_at?->format('H:i:s') ?? '--:--:--',
+                    'timestamp' => $step->started_at?->format('M d, Y H:i:s') ?? '-- --, ---- --:--:--',
+                    'relative' => $step->started_at?->diffForHumans() ?? 'just now',
                     'label' => $step->label,
                     'status' => $step->status,
                     'command' => $step->command,

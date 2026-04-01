@@ -32,7 +32,9 @@ class FileTransportService
         $archivePath = storage_path('app/deployment-archives/'.$deployment->id.'-'.Str::uuid().'.tar.gz');
         File::ensureDirectoryExists(dirname($archivePath));
 
-        $this->createLocalSourceArchive($sourcePath, $archivePath);
+        $ignoreFiltered = (bool) ($site->ignore_local_source_ignored_files ?? true);
+
+        $this->createLocalSourceArchive($sourcePath, $archivePath, $ignoreFiltered);
 
         return $archivePath;
     }
@@ -348,27 +350,8 @@ class FileTransportService
         return str_replace('\\', '/', $path);
     }
 
-    protected function createLocalSourceArchive(string $sourcePath, string $archivePath): void
+    protected function createLocalSourceArchive(string $sourcePath, string $archivePath, bool $ignoreFiltered): void
     {
-        if (PHP_OS_FAMILY !== 'Windows') {
-            $package = Process::path($sourcePath)->timeout(300)->run([
-                'tar',
-                '--exclude=.git',
-                '--exclude=vendor',
-                '--exclude=node_modules',
-                '--exclude=storage',
-                '-czf',
-                $archivePath,
-                '.',
-            ]);
-
-            if ($package->failed()) {
-                throw new RuntimeException(trim($package->errorOutput() ?: $package->output()) ?: 'Unable to package the local source directory.');
-            }
-
-            return;
-        }
-
         $tarPath = preg_replace('/\.gz$/', '', $archivePath) ?: ($archivePath.'.tar');
         $tempTarPath = str_ends_with($tarPath, '.tar') ? $tarPath : $tarPath.'.tar';
 
@@ -380,26 +363,22 @@ class FileTransportService
             File::delete($archivePath);
         }
 
+        $paths = $this->packageSourcePaths($sourcePath, $ignoreFiltered);
+
+        if ($paths === []) {
+            throw new RuntimeException('No files were found to package from the local source directory.');
+        }
+
         $phar = new PharData($tempTarPath);
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($sourcePath, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST,
-        );
 
-        foreach ($iterator as $fileInfo) {
-            $path = $fileInfo->getPathname();
-            $relativePath = ltrim(str_replace('\\', '/', substr($path, strlen($sourcePath))), '/');
+        foreach ($paths as $relativePath) {
+            $fullPath = $sourcePath.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
 
-            if ($relativePath === '' || $this->shouldExcludePath($relativePath)) {
+            if (! File::exists($fullPath) || ! is_file($fullPath)) {
                 continue;
             }
 
-            if ($fileInfo->isDir()) {
-                $phar->addEmptyDir($relativePath);
-                continue;
-            }
-
-            $phar->addFile($path, $relativePath);
+            $phar->addFile($fullPath, $relativePath);
         }
 
         if (File::exists($archivePath)) {
@@ -416,6 +395,71 @@ class FileTransportService
         if (File::exists($tempTarPath)) {
             File::delete($tempTarPath);
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function packageSourcePaths(string $sourcePath, bool $ignoreFiltered): array
+    {
+        if ($ignoreFiltered && $this->hasGitRepository($sourcePath)) {
+            $gitPaths = $this->gitTrackedAndUnignoredFiles($sourcePath);
+
+            if ($gitPaths !== []) {
+                return $gitPaths;
+            }
+        }
+
+        $paths = [];
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($sourcePath, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::LEAVES_ONLY,
+        );
+
+        foreach ($iterator as $fileInfo) {
+            if (! $fileInfo->isFile()) {
+                continue;
+            }
+
+            $path = $fileInfo->getPathname();
+            $relativePath = ltrim(str_replace('\\', '/', substr($path, strlen($sourcePath))), '/');
+
+            if ($relativePath === '' || ($ignoreFiltered && $this->shouldExcludePath($relativePath))) {
+                continue;
+            }
+
+            $paths[] = $relativePath;
+        }
+
+        return array_values(array_unique($paths));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function gitTrackedAndUnignoredFiles(string $sourcePath): array
+    {
+        $process = Process::path($sourcePath)->timeout(60)->run([
+            'git',
+            'ls-files',
+            '-co',
+            '--exclude-standard',
+        ]);
+
+        if ($process->failed()) {
+            return [];
+        }
+
+        return collect(preg_split('/\R/', trim($process->output())) ?: [])
+            ->map(fn (string $line): string => trim(str_replace('\\', '/', $line)))
+            ->filter(fn (string $line): bool => $line !== '')
+            ->values()
+            ->all();
+    }
+
+    protected function hasGitRepository(string $sourcePath): bool
+    {
+        return File::isDirectory($sourcePath.'/.git');
     }
 
     protected function shouldExcludePath(string $relativePath): bool

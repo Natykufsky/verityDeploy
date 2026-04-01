@@ -260,6 +260,59 @@
         </div>
     @endif
 
+    @if (filled(data_get($preview, 'apply.last_run_at')) || filled(data_get($preview, 'apply.last_output')))
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    <span>Apply log</span>
+                    <x-info-tooltip text="This shows the last VPS vhost apply run stored on the site record." label="Apply log help" />
+                </div>
+                <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-200">
+                    {{ data_get($preview, 'apply.last_run_at', 'never applied') }}
+                </span>
+            </div>
+            <p class="mt-2 text-sm leading-6 text-slate-300">
+                {{ data_get($preview, 'apply.last_error') ?: 'The last apply run completed successfully.' }}
+            </p>
+
+            @php
+                $applySteps = collect(data_get($preview, 'apply.steps', []))
+                    ->sortByDesc(fn (array $step): int => strtotime((string) ($step['finished_at'] ?? $step['started_at'] ?? 'now')) ?: 0)
+                    ->values();
+            @endphp
+
+            @if ($applySteps->isNotEmpty())
+                <div class="mt-4 grid gap-3">
+                    @foreach ($applySteps as $step)
+                        <details class="rounded-xl border border-white/5 bg-black/20 p-3" @if ($loop->first) open @endif>
+                            <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
+                                <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                                    <span>{{ $step['label'] ?? 'Step' }}</span>
+                                    <span class="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-200">{{ strtoupper((string) ($step['status'] ?? 'unknown')) }}</span>
+                                </div>
+                                <span class="text-[11px] text-slate-500">{{ $step['finished_at'] ?? $step['started_at'] ?? 'just now' }}</span>
+                            </summary>
+                            <div class="mt-3 space-y-2">
+                                <div class="rounded-lg border border-white/5 bg-slate-950/70 p-3">
+                                    <div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">command</div>
+                                    <pre class="mt-1 whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $step['command'] ?: 'n/a' }}</pre>
+                                </div>
+                                <div class="rounded-lg border border-white/5 bg-slate-950/70 p-3">
+                                    <div class="text-[11px] uppercase tracking-[0.2em] text-slate-500">output</div>
+                                    <pre class="mt-1 max-h-[240px] overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ $step['output'] ?: 'no output captured.' }}</pre>
+                                </div>
+                            </div>
+                        </details>
+                    @endforeach
+                </div>
+            @elseif (filled(data_get($preview, 'apply.last_output')))
+                <div class="mt-3 max-h-[280px] overflow-y-auto rounded-xl border border-white/5 bg-black/30 p-3">
+                    <pre class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-slate-100">{{ data_get($preview, 'apply.last_output') }}</pre>
+                </div>
+            @endif
+        </div>
+    @endif
+
     @if (filled($notes))
         <div class="deployment-frost-panel rounded-2xl p-4">
             <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
