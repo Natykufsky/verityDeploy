@@ -55,7 +55,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <p class="text-sm font-semibold text-white">{{ $test->tested_at?->format('Y-m-d H:i:s') ?? 'Pending' }}</p>
-                            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">{{ $test->command }}</p>
+                            <p class="text-xs lowercase tracking-[0.2em] text-slate-100">{{ $test->command }}</p>
                         </div>
                         <div class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $test->status === 'successful' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300' }}">
                             {{ $test->status }}

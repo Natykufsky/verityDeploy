@@ -7,6 +7,9 @@ use App\Actions\BootstrapDeployPath;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Models\Deployment;
 use App\Models\SiteBackup;
+use App\Services\Dns\CloudflareDnsProvisioner;
+use App\Services\Cpanel\CpanelDomainProvisioner;
+use App\Services\Cpanel\CpanelSslProvisioner;
 use App\Services\Backups\SiteBackupService;
 use App\Services\Deployment\ReleaseManager;
 use App\Services\GitHub\WebhookProvisioner;
@@ -60,6 +63,45 @@ class ViewSite extends ViewRecord
                 ->modalDescription('This checks the server, then creates the releases and shared directories needed for the first git-based deploy so future deploys can switch releases safely.')
                 ->modalSubmitActionLabel('Bootstrap path')
                 ->action(fn () => $this->bootstrapDeployPath()),
+            Action::make('provisionDomain')
+                ->label('Provision domain')
+                ->icon('heroicon-o-globe-alt')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_domains)
+                ->modalWidth('7xl')
+                ->modalHeading('Provision the site domain?')
+                ->modalDescription('This creates the addon domain in cPanel, then provisions the matching subdomains and parked alias domains that belong to this site.')
+                ->modalContent(fn (): View => view('filament.sites.cpanel-domain-provision-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Provision domain')
+                ->action(fn () => $this->provisionDomain()),
+            Action::make('provisionDns')
+                ->label('Provision DNS')
+                ->icon('heroicon-o-globe-alt')
+                ->color('info')
+                ->visible(fn (): bool => (bool) ($this->record->server?->can_manage_dns) && ($this->record->server?->dns_provider === 'cloudflare') && filled($this->record->primary_domain))
+                ->modalWidth('7xl')
+                ->modalHeading('Provision Cloudflare DNS?')
+                ->modalDescription('This creates or updates the DNS records for the site hostnames in Cloudflare.')
+                ->modalContent(fn (): View => view('filament.sites.dns-provision-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Provision DNS')
+                ->action(fn () => $this->provisionDns()),
+            Action::make('provisionSsl')
+                ->label('Provision SSL')
+                ->icon('heroicon-o-shield-check')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_ssl)
+                ->modalWidth('7xl')
+                ->modalHeading('Provision SSL for this site?')
+                ->modalDescription('This generates a cPanel SSL certificate for the site primary domain and records the site as ssl ready.')
+                ->modalContent(fn (): View => view('filament.sites.ssl-provision-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Provision SSL')
+                ->action(fn () => $this->provisionSsl()),
             ActionGroup::make([
                 Action::make('provisionCpanelSite')
                     ->label('cPanel site wizard')
@@ -238,6 +280,63 @@ class ViewSite extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to bootstrap deployment path')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function provisionDomain(): void
+    {
+        try {
+            $summary = app(CpanelDomainProvisioner::class)->provision($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('Domain provisioning finished')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to provision domain')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function provisionDns(): void
+    {
+        try {
+            $summary = app(CloudflareDnsProvisioner::class)->provision($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('DNS provisioning finished')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to provision DNS')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function provisionSsl(): void
+    {
+        try {
+            $summary = app(CpanelSslProvisioner::class)->provision($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('SSL provisioning finished')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to provision SSL')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();

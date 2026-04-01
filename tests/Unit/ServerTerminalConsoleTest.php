@@ -6,6 +6,7 @@ use App\Livewire\ServerTerminalConsole;
 use App\Models\Server;
 use App\Models\ServerTerminalPreset;
 use App\Models\ServerTerminalRun;
+use App\Models\ServerTerminalSession;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -93,6 +94,33 @@ class ServerTerminalConsoleTest extends TestCase
         $this->assertNotEmpty($suggestions);
         $this->assertTrue(collect($suggestions)->contains(fn (array $suggestion): bool => $suggestion['command'] === 'df -h'));
         $this->assertTrue(collect($suggestions)->contains(fn (array $suggestion): bool => $suggestion['command'] === 'uptime'));
+    }
+
+    public function test_it_creates_or_reuses_a_terminal_session(): void
+    {
+        $server = Server::query()->create([
+            'name' => 'Session Server',
+            'ip_address' => '203.0.113.93',
+            'ssh_port' => 22,
+            'ssh_user' => 'forge',
+            'connection_type' => 'ssh_key',
+            'status' => 'online',
+        ]);
+
+        $component = app(ServerTerminalConsole::class);
+        $component->record = $server;
+
+        $session = $component->ensureTerminalSession();
+
+        $this->assertInstanceOf(ServerTerminalSession::class, $session);
+        $this->assertSame($server->id, $session->server_id);
+        $this->assertSame($session->id, $component->terminalSessionId);
+        $this->assertSame('open', $session->status);
+        $this->assertDatabaseHas('server_terminal_sessions', [
+            'id' => $session->id,
+            'server_id' => $server->id,
+            'status' => 'open',
+        ]);
     }
 
     public function test_it_groups_and_filters_shell_presets_by_folder_and_tags(): void

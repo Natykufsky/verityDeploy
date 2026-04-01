@@ -22,8 +22,8 @@
     };
 @endphp
 
-<div class="deployment-frost-card rounded-3xl p-5">
-    <div class="flex flex-wrap items-start justify-between gap-4">
+<details open class="deployment-frost-card rounded-3xl p-5">
+    <summary class="flex cursor-pointer list-none flex-wrap items-start justify-between gap-4">
         <div class="space-y-3">
             <div class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-300">
                 <span class="h-2 w-2 rounded-full bg-cyan-300"></span>
@@ -48,7 +48,7 @@
                 {{ $record->provider_label }}
             </span>
         </div>
-    </div>
+    </summary>
 
     <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="deployment-frost-panel rounded-2xl p-4">
@@ -61,6 +61,7 @@
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Connection</div>
             <div class="mt-2 text-sm font-semibold text-white">{{ ucfirst((string) $record->connection_type) }}</div>
             <p class="mt-1 text-sm text-slate-400">SSH user: {{ $record->ssh_user ?? 'n/a' }}</p>
+            <p class="mt-2 text-sm leading-6 text-slate-300">{{ $record->capability_summary }}</p>
         </div>
 
         <div class="deployment-frost-panel rounded-2xl p-4">
@@ -75,4 +76,4 @@
             <p class="mt-1 text-sm text-slate-400">{{ $record->deployments()->count() }} deployments across {{ $record->sites()->count() }} sites</p>
         </div>
     </div>
-</div>
+</details>

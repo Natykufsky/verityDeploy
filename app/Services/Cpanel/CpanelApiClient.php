@@ -140,6 +140,43 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function addAddonDomain(Server $server, string $domain, string $subdomain, string $directory): array
+    {
+        return $this->requestApi2($server, 'AddonDomain', 'addaddondomain', [
+            'newdomain' => $domain,
+            'subdomain' => $subdomain,
+            'dir' => $directory,
+            'ftp_is_optional' => 1,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function addSubdomain(Server $server, string $domain, string $rootDomain, string $directory): array
+    {
+        return $this->requestApi2($server, 'SubDomain', 'addsubdomain', [
+            'domain' => $domain,
+            'rootdomain' => $rootDomain,
+            'dir' => $directory,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function parkDomain(Server $server, string $domain, string $topDomain): array
+    {
+        return $this->requestApi2($server, 'Park', 'park', [
+            'domain' => $domain,
+            'topdomain' => $topDomain,
+            'disallowdot' => 0,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function saveFile(Server $server, string $path, string $filename, string $content): array
     {
         return $this->client($server)

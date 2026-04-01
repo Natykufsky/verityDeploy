@@ -16,6 +16,13 @@ class ServerTerminalFeedController extends Controller
 
         return response()->json([
             'prompt' => $record->terminal_prompt,
+            'session' => $record->activeTerminalSession()->first()?->only([
+                'id',
+                'status',
+                'shell',
+                'started_at',
+                'last_activity_at',
+            ]),
             'suggestions' => $record->terminalAutocompleteSuggestions(),
             'runs' => $record->terminalRuns->map(fn ($run): array => [
                 'id' => $run->id,

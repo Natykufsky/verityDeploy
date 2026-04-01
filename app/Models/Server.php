@@ -27,6 +27,14 @@ class Server extends Model
         'provider_reference',
         'provider_region',
         'provider_metadata',
+        'can_manage_domains',
+        'can_manage_vhosts',
+        'can_manage_dns',
+        'can_manage_ssl',
+        'dns_provider',
+        'dns_zone_id',
+        'dns_api_token',
+        'dns_proxy_records',
         'connection_type',
         'ssh_key',
         'sudo_password',
@@ -54,6 +62,14 @@ class Server extends Model
             'provider_reference' => 'string',
             'provider_region' => 'string',
             'provider_metadata' => 'array',
+            'can_manage_domains' => 'boolean',
+            'can_manage_vhosts' => 'boolean',
+            'can_manage_dns' => 'boolean',
+            'can_manage_ssl' => 'boolean',
+            'dns_provider' => 'string',
+            'dns_zone_id' => 'string',
+            'dns_api_token' => EncryptedTextOrPlain::class,
+            'dns_proxy_records' => 'boolean',
             'connection_type' => 'string',
             'ssh_key' => EncryptedTextOrPlain::class,
             'sudo_password' => EncryptedTextOrPlain::class,
@@ -107,6 +123,16 @@ class Server extends Model
         return $this->hasMany(ServerTerminalRun::class)->latest('started_at');
     }
 
+    public function terminalSessions(): HasMany
+    {
+        return $this->hasMany(ServerTerminalSession::class)->latest('started_at');
+    }
+
+    public function activeTerminalSession(): HasMany
+    {
+        return $this->terminalSessions()->where('status', 'open');
+    }
+
     public function terminalPresets(): HasMany
     {
         return $this->hasMany(ServerTerminalPreset::class)->latest('updated_at');
@@ -126,6 +152,17 @@ class Server extends Model
             'linode' => 'Linode',
             'cpanel' => 'cPanel',
             'local' => 'Local machine',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function dnsProviderOptions(): array
+    {
+        return [
+            'manual' => 'Manual / Custom',
+            'cloudflare' => 'Cloudflare',
         ];
     }
 
@@ -162,6 +199,56 @@ class Server extends Model
             'local' => 'Local dashboard-hosted server used for packaging and self-hosted deploys.',
             default => sprintf('Custom or manually managed provider with reference %s and region %s.', $reference, $region),
         };
+    }
+
+    public function getDnsProviderLabelAttribute(): string
+    {
+        return static::dnsProviderOptions()[$this->dns_provider] ?? ucwords(str_replace(['_', '-'], ' ', (string) $this->dns_provider));
+    }
+
+    public function getDnsProviderBadgeAttribute(): string
+    {
+        return match ($this->dns_provider) {
+            'cloudflare' => 'cloudflare',
+            'manual' => 'manual',
+            default => 'custom',
+        };
+    }
+
+    public function getDnsProviderSummaryAttribute(): string
+    {
+        return match ($this->dns_provider) {
+            'cloudflare' => 'Cloudflare can manage the DNS zone and record updates for this server.',
+            'manual' => 'DNS is managed manually outside of the app.',
+            default => 'A custom DNS provider can be wired in later.',
+        };
+    }
+
+    public function getCapabilitySummaryAttribute(): string
+    {
+        $items = [];
+
+        if ($this->can_manage_domains) {
+            $items[] = 'domains';
+        }
+
+        if ($this->can_manage_vhosts) {
+            $items[] = 'vhosts';
+        }
+
+        if ($this->can_manage_dns) {
+            $items[] = 'dns';
+        }
+
+        if ($this->can_manage_ssl) {
+            $items[] = 'ssl';
+        }
+
+        if (empty($items)) {
+            return 'No provider capabilities have been enabled yet.';
+        }
+
+        return sprintf('This server can manage %s.', implode(', ', $items));
     }
 
     /**

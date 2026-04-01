@@ -5,8 +5,9 @@ namespace Tests\Unit;
 use App\Jobs\ExecuteServerTerminalCommand;
 use App\Models\Server;
 use App\Models\ServerTerminalRun;
+use App\Models\ServerTerminalSession;
 use App\Services\Server\Connections\ConnectionStrategy;
-use App\Services\Server\ServerConnector;
+use App\Services\Terminal\TerminalTransport;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -50,18 +51,45 @@ class ExecuteServerTerminalCommandTest extends TestCase
             }
         };
 
-        app()->instance(ServerConnector::class, new class ($strategy) extends ServerConnector {
+        app()->instance(TerminalTransport::class, new class ($strategy) implements TerminalTransport {
             public function __construct(protected ConnectionStrategy $strategy)
             {
             }
 
-            public function strategy(Server $server, int $timeout = 0): ConnectionStrategy
+            public function open(Server $server, ?int $userId = null, array $metadata = []): ServerTerminalSession
             {
-                return $this->strategy;
+                return ServerTerminalSession::query()->create([
+                    'server_id' => $server->id,
+                    'user_id' => $userId,
+                    'status' => 'open',
+                    'shell' => 'bash',
+                    'host' => $server->ip_address,
+                    'port' => $server->ssh_port,
+                    'username' => $server->ssh_user,
+                    'prompt' => $server->terminal_prompt,
+                    'metadata' => $metadata,
+                    'started_at' => now(),
+                    'last_activity_at' => now(),
+                ]);
+            }
+
+            public function heartbeat(ServerTerminalSession $session): void
+            {
+                $session->touchActivity();
+            }
+
+            public function close(ServerTerminalSession $session, ?int $exitCode = null, ?string $message = null): void
+            {
+                $session->close($exitCode, $message);
+            }
+
+            public function execute(ServerTerminalSession $session, string $command, ?callable $onOutput = null): string
+            {
+                return $this->strategy->streamRun($command, $onOutput);
             }
         });
 
-        app(ExecuteServerTerminalCommand::class, ['terminalRunId' => $run->id])->handle(app(ServerConnector::class));
+        app(ExecuteServerTerminalCommand::class, ['terminalRunId' => $run->id])->handle(app(TerminalTransport::class));
 
         $run = $run->fresh();
 

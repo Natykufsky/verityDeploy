@@ -102,31 +102,31 @@ class CpanelWizardRunner
      */
     protected function runServerCheckSteps(Server $server, CpanelWizardRun $run, array &$steps): void
     {
-        $this->appendStep($run, $steps, 'Discover SSH port', 'running', 'Querying cPanel SSH/get_port...');
+        $this->appendStep($run, $steps, 'discover ssh port', 'running', 'querying cpanel ssh/get_port...');
         $port = $this->client->discoverSshPort($server->fresh());
 
         $server->update([
             'ssh_port' => $port,
         ]);
 
-        $this->appendStep($run, $steps, 'Discover SSH port', 'successful', "The cPanel account SSH port is {$port}.");
+        $this->appendStep($run, $steps, 'discover ssh port', 'successful', "the cpanel account ssh port is {$port}.");
 
-        $this->appendStep($run, $steps, 'Test cPanel API', 'running', 'Pinging the cPanel API token and port...');
+        $this->appendStep($run, $steps, 'test cpanel api', 'running', 'pinging the cpanel api token and port...');
         $this->client->ping($server->fresh());
         $server->update([
             'status' => 'online',
             'last_connected_at' => now(),
         ]);
-        $this->appendStep($run, $steps, 'Test cPanel API', 'successful', 'The cPanel API responded successfully.');
+        $this->appendStep($run, $steps, 'test cpanel api', 'successful', 'the cpanel api responded successfully.');
 
-        $this->appendStep($run, $steps, 'Server provisioning', 'running', 'Running the server provisioning preflight...');
+        $this->appendStep($run, $steps, 'server provisioning', 'running', 'running the server provisioning preflight...');
         $test = $this->serverProvisioner->preflight($server->fresh());
         $this->appendStep(
             $run,
             $steps,
-            'Server provisioning',
+            'server provisioning',
             'successful',
-            filled($test->output) ? (string) $test->output : 'Server provisioning preflight completed.',
+            filled($test->output) ? (string) $test->output : 'server provisioning preflight completed.',
         );
     }
 

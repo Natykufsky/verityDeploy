@@ -2,7 +2,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "start": "concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --sleep=1 --timeout=0\" \"npm run dev\" --names=server,queue,vite",
+        "start": "concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#22d3ee,#34d399\" \"php artisan serve --no-reload\" \"php artisan queue:listen --tries=1 --sleep=1 --timeout=0\" \"php artisan terminal:bridge\" \"php artisan server-metrics:bridge\" \"npm run dev\" --names=server,queue,bridge,metrics,vite",
         "build": "vite build",
         "dev": "vite"
     },

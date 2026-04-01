@@ -26,18 +26,18 @@ class ServerProvisioner
         }
 
         $commands = $server->connection_type === 'cpanel'
-            ? ['uapi Tokens list', 'uapi Quota get_quota_info']
+            ? ['uapi tokens list', 'uapi quota get_quota_info']
             : [
                 sprintf('df -Pk %s', escapeshellarg($diskTarget)),
                 'php -v',
-                'command -v composer >/dev/null && composer --version || echo "Composer not found (optional for bootstrap)."',
+                'command -v composer >/dev/null && composer --version || echo "composer not found (optional for bootstrap)."',
                 'git --version',
             ];
 
         $test = ServerConnectionTest::query()->create([
             'server_id' => $server->id,
             'status' => 'running',
-            'command' => implode(' && ', $commands),
+            'command' => strtolower(implode(' && ', $commands)),
             'tested_at' => now(),
         ]);
 

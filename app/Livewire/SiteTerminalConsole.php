@@ -81,22 +81,22 @@ class SiteTerminalConsole extends Component
             [
                 'label' => 'pwd',
                 'command' => 'pwd',
-                'description' => 'Confirm the terminal starts in the site folder.',
+                'description' => 'confirm the terminal starts in the site folder.',
             ],
             [
                 'label' => 'ls -la',
                 'command' => 'ls -la',
-                'description' => 'Inspect the site files in the current release folder.',
+                'description' => 'inspect the site files in the current release folder.',
             ],
             [
                 'label' => 'git status',
                 'command' => 'git status',
-                'description' => 'Check repository status when the site uses Git deploys.',
+                'description' => 'check repository status when the site uses git deploys.',
             ],
             [
                 'label' => 'php -v',
                 'command' => 'php -v',
-                'description' => 'Inspect the PHP runtime available to the site.',
+                'description' => 'inspect the php runtime available to the site.',
             ],
         ];
     }

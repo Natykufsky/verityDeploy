@@ -12,6 +12,7 @@ class ServerTerminalRun extends Model
 
     protected $fillable = [
         'server_id',
+        'server_terminal_session_id',
         'user_id',
         'command',
         'output',
@@ -34,6 +35,11 @@ class ServerTerminalRun extends Model
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
+    }
+
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(ServerTerminalSession::class, 'server_terminal_session_id');
     }
 
     public function user(): BelongsTo

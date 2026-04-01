@@ -13,9 +13,11 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
@@ -32,8 +34,12 @@ class ServerForm
                     ->default(fn (): ?int => auth()->id()),
                 Tabs::make('Server Settings')
                     ->columnSpanFull()
+                    ->persistTab()
+                    ->persistTabInQueryString('tab')
                     ->tabs([
-                        Tab::make('General Info')
+                        Tab::make('Overview')
+                            ->badge('Base')
+                            ->badgeColor('primary')
                             ->schema([
                                 TextInput::make('name')
                                     ->required(),
@@ -119,16 +125,27 @@ class ServerForm
                                     ->columnSpanFull(),
                             ])
                             ->columns(2),
-                        Tab::make('SSH Security')
+                        Tab::make('Security')
+                            ->badge('Access')
+                            ->badgeColor('warning')
                             ->schema([
                                 Textarea::make('ssh_key')
                                     ->label('SSH private key')
                                     ->rows(12)
                                     ->columnSpanFull()
                                     ->helperText('Stored encrypted in the database. Use the generate key action to create a new Ed25519 pair.'),
+                                TextInput::make('sudo_password')
+                                    ->label('Sudo / SSH password')
+                                    ->password()
+                                    ->revealable()
+                                    ->columnSpanFull(),
+                                Textarea::make('notes')
+                                    ->columnSpanFull(),
                             ])
                             ->columns(1),
-                        Tab::make('cPanel API')
+                        Tab::make('cPanel')
+                            ->badge('API')
+                            ->badgeColor('info')
                             ->schema([
                                 TextInput::make('cpanel_api_token')
                                     ->label('cPanel API token')
@@ -195,12 +212,30 @@ class ServerForm
                               ])
                               ->columns(2),
                         Tab::make('Provider')
+                            ->badge('Infra')
+                            ->badgeColor('success')
                             ->schema([
                                 Select::make('provider_type')
                                     ->label('Provider type')
                                     ->options(Server::providerOptions())
                                     ->default('manual')
                                     ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                        if ($state === 'cpanel') {
+                                            $set('can_manage_domains', true);
+                                            $set('can_manage_vhosts', false);
+                                            $set('can_manage_dns', true);
+                                            $set('can_manage_ssl', true);
+
+                                            return;
+                                        }
+
+                                        $set('can_manage_domains', true);
+                                        $set('can_manage_vhosts', true);
+                                        $set('can_manage_dns', false);
+                                        $set('can_manage_ssl', true);
+                                    })
                                     ->helperText('This identifies which cloud or hosting provider owns the machine. It helps with inventory, reporting, and future provider-specific automation.'),
                                 TextInput::make('provider_reference')
                                     ->label('Provider reference')
@@ -216,21 +251,72 @@ class ServerForm
                                     ->valueLabel('Value')
                                     ->columnSpanFull()
                                     ->helperText('Add any extra provider details such as plan, tags, cluster, or notes.'),
+                                Section::make('Capabilities')
+                                    ->schema([
+                                        Toggle::make('can_manage_domains')
+                                            ->label('Can manage domains')
+                                            ->helperText('Enable this when the server can create addon domains or subdomains.')
+                                            ->default(false),
+                                        Toggle::make('can_manage_vhosts')
+                                            ->label('Can manage vhosts')
+                                            ->helperText('Enable this when the server can generate or apply nginx/apache virtual hosts.')
+                                            ->default(false),
+                                        Toggle::make('can_manage_dns')
+                                            ->label('Can manage DNS')
+                                            ->helperText('Enable this when the server or provider can manage DNS records.')
+                                            ->default(false),
+                                        Toggle::make('can_manage_ssl')
+                                            ->label('Can manage SSL')
+                                            ->helperText('Enable this when the server or provider can issue or renew certificates.')
+                                            ->default(false),
+                                    ])
+                                    ->columns(2),
+                                Section::make('DNS provider')
+                                    ->schema([
+                                        Select::make('dns_provider')
+                                            ->label('DNS provider')
+                                            ->options(Server::dnsProviderOptions())
+                                            ->default('manual')
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                                if ($state === 'cloudflare') {
+                                                    $set('can_manage_dns', true);
+                                                }
+                                            })
+                                            ->helperText('Choose the DNS provider that can manage zones and records for this server.'),
+                                        TextInput::make('dns_zone_id')
+                                            ->label('Cloudflare zone ID')
+                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                            ->helperText('Optional if you want to pin the provisioning flow to a specific Cloudflare zone.'),
+                                        TextInput::make('dns_api_token')
+                                            ->label('Cloudflare API token')
+                                            ->password()
+                                            ->revealable()
+                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                            ->helperText('Token needs DNS edit access for the target zone.'),
+                                        Toggle::make('dns_proxy_records')
+                                            ->label('Proxy DNS records')
+                                            ->default(true)
+                                            ->visible(fn (Get $get): bool => $get('dns_provider') === 'cloudflare')
+                                            ->helperText('Turn this off if you want DNS records to resolve directly to the origin server.'),
+                                    ])
+                                    ->columns(2),
                                 View::make('filament.servers.provider-mode-help')
                                     ->columnSpanFull(),
                             ])
                             ->columns(2),
-                        Tab::make('Sudo Settings')
+                        Tab::make('Audit')
+                            ->badge('Log')
+                            ->badgeColor('gray')
                             ->schema([
-                                TextInput::make('sudo_password')
-                                    ->label('Sudo / SSH password')
-                                    ->password()
-                                    ->revealable()
-                                    ->columnSpanFull(),
+                                DateTimePicker::make('last_connected_at'),
+                                TextInput::make('status')
+                                    ->required()
+                                    ->default('offline'),
                                 Textarea::make('notes')
                                     ->columnSpanFull(),
                             ])
-                            ->columns(1),
+                            ->columns(2),
                     ]),
             ]);
     }

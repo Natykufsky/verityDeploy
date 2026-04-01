@@ -6,15 +6,21 @@ use App\Jobs\ExecuteServerTerminalCommand;
 use App\Models\Server;
 use App\Models\ServerTerminalPreset;
 use App\Models\ServerTerminalRun;
+use App\Models\ServerTerminalSession;
+use App\Services\Terminal\TerminalSessionManager;
+use App\Services\Terminal\TerminalTransport;
 use Carbon\CarbonInterval;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
+use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 class ServerTerminalConsole extends Component
 {
     public Server $record;
+
+    public ?int $terminalSessionId = null;
 
     public string $command = 'whoami';
 
@@ -36,6 +42,13 @@ class ServerTerminalConsole extends Component
 
     public ?int $editingPresetId = null;
 
+    public function mount(Server $record): void
+    {
+        $this->record = $record;
+        $this->ensureTerminalSession();
+        $this->command = $this->defaultCommand();
+    }
+
     public function runCommand(): void
     {
         $command = trim($this->command);
@@ -52,7 +65,8 @@ class ServerTerminalConsole extends Component
 
         $run = ServerTerminalRun::query()->create([
             'server_id' => $this->record->id,
-            'user_id' => auth()->id(),
+            'server_terminal_session_id' => $this->ensureTerminalSession()->id,
+            'user_id' => Auth::id(),
             'command' => $command,
             'status' => 'queued',
             'started_at' => now(),
@@ -127,7 +141,7 @@ class ServerTerminalConsole extends Component
             ]);
         } else {
             $preset = $this->record->terminalPresets()->create([
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'name' => $name,
                 'command' => $command,
                 'group_name' => filled($group) ? $group : null,
@@ -185,6 +199,18 @@ class ServerTerminalConsole extends Component
         $this->dispatch('verity-reset-server-terminal-workspace');
     }
 
+    public function ensureTerminalSession(?TerminalTransport $transport = null): ServerTerminalSession
+    {
+        $transport ??= app(TerminalTransport::class);
+        $session = $transport->open($this->record, Auth::id(), [
+            'ui' => 'server-terminal',
+        ]);
+
+        $this->terminalSessionId = $session->id;
+
+        return $session;
+    }
+
     /**
      * @return array<string, string>
      */
@@ -209,48 +235,48 @@ class ServerTerminalConsole extends Component
         return match ($this->record->connection_type) {
             'cpanel' => [
                 [
-                    'label' => 'API ping',
+                    'label' => 'api ping',
                     'command' => 'ping',
-                    'description' => 'Check the cPanel API path and token.',
+                    'description' => 'check the cpanel api path and token.',
                 ],
                 [
-                    'label' => 'Who am I',
+                    'label' => 'who am i',
                     'command' => 'whoami',
-                    'description' => 'Confirm the account username returned by cPanel.',
+                    'description' => 'confirm the account username returned by cpanel.',
                 ],
             ],
             'local' => [
                 [
                     'label' => 'pwd',
                     'command' => 'pwd',
-                    'description' => 'Show the dashboard server working directory.',
+                    'description' => 'show the dashboard server working directory.',
                 ],
                 [
                     'label' => 'php -v',
                     'command' => 'php -v',
-                    'description' => 'Check the local PHP version.',
+                    'description' => 'check the local php version.',
                 ],
                 [
-                    'label' => 'composer -V',
-                    'command' => 'composer -V',
-                    'description' => 'Confirm Composer is available locally.',
+                    'label' => 'composer -v',
+                    'command' => 'composer -v',
+                    'description' => 'confirm composer is available locally.',
                 ],
             ],
             default => [
                 [
                     'label' => 'whoami',
                     'command' => 'whoami',
-                    'description' => 'Confirm the SSH user on the remote server.',
+                    'description' => 'confirm the ssh user on the remote server.',
                 ],
                 [
                     'label' => 'uptime',
                     'command' => 'uptime',
-                    'description' => 'Check server load and uptime.',
+                    'description' => 'check server load and uptime.',
                 ],
                 [
                     'label' => 'df -h',
                     'command' => 'df -h',
-                    'description' => 'Inspect disk usage.',
+                    'description' => 'inspect disk usage.',
                 ],
             ],
         };
@@ -321,6 +347,7 @@ class ServerTerminalConsole extends Component
         $server = $this->record->fresh([
             'terminalRuns' => fn ($query) => $query->latest('started_at')->latest()->limit(8),
             'terminalPresets' => fn ($query) => $query->latest('updated_at')->limit(12),
+            'terminalSessions' => fn ($query) => $query->latest('started_at')->limit(6),
         ]) ?? $this->record;
 
         $runs = $server->terminalRuns
@@ -359,6 +386,8 @@ class ServerTerminalConsole extends Component
             'quickCommands' => $this->quickCommands(),
             'autocompleteSuggestions' => $this->autocompleteSuggestions(),
             'terminalPrompt' => $server->terminal_prompt,
+            'terminalSession' => app(TerminalSessionManager::class)->latestOpenForServer($server),
+            'terminalSessionId' => $this->terminalSessionId,
         ]);
     }
 

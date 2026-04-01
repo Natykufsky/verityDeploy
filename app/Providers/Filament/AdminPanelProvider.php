@@ -12,7 +12,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\Width;
-use Filament\View\PanelsRenderHook;
 use App\Filament\Widgets\AlertsInboxWidget;
 use App\Filament\Widgets\DeploymentOverviewStats;
 use App\Filament\Widgets\DeploymentTimelineWidget;
@@ -23,7 +22,6 @@ use App\Filament\Widgets\ReleaseCleanupOverviewCard;
 use App\Filament\Widgets\SiteBackupOverviewCard;
 use App\Filament\Widgets\WebhookSyncHealthCard;
 use App\Services\AppSettings;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -49,19 +47,6 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->renderHook(PanelsRenderHook::HEAD_END, fn (): string => Blade::render("@vite('resources/js/app.js')"))
-            ->renderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
-                fn (): string => view('filament.auth.login-brand', [
-                    'appName' => app(AppSettings::class)->appName(),
-                ])->render(),
-            )
-            ->renderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-                fn (): string => view('filament.auth.login-help', [
-                    'appName' => app(AppSettings::class)->appName(),
-                ])->render(),
-            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

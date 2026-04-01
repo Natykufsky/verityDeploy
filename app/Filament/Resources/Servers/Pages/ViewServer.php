@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Servers\Pages;
 
 use App\Filament\Resources\Servers\ServerResource;
-use App\Filament\Widgets\ServerMetricsStats;
 use App\Jobs\CheckServerHealth;
 use App\Models\ServerConnectionTest;
 use App\Services\Server\ServerPuTTYKeyExporter;
@@ -31,11 +30,6 @@ class ViewServer extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('openTerminalConsole')
-                ->label('Launch terminal')
-                ->icon('heroicon-o-command-line')
-                ->color('info')
-                ->action(fn (): mixed => $this->dispatch('verity-open-server-terminal')),
             Action::make('openCpanelConnectionWizard')
                 ->label('Run all cPanel steps')
                 ->icon('heroicon-o-sparkles')
@@ -112,20 +106,6 @@ class ViewServer extends ViewRecord
                 ->icon('heroicon-o-heart')
                 ->color('success')
                 ->action(fn () => $this->checkHealth()),
-        ];
-    }
-
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            ServerMetricsStats::class,
-        ];
-    }
-
-    public function getWidgetData(): array
-    {
-        return [
-            'recordId' => $this->record->id,
         ];
     }
 

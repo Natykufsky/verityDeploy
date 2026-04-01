@@ -1,5 +1,10 @@
 @php
     $nextAction = match (true) {
+        blank($record->primary_domain) => 'Set the primary domain and preview the host map before the first deploy.',
+        in_array($record->ssl_state, ['unconfigured', 'pending', 'failed', 'expired'], true) && $record->force_https => 'Finish SSL issuance before forcing HTTPS redirects.',
+        in_array($record->ssl_state, ['unconfigured', 'pending', 'failed', 'expired'], true) => 'Review the SSL state and decide whether HTTPS should be enforced.',
+        ($record->server?->dns_provider ?? 'manual') === 'cloudflare' && ! filled($record->server?->dns_api_token) => 'Add the Cloudflare API token before provisioning DNS records.',
+        ($record->server?->dns_provider ?? 'manual') === 'cloudflare' && ! filled($record->server?->dns_zone_id) => 'Add or discover the Cloudflare zone before provisioning DNS records.',
         ($record->server?->connection_type ?? null) === 'cpanel' && $record->cpanel_deploy_status === 'needs setup' => 'Run the cPanel site wizard before the first deploy.',
         filled($record->shared_env_contents) => 'Review the custom .env override before deploying again.',
         $record->current_release_status !== 'active' => 'Bootstrap the deploy path so the first release can go live.',
@@ -16,6 +21,24 @@
         [
             'label' => ucfirst((string) $record->deploy_source),
             'color' => 'primary',
+        ],
+        [
+            'label' => $record->domain_badge,
+            'color' => $record->domain_status === 'ready' ? 'success' : 'warning',
+        ],
+        [
+            'label' => $record->ssl_badge,
+            'color' => in_array($record->ssl_state, ['valid', 'issued', 'active'], true)
+                ? 'success'
+                : (in_array($record->ssl_state, ['pending'], true) ? 'info' : (in_array($record->ssl_state, ['expired', 'failed'], true) ? 'danger' : 'warning')),
+        ],
+        [
+            'label' => $record->force_https_badge,
+            'color' => $record->force_https ? 'success' : 'gray',
+        ],
+        [
+            'label' => $record->dns_badge,
+            'color' => $record->dns_badge === 'cloudflare' ? 'info' : 'gray',
         ],
         [
             'label' => $record->current_release_status,
@@ -65,13 +88,26 @@
         </div>
     </summary>
 
-    <div class="mt-5 grid gap-4 md:grid-cols-3">
+    <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="deployment-frost-panel rounded-2xl p-4">
             <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Server</div>
             <div class="mt-2 text-sm font-semibold text-white">{{ $record->server?->name ?? 'No server assigned' }}</div>
             <p class="mt-2 text-sm leading-6 text-slate-400">
                 {{ $record->server?->connection_type ? ucfirst((string) $record->server->connection_type) . ' connection' : 'No connection type set yet.' }}
             </p>
+        </div>
+
+        <div class="deployment-frost-panel rounded-2xl p-4">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Domain setup</div>
+            <div class="mt-2 text-sm font-semibold text-white">{{ $record->primary_domain ?? 'No primary domain yet' }}</div>
+            <p class="mt-2 text-sm leading-6 text-slate-400">
+                {{ $record->domain_summary }}
+            </p>
+            <div class="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+                <div><span class="font-semibold text-white">SSL:</span> {{ $record->ssl_summary }}</div>
+                <div><span class="font-semibold text-white">HTTPS redirect:</span> {{ $record->force_https_summary }}</div>
+                <div><span class="font-semibold text-white">DNS:</span> {{ $record->dns_provider_summary }}</div>
+            </div>
         </div>
 
         <div class="deployment-frost-panel rounded-2xl p-4">

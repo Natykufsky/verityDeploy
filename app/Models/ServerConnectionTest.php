@@ -28,6 +28,11 @@ class ServerConnectionTest extends Model
         ];
     }
 
+    public function setCommandAttribute(string $value): void
+    {
+        $this->attributes['command'] = strtolower($value);
+    }
+
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);

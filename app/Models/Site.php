@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Casts\EncryptedTextOrPlain;
 use App\Models\ReleaseCleanupRun;
 use App\Models\SiteTerminalRun;
+use App\Support\SiteDnsPreview;
+use App\Support\SiteDomainPreview;
+use App\Support\SiteVhostPreview;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,6 +26,13 @@ class Site extends Model
         'repository_url',
         'default_branch',
         'deploy_path',
+        'primary_domain',
+        'subdomains',
+        'alias_domains',
+        'ssl_state',
+        'force_https',
+        'ssl_last_synced_at',
+        'ssl_last_error',
         'current_release_path',
         'local_source_path',
         'php_version',
@@ -48,6 +58,12 @@ class Site extends Model
             'shared_env_contents' => EncryptedTextOrPlain::class,
             'environment_variables' => 'array',
             'shared_files' => 'array',
+            'subdomains' => 'array',
+            'alias_domains' => 'array',
+            'ssl_state' => 'string',
+            'force_https' => 'boolean',
+            'ssl_last_synced_at' => 'datetime',
+            'ssl_last_error' => 'string',
             'github_webhook_synced_at' => 'datetime',
             'active' => 'boolean',
             'last_deployed_at' => 'datetime',
@@ -141,6 +157,158 @@ class Site extends Model
             'custom' => 'custom override',
             default => 'generated',
         };
+    }
+
+    public function getDomainStatusAttribute(): string
+    {
+        return filled($this->primary_domain) ? 'ready' : 'needs setup';
+    }
+
+    public function getSslBadgeAttribute(): string
+    {
+        return match ((string) ($this->ssl_state ?: 'unconfigured')) {
+            'valid', 'issued', 'active' => 'ssl ready',
+            'pending' => 'ssl pending',
+            'expired' => 'ssl expired',
+            'failed' => 'ssl failed',
+            default => 'ssl unconfigured',
+        };
+    }
+
+    public function getSslSummaryAttribute(): string
+    {
+        return match ((string) ($this->ssl_state ?: 'unconfigured')) {
+            'valid', 'issued', 'active' => 'SSL is ready for use on this site.',
+            'pending' => 'SSL provisioning is in progress or waiting on issuance.',
+            'expired' => 'The current certificate has expired and should be renewed.',
+            'failed' => 'The last SSL attempt failed and needs attention.',
+            default => 'SSL has not been configured for this site yet.',
+        };
+    }
+
+    public function getSslLastSyncedBadgeAttribute(): string
+    {
+        return filled($this->ssl_last_synced_at)
+            ? $this->ssl_last_synced_at->format('M d, Y H:i')
+            : 'never synced';
+    }
+
+    public function getSslLastErrorSummaryAttribute(): string
+    {
+        return filled($this->ssl_last_error) ? (string) $this->ssl_last_error : 'No SSL errors recorded.';
+    }
+
+    public function getForceHttpsBadgeAttribute(): string
+    {
+        return $this->force_https ? 'https enforced' : 'http allowed';
+    }
+
+    public function getForceHttpsSummaryAttribute(): string
+    {
+        return $this->force_https
+            ? 'HTTP requests should redirect to HTTPS once SSL is ready.'
+            : 'HTTP requests are still allowed until you enable HTTPS enforcement.';
+    }
+
+    public function getDnsProviderLabelAttribute(): string
+    {
+        return $this->server?->dns_provider_label ?? 'manual';
+    }
+
+    public function getDnsProviderSummaryAttribute(): string
+    {
+        return $this->server?->dns_provider_summary ?? 'DNS is managed manually outside the app.';
+    }
+
+    public function getDnsBadgeAttribute(): string
+    {
+        return $this->server?->dns_provider_badge ?? 'manual';
+    }
+
+    public function getDomainBadgeAttribute(): string
+    {
+        return match ($this->domain_status) {
+            'ready' => 'domain ready',
+            default => 'needs setup',
+        };
+    }
+
+    public function getDomainSummaryAttribute(): string
+    {
+        if (blank($this->primary_domain)) {
+            return 'No primary domain configured yet.';
+        }
+
+        $subdomainCount = count($this->subdomains ?? []);
+        $aliasCount = count($this->alias_domains ?? []);
+        $subdomainText = $subdomainCount === 0 ? 'no' : (string) $subdomainCount;
+        $aliasText = $aliasCount === 0 ? 'no' : (string) $aliasCount;
+
+        return sprintf(
+            '1 primary domain, %s subdomain%s, and %s alias domain%s.',
+            $subdomainText,
+            $subdomainCount === 1 ? '' : 's',
+            $aliasText,
+            $aliasCount === 1 ? '' : 's',
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getDomainPreviewAttribute(): array
+    {
+        return SiteDomainPreview::build(
+            $this->primary_domain,
+            (array) ($this->subdomains ?? []),
+            (array) ($this->alias_domains ?? []),
+            $this->server?->connection_type,
+            $this->deploy_path,
+            $this->web_root,
+            $this->ssl_state,
+            (bool) $this->force_https,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getDnsPreviewAttribute(): array
+    {
+        return SiteDnsPreview::build($this);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getSslPreviewAttribute(): array
+    {
+        return [
+            'supported' => ($this->server?->connection_type ?? null) === 'cpanel' && (bool) ($this->server?->can_manage_ssl ?? false),
+            'message' => ($this->server?->connection_type ?? null) === 'cpanel'
+                ? 'This preview shows the cPanel SSL state for the site primary domain.'
+                : 'SSL automation is currently cPanel-first. Other providers can still preview the state here.',
+            'primary_domain' => $this->primary_domain,
+            'ssl_state' => $this->ssl_state,
+            'ssl_summary' => $this->ssl_summary,
+            'force_https' => (bool) $this->force_https,
+            'force_https_summary' => $this->force_https_summary,
+            'ssl_last_synced_at' => $this->ssl_last_synced_at?->format('M d, Y H:i') ?? 'never synced',
+            'ssl_last_error' => $this->ssl_last_error ?: 'No SSL errors recorded.',
+            'steps' => [
+                'Generate a certificate for the primary domain.',
+                'Store the resulting ssl state on the site record.',
+                'Enable HTTPS redirects when force https is turned on.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getVhostPreviewAttribute(): array
+    {
+        return SiteVhostPreview::build($this);
     }
 
     public function getTerminalPromptAttribute(): string

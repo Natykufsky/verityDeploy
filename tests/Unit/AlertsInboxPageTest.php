@@ -6,7 +6,6 @@ use App\Filament\Pages\AlertsInboxPage;
 use App\Models\User;
 use App\Notifications\OperationalAlertNotification;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Http\RedirectResponse;
 use Tests\TestCase;
 
 class AlertsInboxPageTest extends TestCase
@@ -60,9 +59,9 @@ class AlertsInboxPageTest extends TestCase
         $this->assertSame('2', AlertsInboxPage::getNavigationBadge());
 
         $firstNotification = $user->notifications()->where('data->title', 'Deployment failed')->firstOrFail();
-        $redirect = $page->openNotification($firstNotification->id);
+        $page->openNotification($firstNotification->id);
 
-        $this->assertInstanceOf(RedirectResponse::class, $redirect);
+        $this->assertSame($firstNotification->id, $page->activeNotificationId);
         $this->assertNotNull($firstNotification->fresh()->read_at);
 
         $page->markAllAsRead();

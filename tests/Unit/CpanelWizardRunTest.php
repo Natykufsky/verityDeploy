@@ -71,7 +71,7 @@ class CpanelWizardRunTest extends TestCase
         $this->assertSame('server_checks', $run->wizard_type);
         $this->assertSame('successful', $run->status);
         $this->assertCount(6, $run->steps);
-        $this->assertStringContainsString('Discover SSH port', (string) $run->summary);
+        $this->assertStringContainsString('discover ssh port', strtolower((string) $run->summary));
         $this->assertSame($server->id, $run->server_id);
         $this->assertNull($run->site_id);
     }

@@ -3,7 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\ServerTerminalRun;
-use App\Services\Server\ServerConnector;
+use App\Models\ServerTerminalSession;
+use App\Services\Terminal\TerminalTransport;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use RuntimeException;
@@ -17,14 +18,20 @@ class ExecuteServerTerminalCommand implements ShouldQueue
     {
     }
 
-    public function handle(ServerConnector $connector): void
+    public function handle(TerminalTransport $transport): void
     {
-        $run = ServerTerminalRun::query()->with('server')->findOrFail($this->terminalRunId);
+        $run = ServerTerminalRun::query()->with(['server', 'session'])->findOrFail($this->terminalRunId);
 
         $server = $run->server;
 
         if (! $server) {
             throw new RuntimeException('The server terminal run is missing its server reference.');
+        }
+
+        $session = $run->session;
+
+        if ($session instanceof ServerTerminalSession) {
+            $transport->heartbeat($session);
         }
 
         $run->update([
@@ -34,10 +41,10 @@ class ExecuteServerTerminalCommand implements ShouldQueue
         ]);
 
         $buffer = (string) ($run->output ?? '');
-        $strategy = $connector->strategy($server, 600);
+        $session ??= $transport->open($server, $run->user_id, ['ui' => 'server-terminal']);
 
         try {
-            $result = $strategy->streamRun($run->command, function (string $type, string $chunk) use (&$buffer, $run): void {
+            $result = $transport->execute($session, $run->command, function (string $type, string $chunk) use (&$buffer, $run): void {
                 $buffer .= $chunk;
 
                 $run->update([
@@ -53,6 +60,10 @@ class ExecuteServerTerminalCommand implements ShouldQueue
                 'finished_at' => now(),
                 'error_message' => null,
             ]);
+
+            if ($session) {
+                $transport->heartbeat($session);
+            }
         } catch (Throwable $throwable) {
             $run->update([
                 'status' => 'failed',
@@ -60,6 +71,10 @@ class ExecuteServerTerminalCommand implements ShouldQueue
                 'error_message' => $throwable->getMessage(),
                 'finished_at' => now(),
             ]);
+
+            if ($session) {
+                $transport->close($session, $run->exit_code, $throwable->getMessage());
+            }
 
             throw $throwable;
         }
