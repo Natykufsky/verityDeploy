@@ -9,6 +9,7 @@ use App\Models\Deployment;
 use App\Models\SiteBackup;
 use App\Services\Dns\CloudflareDnsProvisioner;
 use App\Services\Cpanel\CpanelDomainProvisioner;
+use App\Services\Cpanel\CpanelInventorySyncService;
 use App\Services\Cpanel\CpanelSslProvisioner;
 use App\Services\Backups\SiteBackupService;
 use App\Services\Deployment\ReleaseManager;
@@ -102,6 +103,19 @@ class ViewSite extends ViewRecord
                 ]))
                 ->modalSubmitActionLabel('Provision SSL')
                 ->action(fn () => $this->provisionSsl()),
+            Action::make('syncInventory')
+                ->label('Sync inventory')
+                ->icon('heroicon-o-arrow-path')
+                ->color('info')
+                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->server?->cpanel_api_token))
+                ->modalWidth('7xl')
+                ->modalHeading('Sync the live cPanel inventory?')
+                ->modalDescription('This reads the current cPanel domain, DNS, and SSL inventory and stores a normalized snapshot on the site record without changing the server configuration.')
+                ->modalContent(fn (): View => view('filament.sites.cpanel-inventory-sync-modal', [
+                    'record' => $this->record->fresh(['server']),
+                ]))
+                ->modalSubmitActionLabel('Sync inventory')
+                ->action(fn () => $this->syncInventory()),
             ActionGroup::make([
                 Action::make('provisionCpanelSite')
                     ->label('cPanel site wizard')
@@ -337,6 +351,25 @@ class ViewSite extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to provision SSL')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function syncInventory(): void
+    {
+        try {
+            $summary = app(CpanelInventorySyncService::class)->sync($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('Live inventory synced')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to sync inventory')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();

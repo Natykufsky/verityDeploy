@@ -93,6 +93,24 @@ class SiteInfolist
                                     ])
                                     ->columnSpanFull(),
                             ]),
+                        Tab::make('Inventory')
+                            ->badge(fn ($record): string => $record->live_configuration_status === 'synced' ? 'Live' : 'Sync')
+                            ->badgeColor(fn ($record): string => match ($record->live_configuration_status) {
+                                'synced' => 'success',
+                                'error' => 'danger',
+                                default => 'warning',
+                            })
+                            ->schema([
+                                Section::make('Live inventory')
+                                    ->schema([
+                                        View::make('filament.sites.inventory-preview')
+                                            ->columnSpanFull()
+                                            ->viewData(fn ($record): array => [
+                                                'preview' => $record->live_configuration_preview,
+                                            ]),
+                                    ])
+                                    ->columnSpanFull(),
+                            ]),
                         Tab::make('Runtime')
                             ->badge(fn ($record): string => $record->shared_env_mode === 'custom' ? 'Custom' : 'Generated')
                             ->badgeColor(fn ($record): string => $record->shared_env_mode === 'custom' ? 'warning' : 'success')

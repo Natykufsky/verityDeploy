@@ -46,6 +46,9 @@ class Site extends Model
         'github_webhook_status',
         'github_webhook_synced_at',
         'github_webhook_last_error',
+        'live_configuration_snapshot',
+        'live_configuration_synced_at',
+        'live_configuration_last_error',
         'active',
         'last_deployed_at',
         'notes',
@@ -65,6 +68,9 @@ class Site extends Model
             'ssl_last_synced_at' => 'datetime',
             'ssl_last_error' => 'string',
             'github_webhook_synced_at' => 'datetime',
+            'live_configuration_snapshot' => 'array',
+            'live_configuration_synced_at' => 'datetime',
+            'live_configuration_last_error' => 'string',
             'active' => 'boolean',
             'last_deployed_at' => 'datetime',
             'current_release_path' => 'string',
@@ -218,6 +224,82 @@ class Site extends Model
     public function getDnsProviderSummaryAttribute(): string
     {
         return $this->server?->dns_provider_summary ?? 'DNS is managed manually outside the app.';
+    }
+
+    public function getLiveConfigurationStatusAttribute(): string
+    {
+        if (filled($this->live_configuration_last_error)) {
+            return 'error';
+        }
+
+        if (filled($this->live_configuration_snapshot)) {
+            return 'synced';
+        }
+
+        return 'not synced';
+    }
+
+    public function getLiveConfigurationBadgeAttribute(): string
+    {
+        return match ($this->live_configuration_status) {
+            'synced' => 'live',
+            'error' => 'error',
+            default => 'not synced',
+        };
+    }
+
+    public function getLiveConfigurationSummaryAttribute(): string
+    {
+        return match ($this->live_configuration_status) {
+            'synced' => 'The live cPanel inventory snapshot is available for this site.',
+            'error' => 'The latest live inventory sync recorded an error and needs attention.',
+            default => 'No live inventory snapshot has been synced yet.',
+        };
+    }
+
+    public function getLiveConfigurationSyncedBadgeAttribute(): string
+    {
+        return filled($this->live_configuration_synced_at)
+            ? $this->live_configuration_synced_at->format('M d, Y H:i')
+            : 'never synced';
+    }
+
+    public function getLiveConfigurationErrorSummaryAttribute(): string
+    {
+        return filled($this->live_configuration_last_error)
+            ? (string) $this->live_configuration_last_error
+            : 'No live inventory errors recorded.';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLiveConfigurationPreviewAttribute(): array
+    {
+        $snapshot = (array) ($this->live_configuration_snapshot ?? []);
+        $domains = (array) data_get($snapshot, 'domains', []);
+        $dns = (array) data_get($snapshot, 'dns', []);
+        $ssl = (array) data_get($snapshot, 'ssl', []);
+
+        return [
+            'supported' => ($this->server?->connection_type ?? null) === 'cpanel',
+            'message' => ($this->server?->connection_type ?? null) === 'cpanel'
+                ? 'This tab shows the live cPanel inventory that was last synced for this site.'
+                : 'Live inventory sync is currently cPanel-first.',
+            'source' => data_get($snapshot, 'source', 'cPanel'),
+            'synced_at' => $this->live_configuration_synced_at?->format('M d, Y H:i') ?? 'never synced',
+            'last_error' => $this->live_configuration_last_error ?: 'No sync errors recorded.',
+            'snapshot' => $snapshot,
+            'counts' => [
+                'main_domain' => filled(data_get($domains, 'main')) ? 1 : 0,
+                'addon_domains' => count((array) data_get($domains, 'addon_domains', [])),
+                'subdomains' => count((array) data_get($domains, 'subdomains', [])),
+                'parked_domains' => count((array) data_get($domains, 'parked_domains', [])),
+                'dns_records' => count((array) data_get($dns, 'records', [])),
+                'ssl_hosts' => count((array) data_get($ssl, 'hosts', [])),
+            ],
+            'notes' => (array) data_get($snapshot, 'notes', []),
+        ];
     }
 
     public function getDnsBadgeAttribute(): string
