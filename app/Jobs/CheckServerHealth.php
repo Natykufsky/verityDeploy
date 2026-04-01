@@ -44,7 +44,7 @@ class CheckServerHealth implements ShouldQueue
 
                 $metrics = [
                     'api_status' => 'ok',
-                    'account' => $server->ssh_user,
+                    'account' => $server->effectiveSshUser(),
                     'token_scope' => 'valid',
                     'disk_info' => $payload['disk'],
                 ];

@@ -66,8 +66,6 @@ class AppSettingsPage extends Page
         $data['app_tagline'] = $data['app_tagline'] ?? null;
         $data['app_description'] = $data['app_description'] ?? null;
         $data['app_support_url'] = $data['app_support_url'] ?? null;
-        $data['default_ssh_key'] = null;
-        $data['default_sudo_password'] = null;
         $data['default_cpanel_api_token'] = null;
         $data['default_dns_api_token'] = null;
         $data['default_webhook_secret'] = null;
@@ -102,14 +100,9 @@ class AppSettingsPage extends Page
                 'app_tagline',
                 'app_description',
                 'app_support_url',
-                'default_ssh_key',
-                'default_sudo_password',
                 'default_ssh_credential_profile_id',
-                'default_cpanel_api_token',
                 'default_cpanel_credential_profile_id',
-                'default_dns_api_token',
                 'default_dns_credential_profile_id',
-                'default_webhook_secret',
                 'default_webhook_credential_profile_id',
                 'github_api_token',
                 'github_oauth_client_id',
@@ -190,7 +183,7 @@ class AppSettingsPage extends Page
             return filled($value) ? 'updated' : 'cleared';
         }
 
-        if (in_array($key, ['default_ssh_key', 'default_sudo_password', 'default_cpanel_api_token', 'default_dns_api_token', 'default_webhook_secret'], true)) {
+        if (in_array($key, ['default_cpanel_api_token', 'default_dns_api_token', 'default_webhook_secret'], true)) {
             return filled($value) ? 'updated' : 'cleared';
         }
 
@@ -227,21 +220,10 @@ class AppSettingsPage extends Page
             'default_deploy_source' => 'default deploy source',
             'default_ssh_port' => 'default SSH port',
             'default_ssh_credential_profile_id' => 'default SSH profile',
-            'default_ssh_user' => 'default SSH user',
-            'default_ssh_key' => 'default SSH key',
-            'default_sudo_password' => 'default sudo password',
-            'default_cpanel_username' => 'default cPanel username',
-            'default_cpanel_api_token' => 'default cPanel API token',
-            'default_cpanel_api_port' => 'default cPanel API port',
             'default_cpanel_credential_profile_id' => 'default cPanel profile',
-            'default_dns_provider' => 'default DNS provider',
-            'default_dns_zone_id' => 'default DNS zone ID',
-            'default_dns_api_token' => 'default DNS API token',
-            'default_dns_proxy_records' => 'default DNS proxy records',
             'default_dns_credential_profile_id' => 'default DNS profile',
-            'default_webhook_secret' => 'default site webhook secret',
-            'default_github_credential_profile_id' => 'default GitHub profile',
             'default_webhook_credential_profile_id' => 'default webhook profile',
+            'default_github_credential_profile_id' => 'default GitHub profile',
             'github_webhook_path' => 'webhook path',
             'github_webhook_events' => 'webhook events',
             'github_api_token' => 'GitHub PAT',
@@ -264,7 +246,7 @@ class AppSettingsPage extends Page
             'app_name' => 'branding-settings',
             'app_logo_path', 'app_favicon_path', 'app_tagline', 'app_description', 'app_support_url' => 'branding-settings',
             'default_branch', 'default_web_root', 'default_php_version', 'default_deploy_source', 'default_ssh_port' => 'deployment-defaults',
-            'default_ssh_credential_profile_id', 'default_ssh_user', 'default_ssh_key', 'default_sudo_password', 'default_cpanel_username', 'default_cpanel_api_token', 'default_cpanel_api_port', 'default_cpanel_credential_profile_id', 'default_dns_provider', 'default_dns_zone_id', 'default_dns_api_token', 'default_dns_proxy_records', 'default_dns_credential_profile_id', 'default_webhook_secret', 'default_webhook_credential_profile_id' => 'credential-defaults',
+            'default_ssh_credential_profile_id', 'default_cpanel_credential_profile_id', 'default_dns_credential_profile_id', 'default_webhook_credential_profile_id' => 'credential-defaults',
             'github_webhook_path', 'github_webhook_events' => 'webhook-defaults',
             'default_github_credential_profile_id', 'github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret', 'github_oauth_access_token' => 'github-integration',
             'alert_email_enabled', 'alert_webhooks_enabled', 'alert_webhook_urls', 'alert_webhook_secret' => 'alert-delivery',

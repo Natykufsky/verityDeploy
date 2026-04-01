@@ -34,7 +34,7 @@
 
 .fi-simple-layout {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     min-height: 100vh;
 }
 
@@ -347,7 +347,6 @@
 .fi-section {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 .fi-modal-window {
@@ -362,7 +361,7 @@
     width: min(100%, calc(100vw - 3rem));
     min-height: 0;
     max-height: calc(100vh - 3rem);
-    overflow-y: auto;
+    overflow-y: visible;
 }
 
 .operational-timeline-shell {
@@ -371,7 +370,7 @@
     min-height: 0;
     height: 520px;
     max-height: 520px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .operational-timeline-scroll {
@@ -390,7 +389,7 @@
 
 .operational-timeline-section .fi-section-content {
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .operational-timeline-section .fi-section-content > div {
@@ -406,7 +405,7 @@
 
 .fi-section-content,
 .fi-section-content > div {
-    overflow-y: auto;
+    /* overflow-y: auto; */
 }
 
 .deployment-frost-card {
@@ -639,6 +638,20 @@ samp {
 .fi-select-options,
 .fi-dropdown-panel,
 .choices__list--dropdown,
-.choices__list[aria-expanded] {
+.choices__list[aria-expanded],
+.fi-fo-select-custom-dropdown,
+.fi-dropdown,
+.fi-popover,
+.fi-modal-content,
+.fi-modal-window {
     z-index: 9999 !important;
+}
+
+[class^='fi-wi-'],
+[class*=' fi-wi-'] {
+    overflow: visible !important;
+}
+
+.choices {
+    overflow: visible !important;
 }

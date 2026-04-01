@@ -57,7 +57,8 @@ class SiteForm
                                         ->placeholder('Inherit from server')
                                         ->helperText('Leave blank to inherit the team from the assigned server.'),
                                     TextInput::make('repository_url')
-                                        ->url(),
+                                        ->url()
+                                        ->visible(fn (Get $get): bool => $get('deploy_source') === 'git'),
                                     Select::make('github_credential_profile_id')
                                         ->label('GitHub credential profile')
                                         ->options(fn (): array => CredentialProfile::query()->ofType('github')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
@@ -65,6 +66,7 @@ class SiteForm
                                         ->searchable()
                                         ->placeholder('Use default or leave blank')
                                         ->helperText('Select the shared GitHub profile that this site should use for repository access and webhook setup.')
+                                        ->visible(fn (Get $get): bool => $get('deploy_source') === 'git')
                                         ->columnSpanFull(),
                                     Select::make('webhook_credential_profile_id')
                                         ->label('Webhook credential profile')
@@ -76,7 +78,8 @@ class SiteForm
                                         ->columnSpanFull(),
                                     TextInput::make('default_branch')
                                         ->required()
-                                        ->default(fn (): string => app(AppSettings::class)->defaultBranch()),
+                                        ->default(fn (): string => app(AppSettings::class)->defaultBranch())
+                                        ->visible(fn (Get $get): bool => $get('deploy_source') === 'git'),
                                     TextInput::make('deploy_path')
                                         ->required(),
                                     TextInput::make('php_version')

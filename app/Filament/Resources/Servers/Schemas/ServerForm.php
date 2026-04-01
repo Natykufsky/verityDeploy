@@ -90,7 +90,8 @@ class ServerForm
                                                 }
                                             }),
                                     )
-                                    ->helperText('Use Discover after saving a cPanel server to fetch the account SSH port from the API.'),
+                                    ->helperText('Use Discover after saving a cPanel server to fetch the account SSH port from the API.')
+                                    ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password', 'cpanel'])),
                                 Select::make('ssh_credential_profile_id')
                                     ->label('SSH credential profile')
                                     ->options(fn (): array => CredentialProfile::query()->ofType('ssh')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
@@ -98,7 +99,8 @@ class ServerForm
                                     ->searchable()
                                     ->placeholder('Use default or enter manually')
                                     ->helperText('Select a shared SSH profile containing the host user, key, and password details.')
-                                    ->columnSpanFull(),
+                                    ->columnSpanFull()
+                                    ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password'])),
                                 Select::make('team_id')
                                     ->label('Team')
                                     ->options(fn (): array => Team::query()
@@ -117,7 +119,8 @@ class ServerForm
                                         'cpanel' => 'cPanel',
                                     ])
                                     ->default('ssh_key')
-                                    ->required(),
+                                    ->required()
+                                    ->live(),
                                 TextInput::make('status')
                                     ->required()
                                     ->default('offline'),
@@ -130,6 +133,7 @@ class ServerForm
                         Tab::make('cPanel')
                             ->badge('API')
                             ->badgeColor('info')
+                            ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
                             ->schema([
 
                                 Select::make('cpanel_credential_profile_id')

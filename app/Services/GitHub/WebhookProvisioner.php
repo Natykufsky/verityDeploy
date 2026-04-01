@@ -30,10 +30,10 @@ class WebhookProvisioner
             throw new RuntimeException('Repository URL must point to a GitHub repository.');
         }
 
-        if (blank($site->webhook_secret)) {
-            $site->update([
-                'webhook_secret' => Str::random(48),
-            ]);
+        $webhookSecret = $site->effectiveWebhookSecret();
+
+        if (blank($webhookSecret)) {
+            throw new RuntimeException('Missing Webhook secret. Set a secret in the associated Webhook Credential Profile, or set a default in App Settings.');
         }
 
         $payload = [
@@ -43,7 +43,7 @@ class WebhookProvisioner
             'config' => [
                 'url' => url($settings->githubWebhookPath()),
                 'content_type' => 'json',
-                'secret' => $site->webhook_secret,
+                'secret' => $webhookSecret,
                 'insecure_ssl' => '0',
             ],
         ];

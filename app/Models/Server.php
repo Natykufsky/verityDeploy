@@ -138,6 +138,76 @@ class Server extends Model
         return $this->credentialProfileSetting('ssh', ['password', 'sudo_password', 'passphrase'], null);
     }
 
+    public function getSshUserAttribute(): ?string
+    {
+        return $this->effectiveSshUser();
+    }
+
+    public function getSshPortAttribute(): int
+    {
+        return $this->effectiveSshPort();
+    }
+
+    public function getSshKeyAttribute(): ?string
+    {
+        return $this->effectiveSshKey();
+    }
+
+    public function getSudoPasswordAttribute(): ?string
+    {
+        return $this->effectiveSudoPassword();
+    }
+
+    public function getCpanelUsernameAttribute(): ?string
+    {
+        return $this->effectiveCpanelUsername();
+    }
+
+    public function getCpanelApiTokenAttribute(): ?string
+    {
+        return $this->effectiveCpanelApiToken();
+    }
+
+    public function getCpanelApiPortAttribute(): int
+    {
+        return $this->effectiveCpanelApiPort();
+    }
+
+    public function getDnsProviderAttribute(): string
+    {
+        return $this->effectiveDnsProvider();
+    }
+
+    public function getDnsZoneIdAttribute(): ?string
+    {
+        return $this->effectiveDnsZoneId();
+    }
+
+    public function getDnsApiTokenAttribute(): ?string
+    {
+        return $this->effectiveDnsApiToken();
+    }
+
+    public function getDnsProxyRecordsAttribute(): bool
+    {
+        return $this->effectiveDnsProxyRecords();
+    }
+
+    public function getUsernameAttribute(): ?string
+    {
+        return $this->ssh_user;
+    }
+
+    public function getPortAttribute(): int
+    {
+        return $this->ssh_port;
+    }
+
+    public function getHostAttribute(): ?string
+    {
+        return $this->ip_address;
+    }
+
     public function effectiveCpanelUsername(): ?string
     {
         return $this->credentialProfileSetting('cpanel', ['username', 'cpanel_username'], null);

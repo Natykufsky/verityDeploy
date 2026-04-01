@@ -26,14 +26,14 @@ class CloudflareDnsProvisioner
             'message' => $supported
                 ? 'This preview shows the DNS records Cloudflare will create or update for the site.'
                 : 'Enable Cloudflare DNS management on the server to preview the DNS record layout.',
-            'zone_id' => $server?->dns_zone_id,
+            'zone_id' => $server?->effectiveDnsZoneId(),
             'primary_domain' => $primaryDomain,
             'records' => $records,
-            'proxy' => (bool) ($server?->dns_proxy_records ?? true),
+            'proxy' => $server ? $server->effectiveDnsProxyRecords() : true,
             'steps' => [
                 sprintf('Resolve the Cloudflare zone for %s.', $primaryDomain ?: 'the primary domain'),
                 sprintf('Create or update %d DNS record%s.', count($records), count($records) === 1 ? '' : 's'),
-                sprintf('Use %s proxy mode for the resolved records.', ($server?->dns_proxy_records ?? true) ? 'proxied' : 'dns-only'),
+                sprintf('Use %s proxy mode for the resolved records.', ($server ? $server->effectiveDnsProxyRecords() : true) ? 'proxied' : 'dns-only'),
             ],
         ];
     }
@@ -97,7 +97,7 @@ class CloudflareDnsProvisioner
     {
         $server = $site->server;
         $origin = $server?->ip_address ?: $server?->host ?: '127.0.0.1';
-        $proxy = (bool) ($server?->dns_proxy_records ?? true);
+        $proxy = $server ? $server->effectiveDnsProxyRecords() : true;
         $records = [];
 
         $primaryDomain = trim((string) $site->primary_domain);

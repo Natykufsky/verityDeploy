@@ -123,6 +123,11 @@ class Site extends Model
             ?? data_get($profile->settings, 'secret');
     }
 
+    public function getWebhookSecretAttribute(): ?string
+    {
+        return $this->effectiveWebhookSecret();
+    }
+
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);

@@ -37,20 +37,8 @@ class AppSettings
                 'default_web_root' => 'public',
                 'default_php_version' => '8.3',
                 'default_deploy_source' => 'git',
-                'default_ssh_port' => 22,
                 'default_ssh_credential_profile_id' => null,
-                'default_ssh_user' => null,
-                'default_ssh_key' => null,
-                'default_sudo_password' => null,
-                'default_cpanel_username' => null,
-                'default_cpanel_api_token' => null,
-                'default_cpanel_api_port' => 2083,
                 'default_cpanel_credential_profile_id' => null,
-                'default_dns_provider' => 'manual',
-                'default_dns_zone_id' => null,
-                'default_dns_api_token' => null,
-                'default_dns_proxy_records' => true,
-                'default_webhook_secret' => null,
                 'default_dns_credential_profile_id' => null,
                 'default_github_credential_profile_id' => null,
                 'default_webhook_credential_profile_id' => null,
@@ -84,18 +72,7 @@ class AppSettings
             'default_deploy_source' => 'git',
             'default_ssh_port' => 22,
             'default_ssh_credential_profile_id' => null,
-            'default_ssh_user' => null,
-            'default_ssh_key' => null,
-            'default_sudo_password' => null,
-            'default_cpanel_username' => null,
-            'default_cpanel_api_token' => null,
-            'default_cpanel_api_port' => 2083,
             'default_cpanel_credential_profile_id' => null,
-            'default_dns_provider' => 'manual',
-            'default_dns_zone_id' => null,
-            'default_dns_api_token' => null,
-            'default_dns_proxy_records' => true,
-            'default_webhook_secret' => null,
             'default_dns_credential_profile_id' => null,
             'default_github_credential_profile_id' => null,
             'default_webhook_credential_profile_id' => null,
@@ -206,44 +183,19 @@ class AppSettings
             : null;
     }
 
-    public function defaultSshUser(): ?string
-    {
-        $value = $this->record()->default_ssh_user;
-
-        return filled($value) ? (string) $value : null;
-    }
-
-    public function defaultSshKey(): ?string
-    {
-        $value = $this->record()->default_ssh_key;
-
-        return filled($value) ? (string) $value : null;
-    }
-
-    public function defaultSudoPassword(): ?string
-    {
-        $value = $this->record()->default_sudo_password;
-
-        return filled($value) ? (string) $value : null;
-    }
-
     public function defaultCpanelUsername(): ?string
     {
-        $value = $this->record()->default_cpanel_username;
-
-        return filled($value) ? (string) $value : null;
+        return $this->defaultCpanelCredentialProfile()?->settings['username'] ?? $this->defaultCpanelCredentialProfile()?->settings['cpanel_username'];
     }
 
     public function defaultCpanelApiToken(): ?string
     {
-        $value = $this->record()->default_cpanel_api_token;
-
-        return filled($value) ? (string) $value : null;
+        return $this->defaultCpanelCredentialProfile()?->settings['api_token'] ?? $this->defaultCpanelCredentialProfile()?->settings['cpanel_api_token'];
     }
 
     public function defaultCpanelApiPort(): int
     {
-        return (int) ($this->record()->default_cpanel_api_port ?: 2083);
+        return (int) ($this->defaultCpanelCredentialProfile()?->settings['api_port'] ?? $this->defaultCpanelCredentialProfile()?->settings['cpanel_api_port'] ?? 2083);
     }
 
     public function defaultCpanelCredentialProfileId(): ?int
@@ -262,26 +214,24 @@ class AppSettings
 
     public function defaultDnsProvider(): string
     {
-        return (string) ($this->record()->default_dns_provider ?: 'manual');
+        return (string) ($this->defaultDnsCredentialProfile()?->settings['provider'] ?? $this->defaultDnsCredentialProfile()?->settings['dns_provider'] ?? 'manual');
     }
 
     public function defaultDnsZoneId(): ?string
     {
-        $value = $this->record()->default_dns_zone_id;
-
-        return filled($value) ? (string) $value : null;
+        return $this->defaultDnsCredentialProfile()?->settings['zone_id'] ?? $this->defaultDnsCredentialProfile()?->settings['dns_zone_id'];
     }
 
     public function defaultDnsApiToken(): ?string
     {
-        $value = $this->record()->default_dns_api_token;
-
-        return filled($value) ? (string) $value : null;
+        return $this->defaultDnsCredentialProfile()?->settings['api_token'] ?? $this->defaultDnsCredentialProfile()?->settings['dns_api_token'];
     }
 
     public function defaultDnsProxyRecords(): bool
     {
-        return (bool) $this->record()->default_dns_proxy_records;
+        $value = $this->defaultDnsCredentialProfile()?->settings['proxy_records'] ?? $this->defaultDnsCredentialProfile()?->settings['dns_proxy_records'];
+
+        return $value !== null ? (bool) $value : true;
     }
 
     public function defaultDnsCredentialProfileId(): ?int
@@ -300,9 +250,7 @@ class AppSettings
 
     public function defaultWebhookSecret(): ?string
     {
-        $value = $this->record()->default_webhook_secret;
-
-        return filled($value) ? (string) $value : null;
+        return $this->defaultWebhookCredentialProfile()?->settings['secret'] ?? $this->defaultWebhookCredentialProfile()?->settings['webhook_secret'];
     }
 
     public function githubApiToken(): ?string
