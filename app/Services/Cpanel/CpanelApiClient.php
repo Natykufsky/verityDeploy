@@ -222,6 +222,34 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function getFileContent(Server $server, string $path, string $filename): array
+    {
+        return $this->request($server, 'Fileman', 'get_file_content', [
+            'dir' => $path,
+            'file' => $filename,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function authorizeSshKey(Server $server, string $publicKey): array
+    {
+        // 1. Import the key
+        $import = $this->request($server, 'SSH', 'import_key', [
+            'key' => $publicKey,
+            'name' => 'veritydeploy-dashboard',
+        ]);
+
+        // 2. Authorize the key
+        return $this->request($server, 'SSH', 'authorize_key', [
+            'key' => 'veritydeploy-dashboard',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function uploadFile(Server $server, string $directory, string $path, ?string $filename = null): array
     {
         $filename ??= basename($path);

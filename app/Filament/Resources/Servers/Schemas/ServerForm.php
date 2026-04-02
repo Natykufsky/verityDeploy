@@ -5,22 +5,20 @@ namespace App\Filament\Resources\Servers\Schemas;
 use App\Models\CredentialProfile;
 use App\Models\Server;
 use App\Models\Team;
-use App\Services\AppSettings;
 use App\Services\Cpanel\CpanelApiClient;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Throwable;
 
@@ -28,216 +26,166 @@ class ServerForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Hidden::make('user_id')
-                    ->default(fn (): ?int => auth()->id()),
-                Tabs::make('Server Settings')
-                    ->columnSpanFull()
-                    ->persistTab()
-                    ->persistTabInQueryString('tab')
-                    ->tabs([
-                        Tab::make('Overview')
-                            ->badge('Base')
-                            ->badgeColor('primary')
+        $isCreatePage = $schema->getOperation() === 'create';
+
+        $foundationFields = [
+            Section::make('Foundation')
+                ->schema([
+                    Select::make('connection_type')
+                        ->label('Connection System')
+                        ->options([
+                            'ssh_key' => 'SSH Key Auth',
+                            'password' => 'Direct Password',
+                            'cpanel' => 'cPanel / WHM API',
+                        ])
+                        ->default('ssh_key')
+                        ->required()
+                        ->live()
+                        ->disabled(! $isCreatePage)
+                        ->columnSpanFull(),
+                    TextInput::make('name')
+                        ->label('Server Name')
+                        ->placeholder('e.g. Production Node 1')
+                        ->required(),
+                    TextInput::make('ip_address')
+                        ->label('Public IP Address')
+                        ->placeholder('123.123.123.123')
+                        ->required(),
+                    Select::make('team_id')
+                        ->label('Owner Team')
+                        ->options(Team::query()->accessibleTo()->pluck('name', 'id')->all())
+                        ->searchable()
+                        ->placeholder('No specific team'),
+                ])->columns(['md' => 2]),
+        ];
+
+        $authFields = [
+            Section::make('Terminal Access')
+                ->schema([
+                    TextInput::make('ssh_port')
+                        ->label('SSH Port')
+                        ->numeric()
+                        ->default(22)
+                        ->required(),
+                    TextInput::make('ssh_user')
+                        ->label('SSH User')
+                        ->default('root')
+                        ->required(),
+                    TextInput::make('password')
+                        ->password()
+                        ->label('SSH Password')
+                        ->visible(fn (Get $get): bool => $get('connection_type') === 'password')
+                        ->required(fn (Get $get): bool => $get('connection_type') === 'password'),
+                    Select::make('cpanel_credential_profile_id')
+                        ->label('cPanel Profile')
+                        ->options(CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->pluck('name', 'id')->all())
+                        ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
+                        ->columnSpanFull(),
+                ])->columns(['md' => 2]),
+        ];
+
+        $securityFields = [
+            Section::make('Security Hub')
+                ->description('Authorize the dashboard to manage this server.')
+                ->schema([
+                    View::make('filament.servers.ssh-key-display')
+                        ->columnSpanFull(),
+                    TextInput::make('manual_status')
+                        ->label('Manual Status')
+                        ->default('Dashboard Public Key is shown above. Copy it into your authorized_keys file.')
+                        ->readOnly()
+                        ->columnSpanFull(),
+                    Actions::make([
+                        Action::make('generateNewKey')
+                            ->label('Regenerate Dashboard Key')
+                            ->icon('heroicon-o-key')
+                            ->color('danger')
+                            ->requiresConfirmation()
+                            ->modalHeading('Regenerate Master SSH Key?')
+                            ->modalDescription('Existing authorized connections to other servers might break. Continue?')
+                            ->action(function () {
+                                try {
+                                    $sshDir = base_path('.ssh');
+                                    if (! file_exists($sshDir)) {
+                                        mkdir($sshDir, 0700, true);
+                                    }
+                                    shell_exec('ssh-keygen -t rsa -b 4096 -f '.escapeshellarg($sshDir.'/id_rsa')." -N '' -q");
+                                    Notification::make()->title('Master SSH Key Regenerated')->success()->send();
+                                } catch (Throwable $e) {
+                                    Notification::make()->title('Key Generation Failed')->body($e->getMessage())->danger()->send();
+                                }
+                            }),
+
+                        Action::make('importKey')
+                            ->label('Import Key Pair')
+                            ->icon('heroicon-o-document-arrow-down')
+                            ->color('warning')
+                            ->form([
+                                Textarea::make('private_key')->label('Private Key')->required()->rows(10),
+                                Textarea::make('public_key')->label('Public Key')->required()->rows(4),
+                            ])
+                            ->action(function (array $data) {
+                                try {
+                                    $sshDir = base_path('.ssh');
+                                    if (! file_exists($sshDir)) {
+                                        mkdir($sshDir, 0700, true);
+                                    }
+                                    file_put_contents($sshDir.'/id_rsa', $data['private_key']);
+                                    file_put_contents($sshDir.'/id_rsa.pub', $data['public_key']);
+                                    chmod($sshDir.'/id_rsa', 0600);
+                                    Notification::make()->title('SSH Key Pair Imported')->success()->send();
+                                } catch (Throwable $e) {
+                                    Notification::make()->title('Import Failed')->body($e->getMessage())->danger()->send();
+                                }
+                            }),
+
+                        Action::make('authorizeAutomatically')
+                            ->label('Authorize Automatically')
+                            ->icon('heroicon-o-cloud-arrow-up')
+                            ->color('success')
+                            ->visible(fn (Get $get) => $get('connection_type') === 'cpanel')
+                            ->requiresConfirmation()
+                            ->modalHeading('Authorize SSH Key?')
+                            ->action(function (Server $record) {
+                                try {
+                                    $publicKey = @file_get_contents(base_path('.ssh/id_rsa.pub'));
+                                    if (! $publicKey) {
+                                        throw new \Exception('Dashboard key not found.');
+                                    }
+                                    app(CpanelApiClient::class)->authorizeSshKey($record, $publicKey);
+                                    Notification::make()->title('Key authorized on cPanel.')->success()->send();
+                                } catch (Throwable $e) {
+                                    Notification::make()->title('Auto-Authorization Failed')->body($e->getMessage())->danger()->send();
+                                }
+                            }),
+                    ])->columnSpanFull(),
+                ]),
+        ];
+
+        return $schema->components([
+            Hidden::make('user_id')->default(fn (): ?int => auth()->id()),
+            Wizard::make([
+                Step::make('Foundation')->description('Platform & IP')->schema($foundationFields),
+                Step::make('Access')->description('Credentials')->schema($authFields),
+                Step::make('Security')->description('Handshake')->schema($securityFields),
+                Step::make('Ready')
+                    ->description($isCreatePage ? 'Finalize' : 'Update')
+                    ->schema([
+                        Section::make('Audit')
                             ->schema([
-                                Select::make('connection_type')
-                                    ->label('Connection type')
-                                    ->options([
-                                        'ssh_key' => 'SSH key',
-                                        'password' => 'Password',
-                                        'local' => 'Local',
-                                        'cpanel' => 'cPanel',
-                                    ])
-                                    ->default('ssh_key')
-                                    ->required()
-                                    ->live()
-                                    ->columnSpanFull(),
-                                TextInput::make('name')
-                                    ->required(),
-                                TextInput::make('ip_address')
-                                    ->label('IP address')
-                                    ->required()
-                                    ->visible(fn (Get $get): bool => $get('connection_type') !== 'local'),
-                                Select::make('cpanel_credential_profile_id')
-                                    ->label('cPanel credential profile')
-                                    ->options(fn (): array => CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
-                                    ->default(fn (): ?int => app(AppSettings::class)->defaultCpanelCredentialProfileId())
-                                    ->searchable()
-                                    ->placeholder('Select cPanel API token')
-                                    ->columnSpanFull()
-                                    ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel'),
-                                TextInput::make('ssh_port')
-                                    ->label('SSH port')
-                                    ->required()
-                                    ->numeric()
-                                    ->default(fn (): int => app(AppSettings::class)->defaultSshPort())
-                                    ->suffixAction(
-                                        Action::make('discoverCpanelSshPort')
-                                            ->label('Discover')
-                                            ->icon('heroicon-o-magnifying-glass')
-                                            ->visible(fn (?Server $record, Get $get): bool => $get('connection_type') === 'cpanel' && filled($record))
-                                            ->action(function (?Server $record, Set $set): void {
-                                                if (! $record) {
-                                                    Notification::make()
-                                                        ->title('Save record first')
-                                                        ->warning()
-                                                        ->send();
-
-                                                    return;
-                                                }
-
-                                                try {
-                                                    $port = app(CpanelApiClient::class)->discoverSshPort($record->fresh());
-
-                                                    $set('ssh_port', $port);
-                                                    $record->update([
-                                                        'ssh_port' => $port,
-                                                    ]);
-
-                                                    Notification::make()
-                                                        ->title('SSH port discovered')
-                                                        ->success()
-                                                        ->send();
-                                                } catch (Throwable $throwable) {
-                                                    Notification::make()
-                                                        ->title('Unable to discover SSH port')
-                                                        ->body($throwable->getMessage())
-                                                        ->danger()
-                                                        ->send();
-                                                }
-                                            }),
-                                    )
-                                    ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password', 'cpanel'])),
-                                Select::make('ssh_credential_profile_id')
-                                    ->label('SSH credential profile')
-                                    ->options(fn (): array => CredentialProfile::query()->ofType('ssh')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
-                                    ->default(fn (): ?int => app(AppSettings::class)->defaultSshCredentialProfileId())
-                                    ->searchable()
-                                    ->placeholder('Select SSH key or password')
-                                    ->columnSpanFull()
-                                    ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password', 'cpanel'])),
-                                Select::make('team_id')
-                                    ->label('Owner team')
-                                    ->options(fn (): array => Team::query()
-                                        ->accessibleTo()
-                                        ->orderBy('name')
-                                        ->pluck('name', 'id')
-                                        ->all())
-                                    ->searchable()
-                                    ->placeholder('Personal workspace')
-                                    ->columnSpanFull(),
-                                TextInput::make('status')
-                                    ->required()
-                                    ->default('offline')
-                                    ->disabled(),
+                                View::make('filament.servers.creation-summary')->columnSpanFull(),
                                 DateTimePicker::make('last_connected_at')
+                                    ->label('Last Heartbeat')
+                                    ->visible(! $isCreatePage)
                                     ->disabled(),
-                            ])
-                            ->columns(2),
-
-                        Tab::make('Infrastructure')
-                            ->badge('Cloud')
-                            ->badgeColor('success')
-                            ->schema([
-                                Select::make('provider_type')
-                                    ->label('Cloud provider')
-                                    ->options(Server::providerOptions())
-                                    ->default('manual')
-                                    ->required()
-                                    ->live()
-                                    ->afterStateUpdated(function (Set $set, ?string $state): void {
-                                        if ($state === 'cpanel') {
-                                            $set('can_manage_domains', true);
-                                            $set('can_manage_vhosts', false);
-                                            $set('can_manage_dns', true);
-                                            $set('can_manage_ssl', true);
-
-                                            return;
-                                        }
-
-                                        $set('can_manage_domains', true);
-                                        $set('can_manage_vhosts', true);
-                                        $set('can_manage_dns', false);
-                                        $set('can_manage_ssl', true);
-                                    }),
-                                TextInput::make('provider_reference')
-                                    ->label('Node identifier')
-                                    ->placeholder('e.g. i-0abc123'),
-                                TextInput::make('provider_region')
-                                    ->label('Region')
-                                    ->placeholder('e.g. fra1'),
-                                Select::make('dns_credential_profile_id')
-                                    ->label('DNS API profile')
-                                    ->options(fn (): array => CredentialProfile::query()->ofType('dns')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
-                                    ->default(fn (): ?int => app(AppSettings::class)->defaultDnsCredentialProfileId())
-                                    ->searchable()
-                                    ->placeholder('None')
-                                    ->columnSpanFull(),
-                                KeyValue::make('provider_metadata')
-                                    ->label('Custom metadata')
-                                    ->keyLabel('Field')
-                                    ->valueLabel('Value')
-                                    ->columnSpanFull(),
-                                Section::make('Service Capabilities')
-                                    ->schema([
-                                        Toggle::make('can_manage_domains')
-                                            ->label('Domain management')
-                                            ->default(false),
-                                        Toggle::make('can_manage_vhosts')
-                                            ->label('Vhost management')
-                                            ->default(false),
-                                        Toggle::make('can_manage_dns')
-                                            ->label('DNS management')
-                                            ->default(false),
-                                        Toggle::make('can_manage_ssl')
-                                            ->label('SSL management')
-                                            ->default(false),
-                                    ])
-                                    ->columns(2),
-                                Section::make('Advanced Vhost Paths')
-                                    ->schema([
-                                        TextInput::make('vhost_config_path')
-                                            ->label('Config path')
-                                            ->placeholder('/etc/nginx/sites-available/site.conf'),
-                                        TextInput::make('vhost_enabled_path')
-                                            ->label('Enabled path')
-                                            ->placeholder('/etc/nginx/sites-enabled/site.conf'),
-                                        TextInput::make('vhost_reload_command')
-                                            ->label('Reload command')
-                                            ->placeholder('systemctl reload nginx'),
-                                    ])
-                                    ->columns(1)
-                                    ->visible(fn (?Server $record, Get $get): bool => (($get('connection_type') ?? $record?->connection_type) !== 'cpanel') && (bool) ($get('can_manage_vhosts') ?? $record?->can_manage_vhosts)),
-                                Section::make('DNS Authority')
-                                    ->schema([
-                                        Select::make('dns_provider')
-                                            ->label('DNS Authority')
-                                            ->options(Server::dnsProviderOptions())
-                                            ->default('manual')
-                                            ->live()
-                                            ->afterStateUpdated(function (Set $set, ?string $state): void {
-                                                if ($state === 'cloudflare') {
-                                                    $set('can_manage_dns', true);
-                                                }
-                                            }),
-                                    ])
-                                    ->columns(2),
-                            ])
-                            ->columns(2),
-                        Tab::make('Audit')
-                            ->badge('History')
-                            ->badgeColor('gray')
-                            ->schema([
-                                DateTimePicker::make('last_connected_at'),
                                 TextInput::make('status')
-                                    ->required()
-                                    ->default('offline'),
-                                Textarea::make('notes')
-                                    ->columnSpanFull(),
-                            ])
-                            ->columns(2),
+                                    ->label('Current Status')
+                                    ->visible(! $isCreatePage)
+                                    ->disabled(),
+                            ])->columns(['md' => 2]),
                     ]),
-            ]);
+            ])->columnSpanFull()
+                ->persistStepInQueryString('step'),
+        ]);
     }
 }

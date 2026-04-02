@@ -76,22 +76,37 @@ class ServerDomainSynchronizer
         }
     }
 
+    public function syncServers(iterable $servers): array
+    {
+        $results = [];
+
+        foreach ($servers as $server) {
+            if ($server instanceof Server) {
+                $results[] = $this->sync($server);
+            }
+        }
+
+        return $results;
+    }
+
     protected function updateOrCreateDomain(Server $server, string $name, string $type, array $settings = []): Domain
     {
-        return Domain::updateOrCreate(
-            [
-                'server_id' => $server->id,
-                'name' => $name,
-            ],
-            [
-                'team_id' => $server->team_id,
-                'type' => $type,
-                'is_active' => true,
-                'settings' => array_merge(
-                    ['https_redirect' => data_get($settings, 'https_redirect')],
-                    $settings
-                ),
-            ]
-        );
+        return Domain::withoutEvents(function () use ($server, $name, $type, $settings): Domain {
+            return Domain::updateOrCreate(
+                [
+                    'server_id' => $server->id,
+                    'name' => $name,
+                ],
+                [
+                    'team_id' => $server->team_id,
+                    'type' => $type,
+                    'is_active' => true,
+                    'settings' => array_merge(
+                        ['https_redirect' => data_get($settings, 'https_redirect')],
+                        $settings
+                    ),
+                ]
+            );
+        });
     }
 }

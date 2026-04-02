@@ -131,7 +131,7 @@ class DomainResource extends Resource
                             ->columnSpanFull()
                             ->visible(fn (Get $get): bool => (bool) $get('is_ssl_enabled')),
                     ])
-                    ->columns(1)
+                    ->columns(['default' => 1])
                     ->collapsible(),
             ]);
     }
@@ -191,7 +191,7 @@ class DomainResource extends Resource
             ])
             ->headerActions([
                 Action::make('importFromServer')
-                    ->label('Import from server')
+                    ->label('Sync from server')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
                     ->form([
@@ -225,13 +225,13 @@ class DomainResource extends Resource
 
                         if ($result['success']) {
                             Notification::make()
-                                ->title('Import Complete')
+                                ->title('Sync Complete')
                                 ->body($result['message'])
                                 ->success()
                                 ->send();
                         } else {
                             Notification::make()
-                                ->title('Import Failed')
+                                ->title('Sync Failed')
                                 ->body($result['message'])
                                 ->danger()
                                 ->send();

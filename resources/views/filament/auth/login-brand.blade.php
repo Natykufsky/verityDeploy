@@ -1,5 +1,5 @@
-<div class="verity-login-brand mx-auto w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/40 p-6 text-center shadow-2xl shadow-black/30 md:p-8">
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/50 to-transparent"></div>
+<div class="verity-login-brand mx-auto w-full overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-amber-950/40 p-6 text-center shadow-2xl shadow-black/30 md:p-8">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-amber-300/50 to-transparent"></div>
     <div class="pointer-events-none absolute -right-12 top-6 h-40 w-40 rounded-full bg-amber-500/15 blur-3xl motion-safe:animate-pulse"></div>
 
     @php

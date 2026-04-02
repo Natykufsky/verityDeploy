@@ -207,7 +207,7 @@ class CloudflareDnsProvisioner
                 ->post(sprintf('zones/%s/dns_records', $zoneId), $body);
         }
 
-        if ($response->failed()) {
+        if (! $response->successful()) {
             throw new RuntimeException($this->errorMessage($response));
         }
     }
