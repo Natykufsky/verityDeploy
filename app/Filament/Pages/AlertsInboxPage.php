@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\OperationalAlertDelivery;
 use BackedEnum;
+use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -11,7 +12,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Notifications\DatabaseNotification;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use UnitEnum;
 
@@ -370,7 +370,7 @@ class AlertsInboxPage extends Page
             ->all();
     }
 
-    protected function updateNotificationReadState(string $notificationId, \Carbon\CarbonInterface | null $readAt): void
+    protected function updateNotificationReadState(string $notificationId, ?CarbonInterface $readAt): void
     {
         $notification = $this->findNotification($notificationId);
 
