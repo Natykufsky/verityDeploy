@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CredentialProfiles\Pages;
 
 use App\Filament\Resources\CredentialProfiles\CredentialProfileResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateCredentialProfile extends CreateRecord
@@ -12,7 +13,7 @@ class CreateCredentialProfile extends CreateRecord
     protected function getHeaderActions(): array
     {
         return [
-            \Filament\Actions\Action::make('userGuide')
+            Action::make('userGuide')
                 ->label('Credential Guide')
                 ->icon('heroicon-m-book-open')
                 ->color('info')

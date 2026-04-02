@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Sites\Pages;
 
 use App\Filament\Resources\Sites\SiteResource;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -13,7 +14,7 @@ class EditSite extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            \Filament\Actions\Action::make('userGuide')
+            Action::make('userGuide')
                 ->label('App Guide')
                 ->icon('heroicon-m-book-open')
                 ->color('info')

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Domains\Pages;
 
 use App\Filament\Resources\Domains\DomainResource;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 
@@ -13,7 +14,7 @@ class ManageDomains extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            \Filament\Actions\Action::make('userGuide')
+            Action::make('userGuide')
                 ->label('Domain Guide')
                 ->icon('heroicon-m-book-open')
                 ->color('info')

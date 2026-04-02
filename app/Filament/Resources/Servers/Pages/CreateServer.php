@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Servers\Pages;
 
 use App\Filament\Resources\Servers\ServerResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateServer extends CreateRecord
@@ -12,7 +13,7 @@ class CreateServer extends CreateRecord
     protected function getHeaderActions(): array
     {
         return [
-            \Filament\Actions\Action::make('userGuide')
+            Action::make('userGuide')
                 ->label('Server Guide')
                 ->icon('heroicon-m-book-open')
                 ->color('info')
