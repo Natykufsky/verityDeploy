@@ -69,7 +69,6 @@ class AppSettingsPage extends Page
         $data['default_cpanel_api_token'] = null;
         $data['default_dns_api_token'] = null;
         $data['default_webhook_secret'] = null;
-        $data['github_api_token'] = null;
         $data['github_oauth_client_secret'] = null;
         $data['alert_webhook_secret'] = null;
 
@@ -104,7 +103,6 @@ class AppSettingsPage extends Page
                 'default_cpanel_credential_profile_id',
                 'default_dns_credential_profile_id',
                 'default_webhook_credential_profile_id',
-                'github_api_token',
                 'github_oauth_client_id',
                 'github_oauth_client_secret',
                 'default_github_credential_profile_id',
@@ -179,7 +177,7 @@ class AppSettingsPage extends Page
 
     protected function maskSettingValue(string $key, mixed $value): string
     {
-        if (in_array($key, ['github_api_token', 'github_oauth_client_secret', 'github_oauth_access_token'], true)) {
+        if (in_array($key, ['github_oauth_client_secret', 'github_oauth_access_token'], true)) {
             return filled($value) ? 'updated' : 'cleared';
         }
 
@@ -226,7 +224,6 @@ class AppSettingsPage extends Page
             'default_github_credential_profile_id' => 'default GitHub profile',
             'github_webhook_path' => 'webhook path',
             'github_webhook_events' => 'webhook events',
-            'github_api_token' => 'GitHub PAT',
             'github_oauth_client_id' => 'GitHub OAuth client ID',
             'github_oauth_client_secret' => 'GitHub OAuth client secret',
             'github_oauth_access_token' => 'GitHub OAuth token',
@@ -248,7 +245,7 @@ class AppSettingsPage extends Page
             'default_branch', 'default_web_root', 'default_php_version', 'default_deploy_source', 'default_ssh_port' => 'deployment-defaults',
             'default_ssh_credential_profile_id', 'default_cpanel_credential_profile_id', 'default_dns_credential_profile_id', 'default_webhook_credential_profile_id' => 'credential-defaults',
             'github_webhook_path', 'github_webhook_events' => 'webhook-defaults',
-            'default_github_credential_profile_id', 'github_api_token', 'github_oauth_client_id', 'github_oauth_client_secret', 'github_oauth_access_token' => 'github-integration',
+            'default_github_credential_profile_id', 'github_oauth_client_id', 'github_oauth_client_secret', 'github_oauth_access_token' => 'github-integration',
             'alert_email_enabled', 'alert_webhooks_enabled', 'alert_webhook_urls', 'alert_webhook_secret' => 'alert-delivery',
             default => 'branding-settings',
         };

@@ -44,6 +44,10 @@ class AlertsInboxPage extends Page
     {
         return $schema
             ->components([
+                Section::make('How this page works')
+                    ->schema([
+                        View::make('filament.pages.alerts-inbox-guide'),
+                    ]),
                 Section::make('Operational alerts')
                     ->schema([
                         View::make('filament.pages.alerts-inbox')
@@ -366,7 +370,7 @@ class AlertsInboxPage extends Page
             ->all();
     }
 
-    protected function updateNotificationReadState(string $notificationId, ?Carbon $readAt): void
+    protected function updateNotificationReadState(string $notificationId, \Carbon\CarbonInterface | null $readAt): void
     {
         $notification = $this->findNotification($notificationId);
 

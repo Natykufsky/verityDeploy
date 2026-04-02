@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Login;
 use App\Filament\Widgets\AlertsInboxWidget;
 use App\Filament\Widgets\CpanelSetupCard;
+use App\Filament\Widgets\DashboardGuide;
 use App\Filament\Widgets\DeploymentOverviewStats;
 use App\Filament\Widgets\DeploymentTimelineWidget;
 use App\Filament\Widgets\GithubSyncDriftCard;
@@ -59,6 +60,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                DashboardGuide::class,
                 AlertsInboxWidget::class,
                 DeploymentOverviewStats::class,
                 ServerHealthOverviewCard::class,

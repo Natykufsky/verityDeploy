@@ -22,7 +22,7 @@
         ],
     ];
 
-    $runTone = $toneStyles[$latestRunTone] ?? $toneStyles['slate'];
+    $runTone = $toneStyles[(string) ($latestRunTone ?? 'slate')] ?? $toneStyles['slate'];
 @endphp
 
 <div class="space-y-4" wire:poll.30s>
@@ -64,19 +64,28 @@
 
         <div class="mt-5 grid gap-3 sm:grid-cols-4">
             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Successful</p>
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Successful</span>
+                    <x-info-tooltip text="Completed cleanup runs that successfully rotated releases." label="Successful help" />
+                </div>
                 <p class="mt-1 text-2xl font-semibold text-emerald-300">{{ $successfulRuns }}</p>
                 <p class="mt-1 text-xs text-slate-400">Cleanup runs</p>
             </div>
 
             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Failed</p>
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Failed</span>
+                    <x-info-tooltip text="Cleanup runs that encountered errors and need manual review." label="Failed help" />
+                </div>
                 <p class="mt-1 text-2xl font-semibold text-rose-300">{{ $failedRuns }}</p>
                 <p class="mt-1 text-xs text-slate-400">Needs review</p>
             </div>
 
             <div class="rounded-xl border border-white/5 bg-black/20 p-3">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Running</p>
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                    <span>Running</span>
+                    <x-info-tooltip text="Cleanup tasks currently executing on target servers." label="Running help" />
+                </div>
                 <p class="mt-1 text-2xl font-semibold text-amber-300">{{ $runningRuns }}</p>
                 <p class="mt-1 text-xs text-slate-400">In progress</p>
             </div>
@@ -84,7 +93,10 @@
             <div class="rounded-xl border bg-black/20 p-3 {{ $runTone['border'] }}">
                 <div class="flex items-center gap-2">
                     <span class="h-2.5 w-2.5 rounded-full {{ $runTone['dot'] }}"></span>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Latest</p>
+                    <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                        <span>Latest</span>
+                        <x-info-tooltip text="The most recent release cleanup run and its summarized state." label="Latest help" />
+                    </div>
                 </div>
                 <p class="mt-1 text-sm font-semibold {{ $runTone['value'] }}">{{ $latestRunLabel }}</p>
                 <p class="mt-1 text-xs text-slate-400">{{ $latestRunWhen }}</p>

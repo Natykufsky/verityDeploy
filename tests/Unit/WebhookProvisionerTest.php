@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\AppSetting;
+use App\Models\CredentialProfile;
 use App\Models\Server;
 use App\Models\Site;
 use App\Services\GitHub\WebhookProvisioner;
@@ -30,6 +31,13 @@ class WebhookProvisionerTest extends TestCase
             'status' => 'online',
         ]);
 
+        $webhookCredentialProfile = CredentialProfile::query()->create([
+            'name' => 'Webhook Secret Profile',
+            'type' => 'webhook',
+            'is_active' => true,
+            'settings' => ['webhook_secret' => 'shared-secret'],
+        ]);
+
         $site = Site::query()->create([
             'server_id' => $server->id,
             'name' => 'github-site',
@@ -37,6 +45,7 @@ class WebhookProvisionerTest extends TestCase
             'default_branch' => 'main',
             'deploy_path' => '/var/www/github-site',
             'deploy_source' => 'git',
+            'webhook_credential_profile_id' => $webhookCredentialProfile->id,
         ]);
 
         Http::fake([
@@ -149,6 +158,10 @@ class WebhookProvisionerTest extends TestCase
 
     protected function seedAppSettings(): void
     {
+        putenv('GITHUB_API_TOKEN=test-github-token');
+        $_ENV['GITHUB_API_TOKEN'] = 'test-github-token';
+        $_SERVER['GITHUB_API_TOKEN'] = 'test-github-token';
+
         AppSetting::query()->updateOrCreate([
             'id' => 1,
         ], [
@@ -160,7 +173,6 @@ class WebhookProvisionerTest extends TestCase
             'default_ssh_port' => 22,
             'github_webhook_path' => '/webhooks/github',
             'github_webhook_events' => 'push',
-            'github_api_token' => 'test-github-token',
         ]);
     }
 }

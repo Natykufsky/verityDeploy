@@ -30,7 +30,6 @@ class AppSetting extends Model
         'default_webhook_credential_profile_id',
         'github_webhook_path',
         'github_webhook_events',
-        'github_api_token',
         'github_oauth_client_id',
         'github_oauth_client_secret',
         'github_oauth_access_token',
@@ -45,7 +44,6 @@ class AppSetting extends Model
     protected function casts(): array
     {
         return [
-            'github_api_token' => EncryptedTextOrPlain::class,
             'github_oauth_client_secret' => EncryptedTextOrPlain::class,
             'github_oauth_access_token' => EncryptedTextOrPlain::class,
             'alert_webhook_secret' => EncryptedTextOrPlain::class,

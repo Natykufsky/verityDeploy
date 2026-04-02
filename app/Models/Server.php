@@ -160,6 +160,10 @@ class Server extends Model
 
     public function getSshPortAttribute(): int
     {
+        if (array_key_exists('ssh_port', $this->attributes) && ! is_null($this->attributes['ssh_port'])) {
+            return (int) $this->attributes['ssh_port'];
+        }
+
         return $this->effectiveSshPort();
     }
 

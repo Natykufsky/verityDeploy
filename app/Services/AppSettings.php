@@ -261,9 +261,7 @@ class AppSettings
             return (string) $oauthToken;
         }
 
-        $token = $this->record()->github_api_token;
-
-        return filled($token) ? (string) $token : (env('GITHUB_API_TOKEN') ?: null);
+        return env('GITHUB_API_TOKEN') ?: null;
     }
 
     public function defaultGithubCredentialProfileId(): ?int

@@ -19,6 +19,10 @@ class DeploymentInfolist
     {
         return $schema
             ->components([
+                Section::make('How this page works')
+                    ->schema([
+                        View::make('filament.pages.deployment-guide'),
+                    ]),
                 Tabs::make('Deployment tabs')
                     ->columnSpanFull()
                     ->persistTab()

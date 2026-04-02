@@ -4,6 +4,7 @@ namespace App\Services\Cpanel;
 
 use App\Actions\BootstrapDeployPath;
 use App\Models\CpanelWizardRun;
+use App\Models\CredentialProfile;
 use App\Models\Server;
 use App\Models\Site;
 use App\Services\Server\ServerProvisioner;
@@ -104,9 +105,7 @@ class CpanelWizardRunner
         $this->appendStep($run, $steps, 'discover ssh port', 'running', 'querying cpanel ssh/get_port...');
         $port = $this->client->discoverSshPort($server->fresh());
 
-        $server->update([
-            'ssh_port' => $port,
-        ]);
+        $this->persistSshPortToCredentialProfile($server, $port);
 
         $this->appendStep($run, $steps, 'discover ssh port', 'successful', "the cpanel account ssh port is {$port}.");
 
@@ -184,6 +183,37 @@ class CpanelWizardRunner
         $run->update([
             'steps' => $steps,
             'summary' => $this->summarizeSteps($steps),
+        ]);
+    }
+
+    protected function persistSshPortToCredentialProfile(Server $server, int $port): void
+    {
+        $profile = $server->sshCredentialProfile;
+
+        if (! $profile || $profile->type !== 'ssh') {
+            $profile = CredentialProfile::query()->create([
+                'name' => sprintf('SSH connection for %s', $server->name),
+                'type' => 'ssh',
+                'description' => 'Automatically created SSH credential profile from connection discovery.',
+                'settings' => [
+                    'port' => $port,
+                ],
+                'is_default' => false,
+                'is_active' => true,
+            ]);
+
+            $server->update([
+                'ssh_credential_profile_id' => $profile->id,
+            ]);
+
+            return;
+        }
+
+        $profile->update([
+            'settings' => array_merge(
+                (array) $profile->settings,
+                ['port' => $port],
+            ),
         ]);
     }
 

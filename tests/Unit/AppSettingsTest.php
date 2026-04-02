@@ -15,6 +15,10 @@ class AppSettingsTest extends TestCase
     {
         $settings = new AppSettings;
 
+        putenv('GITHUB_API_TOKEN=pat-token');
+        $_ENV['GITHUB_API_TOKEN'] = 'pat-token';
+        $_SERVER['GITHUB_API_TOKEN'] = 'pat-token';
+
         $record = new AppSetting([
             'app_name' => 'verityDeploy',
             'default_branch' => 'main',
@@ -24,7 +28,6 @@ class AppSettingsTest extends TestCase
             'default_ssh_port' => 22,
             'github_webhook_path' => '/webhooks/github',
             'github_webhook_events' => 'push',
-            'github_api_token' => 'pat-token',
             'github_oauth_access_token' => 'oauth-token',
         ]);
 
