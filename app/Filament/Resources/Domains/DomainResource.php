@@ -49,73 +49,64 @@ class DomainResource extends Resource
     {
         return $schema
             ->components([
-                Grid::make()
+                Section::make('Domain details')
                     ->schema([
-                        Section::make('Domain details')
-                            ->schema([
-                                Select::make('server_id')
-                                    ->relationship('server', 'name')
-                                    ->live()
-                                    ->searchable()
-                                    ->preload()
-                                    ->required(),
-                                Select::make('site_id')
-                                    ->relationship('site', 'name')
-                                    ->searchable()
-                                    ->preload()
-                                    ->placeholder('Standalone domain - not linked to a site'),
-                                TextInput::make('name')
-                                    ->label('Domain name')
-                                    ->placeholder('verity.com')
-                                    ->unique(ignoreRecord: true)
-                                    ->required(),
-                                Select::make('type')
-                                    ->options([
-                                        'primary' => 'Primary domain',
-                                        'addon' => 'Addon domain (cPanel)',
-                                        'alias' => 'Alias / Parked',
-                                        'subdomain' => 'Subdomain',
-                                    ])
-                                    ->default('primary')
-                                    ->required(),
+                        Select::make('server_id')
+                            ->relationship('server', 'name')
+                            ->live()
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+                        Select::make('site_id')
+                            ->relationship('site', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('No site link'),
+                        TextInput::make('name')
+                            ->label('Domain name')
+                            ->placeholder('e.g. app.example.com')
+                            ->unique(ignoreRecord: true)
+                            ->required(),
+                        Select::make('type')
+                            ->options([
+                                'primary' => 'Primary domain',
+                                'addon' => 'Addon domain (cPanel)',
+                                'alias' => 'Alias / Parked',
+                                'subdomain' => 'Subdomain',
                             ])
-                            ->columnSpan(['default' => 2]),
-                        Section::make('Routing & Runtime')
-                            ->schema([
-                                Select::make('php_version')
-                                    ->options(['8.1' => '8.1', '8.2' => '8.2', '8.3' => '8.3', '8.4' => '8.4'])
-                                    ->placeholder(fn (): string => app(AppSettings::class)->defaultPhpVersion() ?? '8.3'),
-                                TextInput::make('web_root')
-                                    ->default(fn (): string => app(AppSettings::class)->defaultWebRoot())
-                                    ->placeholder('public'),
-                                TextInput::make('external_id')
-                                    ->label('External ID (cPanel/DNS)')
-                                    ->helperText('The unique identifier from your hosting provider.'),
-                                Toggle::make('is_active')
-                                    ->label('Active')
-                                    ->default(true),
-                            ])
-                            ->columnSpan(['default' => 1]),
-                        Section::make('SSL security')
+                            ->default('primary')
+                            ->required(),
+                    ])
+                    ->columns(['lg' => 2]),
+
+                Section::make('Routing & Configuration')
+                    ->schema([
+                        Select::make('php_version')
+                            ->options(['8.1' => '8.1', '8.2' => '8.2', '8.3' => '8.3', '8.4' => '8.4', 'inherit' => 'Inherit from server'])
+                            ->default('inherit')
+                            ->placeholder(fn (): string => app(AppSettings::class)->defaultPhpVersion() ?? '8.3'),
+                        TextInput::make('web_root')
+                            ->default(fn (): string => app(AppSettings::class)->defaultWebRoot())
+                            ->placeholder('public'),
+                        TextInput::make('external_id')
+                            ->label('Identifier')
+                            ->placeholder('Auto-populated'),
+                        Toggle::make('is_active')
+                            ->label('Active status')
+                            ->default(true),
+                    ])
+                    ->columns(['lg' => 2]),
+
+                Section::make('SSL Security')
+                    ->schema([
+                        Grid::make(['lg' => 3])
                             ->schema([
                                 Toggle::make('is_ssl_enabled')
-                                    ->label('Enable SSL')
+                                    ->label('Manage SSL')
                                     ->live(),
                                 Toggle::make('settings.https_redirect')
-                                    ->label('Force HTTPS Redirect')
-                                    ->helperText('Automatically redirect HTTP traffic to HTTPS via server configuration.')
-                                    ->live()
-                                    ->afterStateUpdated(function (Domain $record, $state, CpanelApiClient $cpanel) {
-                                        if (! $record->exists) {
-                                            return;
-                                        }
-                                        try {
-                                            $cpanel->setHttpsRedirect($record->server, $record->name, $state);
-                                            Notification::make()->title($state ? 'HTTPS Forced' : 'HTTPS Normal')->success()->send();
-                                        } catch (\Exception $e) {
-                                            Notification::make()->title('Sync Failed')->body($e->getMessage())->danger()->send();
-                                        }
-                                    }),
+                                    ->label('Force HTTPS')
+                                    ->live(),
                                 Select::make('ssl_status')
                                     ->options([
                                         'pending' => 'Pending',
@@ -123,25 +114,25 @@ class DomainResource extends Resource
                                         'expired' => 'Expired',
                                         'failed' => 'Failed',
                                     ])
+                                    ->placeholder('Unknown')
                                     ->visible(fn (Get $get): bool => (bool) $get('is_ssl_enabled')),
-                                DateTimePicker::make('ssl_expires_at')
-                                    ->visible(fn (Get $get): bool => (bool) $get('is_ssl_enabled')),
-                                Tabs::make('Certificate data')
-                                    ->tabs([
-                                        Tab::make('Certificate')
-                                            ->schema([Textarea::make('ssl_certificate')->rows(10)]),
-                                        Tab::make('Private key')
-                                            ->schema([Textarea::make('ssl_key')->rows(10)]),
-                                        Tab::make('Chain / CA bundle')
-                                            ->schema([Textarea::make('ssl_chain')->rows(10)]),
-                                    ])
-                                    ->columnSpanFull()
-                                    ->visible(fn (Get $get): bool => (bool) $get('is_ssl_enabled')),
+                            ]),
+                        DateTimePicker::make('ssl_expires_at')
+                            ->visible(fn (Get $get): bool => (bool) $get('is_ssl_enabled')),
+                        Tabs::make('Manual Certificate Data')
+                            ->tabs([
+                                Tab::make('Cert')
+                                    ->schema([Textarea::make('ssl_certificate')->rows(8)]),
+                                Tab::make('Key')
+                                    ->schema([Textarea::make('ssl_key')->rows(8)]),
+                                Tab::make('Bundle')
+                                    ->schema([Textarea::make('ssl_chain')->rows(8)]),
                             ])
                             ->columnSpanFull()
-                            ->collapsible(),
+                            ->visible(fn (Get $get): bool => (bool) $get('is_ssl_enabled')),
                     ])
-                    ->columns(3),
+                    ->columns(1)
+                    ->collapsible(),
             ]);
     }
 
@@ -206,7 +197,21 @@ class DomainResource extends Resource
                     ->form([
                         Select::make('server_id')
                             ->label('Select Server')
-                            ->options(Server::query()->forTeam(auth()->user()->current_team_id)->where('provider_type', 'cpanel')->pluck('name', 'id')->all())
+                            ->options(function () {
+                                $user = auth()->user();
+
+                                return Server::query()
+                                    ->where('provider_type', 'cpanel')
+                                    ->where(function (Builder $query) use ($user) {
+                                        $query->where('user_id', $user->id);
+
+                                        if ($teamId = $user->current_team_id ?? null) {
+                                            $query->orWhere('team_id', $teamId);
+                                        }
+                                    })
+                                    ->pluck('name', 'id')
+                                    ->all();
+                            })
                             ->searchable()
                             ->required(),
                     ])
@@ -278,7 +283,16 @@ class DomainResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->forTeam(auth()->user()->current_team_id);
+        $user = auth()->user();
+
+        return parent::getEloquentQuery()
+            ->whereHas('server', function (Builder $query) use ($user) {
+                $query->where('user_id', $user->id);
+
+                if ($teamId = $user->current_team_id ?? null) {
+                    $query->orWhere('team_id', $teamId);
+                }
+            });
     }
 
     public static function getPages(): array

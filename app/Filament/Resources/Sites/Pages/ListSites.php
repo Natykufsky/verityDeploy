@@ -13,6 +13,14 @@ class ListSites extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            \Filament\Actions\Action::make('userGuide')
+                ->label('App Guide')
+                ->icon('heroicon-m-book-open')
+                ->color('info')
+                ->modalHeading('App Management Guide')
+                ->modalWidth('2xl')
+                ->modalFooterActions([])
+                ->modalContent(view('filament.sites.user-guide')),
             CreateAction::make(),
         ];
     }

@@ -65,8 +65,7 @@ class ServerForm
                                     ->options(fn (): array => CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
                                     ->default(fn (): ?int => app(AppSettings::class)->defaultCpanelCredentialProfileId())
                                     ->searchable()
-                                    ->placeholder('Use default or enter manually')
-                                    ->helperText('Select a shared cPanel profile to avoid repeating the account token and login details.')
+                                    ->placeholder('Select cPanel API token')
                                     ->columnSpanFull()
                                     ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel'),
                                 TextInput::make('ssh_port')
@@ -82,8 +81,7 @@ class ServerForm
                                             ->action(function (?Server $record, Set $set): void {
                                                 if (! $record) {
                                                     Notification::make()
-                                                        ->title('Save the server first')
-                                                        ->body('Create or update the cPanel server before discovering its SSH port.')
+                                                        ->title('Save record first')
                                                         ->warning()
                                                         ->send();
 
@@ -100,7 +98,6 @@ class ServerForm
 
                                                     Notification::make()
                                                         ->title('SSH port discovered')
-                                                        ->body("The cPanel account SSH port was set to {$port}.")
                                                         ->success()
                                                         ->send();
                                                 } catch (Throwable $throwable) {
@@ -112,19 +109,17 @@ class ServerForm
                                                 }
                                             }),
                                     )
-                                    ->helperText('Use Discover after saving a cPanel server to fetch the account SSH port from the API.')
                                     ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password', 'cpanel'])),
                                 Select::make('ssh_credential_profile_id')
                                     ->label('SSH credential profile')
                                     ->options(fn (): array => CredentialProfile::query()->ofType('ssh')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
                                     ->default(fn (): ?int => app(AppSettings::class)->defaultSshCredentialProfileId())
                                     ->searchable()
-                                    ->placeholder('Use default or enter manually')
-                                    ->helperText('Select a shared SSH profile containing the host user, key, and password details.')
+                                    ->placeholder('Select SSH key or password')
                                     ->columnSpanFull()
                                     ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password', 'cpanel'])),
                                 Select::make('team_id')
-                                    ->label('Team')
+                                    ->label('Owner team')
                                     ->options(fn (): array => Team::query()
                                         ->accessibleTo()
                                         ->orderBy('name')
@@ -132,7 +127,6 @@ class ServerForm
                                         ->all())
                                     ->searchable()
                                     ->placeholder('Personal workspace')
-                                    ->helperText('Assign this server to a team so other members can share access and deploys.')
                                     ->columnSpanFull(),
                                 TextInput::make('status')
                                     ->required()
@@ -140,17 +134,15 @@ class ServerForm
                                     ->disabled(),
                                 DateTimePicker::make('last_connected_at')
                                     ->disabled(),
-                                View::make('filament.servers.connection-mode-help')
-                                    ->columnSpanFull(),
                             ])
                             ->columns(2),
 
-                        Tab::make('Provider')
-                            ->badge('Infra')
+                        Tab::make('Infrastructure')
+                            ->badge('Cloud')
                             ->badgeColor('success')
                             ->schema([
                                 Select::make('provider_type')
-                                    ->label('Provider type')
+                                    ->label('Cloud provider')
                                     ->options(Server::providerOptions())
                                     ->default('manual')
                                     ->required()
@@ -169,71 +161,59 @@ class ServerForm
                                         $set('can_manage_vhosts', true);
                                         $set('can_manage_dns', false);
                                         $set('can_manage_ssl', true);
-                                    })
-                                    ->helperText('This identifies which cloud or hosting provider owns the machine. It helps with inventory, reporting, and future provider-specific automation.'),
+                                    }),
                                 TextInput::make('provider_reference')
-                                    ->label('Provider reference')
-                                    ->placeholder('droplet-12345 / i-0abc123 / server-789')
-                                    ->helperText('Store the vendor-specific identifier here so you can match this server to the infrastructure console.'),
+                                    ->label('Node identifier')
+                                    ->placeholder('e.g. i-0abc123'),
                                 TextInput::make('provider_region')
-                                    ->label('Provider region')
-                                    ->placeholder('fra1 / us-east-1 / ewr1')
-                                    ->helperText('Use the vendor region or datacenter name so the server is easy to locate later.'),
+                                    ->label('Region')
+                                    ->placeholder('e.g. fra1'),
                                 Select::make('dns_credential_profile_id')
-                                    ->label('DNS credential profile')
+                                    ->label('DNS API profile')
                                     ->options(fn (): array => CredentialProfile::query()->ofType('dns')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
                                     ->default(fn (): ?int => app(AppSettings::class)->defaultDnsCredentialProfileId())
                                     ->searchable()
-                                    ->placeholder('Use default or enter manually')
-                                    ->helperText('Select a shared DNS profile to avoid repeating API tokens and zone details.')
+                                    ->placeholder('None')
                                     ->columnSpanFull(),
                                 KeyValue::make('provider_metadata')
-                                    ->label('Provider metadata')
+                                    ->label('Custom metadata')
                                     ->keyLabel('Field')
                                     ->valueLabel('Value')
-                                    ->columnSpanFull()
-                                    ->helperText('Add any extra provider details such as plan, tags, cluster, or notes.'),
-                                Section::make('Capabilities')
+                                    ->columnSpanFull(),
+                                Section::make('Service Capabilities')
                                     ->schema([
                                         Toggle::make('can_manage_domains')
-                                            ->label('Can manage domains')
-                                            ->helperText('Enable this when the server can create addon domains or subdomains.')
+                                            ->label('Domain management')
                                             ->default(false),
                                         Toggle::make('can_manage_vhosts')
-                                            ->label('Can manage vhosts')
-                                            ->helperText('Enable this when the server can generate or apply nginx/apache virtual hosts.')
+                                            ->label('Vhost management')
                                             ->default(false),
                                         Toggle::make('can_manage_dns')
-                                            ->label('Can manage DNS')
-                                            ->helperText('Enable this when the server or provider can manage DNS records.')
+                                            ->label('DNS management')
                                             ->default(false),
                                         Toggle::make('can_manage_ssl')
-                                            ->label('Can manage SSL')
-                                            ->helperText('Enable this when the server or provider can issue or renew certificates.')
+                                            ->label('SSL management')
                                             ->default(false),
                                     ])
                                     ->columns(2),
-                                Section::make('VPS vhost paths')
+                                Section::make('Advanced Vhost Paths')
                                     ->schema([
                                         TextInput::make('vhost_config_path')
-                                            ->label('Vhost config path')
-                                            ->placeholder('/etc/nginx/sites-available/site.conf')
-                                            ->helperText('Optional override for the file path shown in the VPS repair plan.'),
+                                            ->label('Config path')
+                                            ->placeholder('/etc/nginx/sites-available/site.conf'),
                                         TextInput::make('vhost_enabled_path')
-                                            ->label('Vhost enabled path')
-                                            ->placeholder('/etc/nginx/sites-enabled/site.conf')
-                                            ->helperText('Optional override for the active or enabled path used by the web server.'),
+                                            ->label('Enabled path')
+                                            ->placeholder('/etc/nginx/sites-enabled/site.conf'),
                                         TextInput::make('vhost_reload_command')
                                             ->label('Reload command')
-                                            ->placeholder('systemctl reload nginx')
-                                            ->helperText('Optional override for the command used to reload the web server after config changes.'),
+                                            ->placeholder('systemctl reload nginx'),
                                     ])
                                     ->columns(1)
                                     ->visible(fn (?Server $record, Get $get): bool => (($get('connection_type') ?? $record?->connection_type) !== 'cpanel') && (bool) ($get('can_manage_vhosts') ?? $record?->can_manage_vhosts)),
-                                Section::make('DNS provider')
+                                Section::make('DNS Authority')
                                     ->schema([
                                         Select::make('dns_provider')
-                                            ->label('DNS provider')
+                                            ->label('DNS Authority')
                                             ->options(Server::dnsProviderOptions())
                                             ->default('manual')
                                             ->live()
@@ -241,17 +221,13 @@ class ServerForm
                                                 if ($state === 'cloudflare') {
                                                     $set('can_manage_dns', true);
                                                 }
-                                            })
-                                            ->helperText('Choose the DNS provider that can manage zones and records for this server.'),
-
+                                            }),
                                     ])
                                     ->columns(2),
-                                View::make('filament.servers.provider-mode-help')
-                                    ->columnSpanFull(),
                             ])
                             ->columns(2),
                         Tab::make('Audit')
-                            ->badge('Log')
+                            ->badge('History')
                             ->badgeColor('gray')
                             ->schema([
                                 DateTimePicker::make('last_connected_at'),

@@ -17,12 +17,16 @@ class CredentialProfileForm
     {
         return $schema
             ->components([
-                Section::make('Profile details')
+                Section::make('Profile definition')
+                    ->description('Assign a type and name to this shared credential set.')
                     ->schema([
                         TextInput::make('name')
+                            ->label('Profile name')
+                            ->placeholder('e.g. Production GitHub')
                             ->required()
                             ->maxLength(120),
                         Select::make('type')
+                            ->label('Credential type')
                             ->required()
                             ->options(CredentialProfile::typeOptions())
                             ->live()
@@ -30,27 +34,28 @@ class CredentialProfileForm
                                 if (filled($state)) {
                                     $set('settings', static::defaultSettings($state));
                                 }
-                            })
-                            ->helperText('Pick the kind of account this profile represents.'),
+                            }),
                         TextInput::make('description')
+                            ->label('Context / Notes')
+                            ->placeholder('Where and why is this used?')
                             ->maxLength(255)
-                            ->columnSpanFull()
-                            ->helperText('Optional note explaining what this profile is used for.'),
+                            ->columnSpanFull(),
                         Toggle::make('is_default')
-                            ->label('Default profile'),
+                            ->label('Mark as system default')
+                            ->default(false),
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label('Enable this profile')
                             ->default(true),
                     ])
                     ->columns(2),
-                Section::make('Profile payload')
+                Section::make('Secure payload')
+                    ->description('Store provider-specific key-value pairs here.')
                     ->schema([
                         KeyValue::make('settings')
-                            ->label('Settings')
+                            ->label('Configuration values')
                             ->keyLabel('Field')
                             ->valueLabel('Value')
-                            ->columnSpanFull()
-                            ->helperText('Store the provider-specific values for this profile. Examples: SSH host, username, key path, token, zone ID, webhook URL, or GitHub repository details.'),
+                            ->columnSpanFull(),
                     ])
                     ->columns(1),
             ]);

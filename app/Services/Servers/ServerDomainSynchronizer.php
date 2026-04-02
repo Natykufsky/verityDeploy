@@ -28,6 +28,11 @@ class ServerDomainSynchronizer
 
             foreach ($domains as $domainData) {
                 $name = data_get($domainData, 'domain');
+
+                if (blank($name)) {
+                    continue;
+                }
+
                 $cpanelType = data_get($domainData, 'type');
 
                 $type = match ($cpanelType) {
@@ -38,10 +43,14 @@ class ServerDomainSynchronizer
                     default => 'addon',
                 };
 
-                $this->updateOrCreateDomain($server, $name, $type, [
-                    'php_version' => data_get($domainData, 'php-version'),
-                    'web_root' => data_get($domainData, 'documentroot'),
-                    'https_redirect' => (bool) data_get($domainData, 'https_redirect'),
+                $this->updateOrCreateDomain($server, (string) $name, $type, [
+                    'php_version' => data_get($domainData, 'php_version')
+                        ?? data_get($domainData, 'php-version')
+                        ?? data_get($domainData, 'phpversion'),
+                    'web_root' => data_get($domainData, 'documentroot')
+                        ?? data_get($domainData, 'webroot')
+                        ?? data_get($domainData, 'rootdomain'),
+                    'https_redirect' => (bool) (data_get($domainData, 'https_redirect') ?? data_get($domainData, 'is_https_redirect')),
                     'external_id' => data_get($domainData, 'user'),
                 ]);
 

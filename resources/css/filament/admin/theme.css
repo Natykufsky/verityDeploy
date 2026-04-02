@@ -405,7 +405,7 @@
 
 .fi-section-content,
 .fi-section-content > div {
-    /* overflow-y: auto; */
+    min-height: 0;
 }
 
 .deployment-frost-card {
@@ -655,3 +655,29 @@ samp {
 .choices {
     overflow: visible !important;
 }
+
+/* Force lowercase/sentence-case across the UI */
+.fi-badge,
+.fi-wi-stats-overview-stat-label,
+.fi-ta-header-cell-label,
+.fi-fo-field-wrp-label,
+.fi-sidebar-group-label,
+.fi-section-header-heading,
+.fi-modal-heading,
+.fi-topbar-item-label,
+.fi-btn-label,
+.fi-ta-empty-state-heading,
+.fi-ta-empty-state-description,
+.fi-dropdown-list-item-label,
+.fi-ta-header-heading,
+.fi-ta-header-subheading,
+.fi-fo-section-header-heading,
+.fi-in-entry-label,
+.fi-header-heading,
+.fi-header-subheading,
+.uppercase,
+.capitalize {
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+

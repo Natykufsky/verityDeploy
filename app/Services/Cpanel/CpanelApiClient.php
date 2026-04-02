@@ -124,7 +124,7 @@ class CpanelApiClient
      */
     public function listDomains(Server $server): array
     {
-        return $this->request($server, 'DomainInfo', 'domains_data');
+        return $this->request($server, 'DomainInfo', 'list_domains');
     }
 
     /**
