@@ -48,11 +48,7 @@ class SiteForm
                                         ->required(),
                                     Select::make('team_id')
                                         ->label('Team')
-                                        ->options(fn (): array => Team::query()
-                                            ->accessibleTo()
-                                            ->orderBy('name')
-                                            ->pluck('name', 'id')
-                                            ->all())
+                                        ->options(app(Team::class)->query()->accessibleTo()->orderBy('name')->pluck('name', 'id')->all())
                                         ->searchable()
                                         ->placeholder('Inherit from server')
                                         ->helperText('Leave blank to inherit the team from the assigned server.'),
@@ -70,8 +66,8 @@ class SiteForm
                                         ->columnSpanFull(),
                                     Select::make('webhook_credential_profile_id')
                                         ->label('Webhook credential profile')
-                                        ->options(fn (): array => CredentialProfile::query()->ofType('webhook')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
-                                        ->default(fn (): ?int => app(AppSettings::class)->defaultWebhookCredentialProfileId())
+                                        ->options(CredentialProfile::query()->ofType('webhook')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                        ->default(app(AppSettings::class)->defaultWebhookCredentialProfileId())
                                         ->searchable()
                                         ->placeholder('Use default or leave blank')
                                         ->helperText('Select the shared webhook profile that should be used for inbound deployment and alert hooks.')
@@ -124,70 +120,33 @@ class SiteForm
                         ->schema([
                             Section::make('Domain mapping')
                                 ->schema([
-                                    TextInput::make('primary_domain')
+                                    Select::make('primary_domain_id')
                                         ->label('Primary domain')
-                                        ->placeholder('freshfromnaija.com')
-                                        ->helperText('The main domain that should point to this site.')
-                                        ->columnSpanFull(),
-                                    Repeater::make('subdomains')
-                                        ->label('Subdomains')
-                                        ->schema([
-                                            TextInput::make('value')
-                                                ->label('Subdomain')
-                                                ->placeholder('app.freshfromnaija.com')
-                                                ->required(),
-                                        ])
-                                        ->addActionLabel('Add subdomain')
-                                        ->itemLabel(fn (array $state): string => filled($state['value'] ?? null) ? (string) $state['value'] : 'Subdomain')
-                                        ->columnSpanFull()
-                                        ->helperText('Add full subdomain hostnames that should point to this site.'),
-                                    Repeater::make('alias_domains')
-                                        ->label('Alias domains')
-                                        ->schema([
-                                            TextInput::make('value')
-                                                ->label('Alias domain')
-                                                ->placeholder('www.freshfromnaija.com')
-                                                ->required(),
-                                        ])
-                                        ->addActionLabel('Add alias domain')
-                                        ->itemLabel(fn (array $state): string => filled($state['value'] ?? null) ? (string) $state['value'] : 'Alias domain')
-                                        ->columnSpanFull()
-                                        ->helperText('Add parked or alias hostnames that should serve the same site.'),
-                                ])
-                                ->columns(1),
-                            Section::make('SSL and routing')
-                                ->schema([
-                                    Select::make('dns_credential_profile_id')
-                                        ->label('DNS credential profile')
-                                        ->options(fn (): array => CredentialProfile::query()->ofType('dns')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
-                                        ->default(fn (): ?int => app(AppSettings::class)->defaultDnsCredentialProfileId())
+                                        ->relationship('primaryDomain', 'name', fn ($query, Get $get) => $query->where('server_id', $get('server_id')))
                                         ->searchable()
-                                        ->placeholder('Use default or leave blank')
-                                        ->helperText('Select the shared DNS profile that should be used for domain and record management.')
-                                        ->columnSpanFull(),
-                                    Select::make('ssl_state')
-                                        ->label('SSL state')
-                                        ->options([
-                                            'unconfigured' => 'Unconfigured',
-                                            'pending' => 'Pending',
-                                            'valid' => 'Valid',
-                                            'issued' => 'Issued',
-                                            'expired' => 'Expired',
-                                            'failed' => 'Failed',
-                                        ])
-                                        ->default('unconfigured')
-                                        ->helperText('Track whether the domain has a certificate and whether it is ready for HTTPS.'),
+                                        ->preload()
+                                        ->live()
+                                        ->required()
+                                        ->placeholder('Select a domain from the assigned server')
+                                        ->helperText('Manage domains globally under the Server resource.'),
                                     Toggle::make('force_https')
                                         ->label('Force HTTPS')
                                         ->default(false)
                                         ->helperText('Redirect HTTP traffic to HTTPS once the certificate is ready.'),
-                                    View::make('filament.sites.ssl-preview')
-                                        ->columnSpanFull()
-                                        ->viewData(fn (Get $get): array => [
-                                            'preview' => self::sitePreview($get)->ssl_preview,
-                                        ]),
                                 ])
-                                ->columns(2),
+                                ->columns(1),
+                            Section::make('SSL and Routing')
+                                ->schema([
+                                    Select::make('dns_credential_profile_id')
+                                        ->label('DNS credential profile')
+                                        ->options(CredentialProfile::query()->ofType('dns')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                        ->default(app(AppSettings::class)->defaultDnsCredentialProfileId())
+                                        ->searchable()
+                                        ->placeholder('Use default or leave blank')
+                                        ->helperText('Select the shared DNS profile that should be used for domain and record management.')
+                                        ->columnSpanFull(),
+                                ])
+                                ->columns(1),
                         ]),
                     Tab::make('Runtime')
                         ->badge('Env')
@@ -245,13 +204,13 @@ class SiteForm
                                         ->columnSpanFull()
                                         ->viewData(fn (Get $get): array => [
                                             'preview' => SiteDomainPreview::build(
-                                                $get('primary_domain'),
-                                                (array) ($get('subdomains') ?? []),
-                                                (array) ($get('alias_domains') ?? []),
+                                                $get('primary_domain_id'),
+                                                [],
+                                                [],
                                                 null,
                                                 $get('deploy_path'),
                                                 $get('web_root'),
-                                                $get('ssl_state'),
+                                                'valid',
                                                 (bool) $get('force_https'),
                                             ),
                                         ]),
@@ -275,16 +234,11 @@ class SiteForm
     protected static function sitePreview(Get $get): Site
     {
         $site = new Site([
-            'primary_domain' => $get('primary_domain'),
-            'subdomains' => (array) ($get('subdomains') ?? []),
-            'alias_domains' => (array) ($get('alias_domains') ?? []),
-            'ssl_state' => $get('ssl_state'),
+            'primary_domain_id' => $get('primary_domain_id'),
             'force_https' => (bool) $get('force_https'),
             'deploy_path' => $get('deploy_path'),
             'web_root' => $get('web_root'),
             'current_release_path' => $get('current_release_path'),
-            'ssl_last_synced_at' => $get('ssl_last_synced_at'),
-            'ssl_last_error' => $get('ssl_last_error'),
         ]);
 
         if (filled($get('server_id'))) {

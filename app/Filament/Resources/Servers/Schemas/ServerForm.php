@@ -42,11 +42,33 @@ class ServerForm
                             ->badge('Base')
                             ->badgeColor('primary')
                             ->schema([
+                                Select::make('connection_type')
+                                    ->label('Connection type')
+                                    ->options([
+                                        'ssh_key' => 'SSH key',
+                                        'password' => 'Password',
+                                        'local' => 'Local',
+                                        'cpanel' => 'cPanel',
+                                    ])
+                                    ->default('ssh_key')
+                                    ->required()
+                                    ->live()
+                                    ->columnSpanFull(),
                                 TextInput::make('name')
                                     ->required(),
                                 TextInput::make('ip_address')
                                     ->label('IP address')
-                                    ->required(),
+                                    ->required()
+                                    ->visible(fn (Get $get): bool => $get('connection_type') !== 'local'),
+                                Select::make('cpanel_credential_profile_id')
+                                    ->label('cPanel credential profile')
+                                    ->options(fn (): array => CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
+                                    ->default(fn (): ?int => app(AppSettings::class)->defaultCpanelCredentialProfileId())
+                                    ->searchable()
+                                    ->placeholder('Use default or enter manually')
+                                    ->helperText('Select a shared cPanel profile to avoid repeating the account token and login details.')
+                                    ->columnSpanFull()
+                                    ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel'),
                                 TextInput::make('ssh_port')
                                     ->label('SSH port')
                                     ->required()
@@ -100,7 +122,7 @@ class ServerForm
                                     ->placeholder('Use default or enter manually')
                                     ->helperText('Select a shared SSH profile containing the host user, key, and password details.')
                                     ->columnSpanFull()
-                                    ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password'])),
+                                    ->visible(fn (Get $get): bool => in_array($get('connection_type'), ['ssh_key', 'password', 'cpanel'])),
                                 Select::make('team_id')
                                     ->label('Team')
                                     ->options(fn (): array => Team::query()
@@ -110,42 +132,19 @@ class ServerForm
                                         ->all())
                                     ->searchable()
                                     ->placeholder('Personal workspace')
-                                    ->helperText('Assign this server to a team so other members can share access and deploys.'),
-                                Select::make('connection_type')
-                                    ->options([
-                                        'ssh_key' => 'SSH key',
-                                        'password' => 'Password',
-                                        'local' => 'Local',
-                                        'cpanel' => 'cPanel',
-                                    ])
-                                    ->default('ssh_key')
-                                    ->required()
-                                    ->live(),
+                                    ->helperText('Assign this server to a team so other members can share access and deploys.')
+                                    ->columnSpanFull(),
                                 TextInput::make('status')
                                     ->required()
-                                    ->default('offline'),
-                                DateTimePicker::make('last_connected_at'),
+                                    ->default('offline')
+                                    ->disabled(),
+                                DateTimePicker::make('last_connected_at')
+                                    ->disabled(),
                                 View::make('filament.servers.connection-mode-help')
                                     ->columnSpanFull(),
                             ])
                             ->columns(2),
 
-                        Tab::make('cPanel')
-                            ->badge('API')
-                            ->badgeColor('info')
-                            ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
-                            ->schema([
-
-                                Select::make('cpanel_credential_profile_id')
-                                    ->label('cPanel credential profile')
-                                    ->options(fn (): array => CredentialProfile::query()->ofType('cpanel')->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->pluck('name', 'id')->all())
-                                    ->default(fn (): ?int => app(AppSettings::class)->defaultCpanelCredentialProfileId())
-                                    ->searchable()
-                                    ->placeholder('Use default or enter manually')
-                                    ->helperText('Select a shared cPanel profile to avoid repeating the account token and login details.')
-                                    ->columnSpanFull(),
-                            ])
-                            ->columns(2),
                         Tab::make('Provider')
                             ->badge('Infra')
                             ->badgeColor('success')

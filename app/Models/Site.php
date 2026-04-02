@@ -18,8 +18,19 @@ class Site extends Model
 {
     use HasFactory;
 
+    /**
+     * Scope a query to only include sites belonging to a specific team.
+     *
+     * @param  mixed  $teamId
+     */
+    public function scopeForTeam(Builder $query, $teamId): Builder
+    {
+        return $query->where('team_id', $teamId);
+    }
+
     protected $fillable = [
         'server_id',
+        'primary_domain_id',
         'team_id',
         'name',
         'repository_url',
@@ -126,6 +137,21 @@ class Site extends Model
     public function getWebhookSecretAttribute(): ?string
     {
         return $this->effectiveWebhookSecret();
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(Domain::class);
+    }
+
+    public function primaryDomain(): BelongsTo
+    {
+        return $this->belongsTo(Domain::class, 'primary_domain_id');
+    }
+
+    public function currentDomain(): BelongsTo
+    {
+        return $this->primaryDomain();
     }
 
     public function team(): BelongsTo

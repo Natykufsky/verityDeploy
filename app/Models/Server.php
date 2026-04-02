@@ -14,6 +14,16 @@ class Server extends Model
 {
     use HasFactory;
 
+    /**
+     * Scope a query to only include servers belonging to a specific team.
+     *
+     * @param  mixed  $teamId
+     */
+    public function scopeForTeam(Builder $query, $teamId): Builder
+    {
+        return $query->where('team_id', $teamId);
+    }
+
     protected $fillable = [
         'user_id',
         'team_id',
@@ -87,6 +97,11 @@ class Server extends Model
     public function dnsCredentialProfile(): BelongsTo
     {
         return $this->belongsTo(CredentialProfile::class, 'dns_credential_profile_id');
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(Domain::class);
     }
 
     public function effectiveCredentialProfile(string $type): ?CredentialProfile

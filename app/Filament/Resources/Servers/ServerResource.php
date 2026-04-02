@@ -7,6 +7,7 @@ use App\Filament\Resources\Servers\Pages\CreateServer;
 use App\Filament\Resources\Servers\Pages\EditServer;
 use App\Filament\Resources\Servers\Pages\ListServers;
 use App\Filament\Resources\Servers\Pages\ViewServer;
+use App\Filament\Resources\Servers\RelationManagers\DomainsRelationManager;
 use App\Filament\Resources\Servers\RelationManagers\SitesRelationManager;
 use App\Filament\Resources\Servers\Schemas\ServerForm;
 use App\Filament\Resources\Servers\Schemas\ServerInfolist;
@@ -22,7 +23,11 @@ class ServerResource extends Resource
 {
     protected static ?string $model = Server::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedServer;
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Infrastructure';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -44,6 +49,7 @@ class ServerResource extends Resource
     public static function getRelations(): array
     {
         return [
+            DomainsRelationManager::class,
             SitesRelationManager::class,
         ];
     }

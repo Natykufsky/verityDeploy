@@ -8,6 +8,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class CredentialProfileForm
@@ -25,6 +26,11 @@ class CredentialProfileForm
                             ->required()
                             ->options(CredentialProfile::typeOptions())
                             ->live()
+                            ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                if (filled($state)) {
+                                    $set('settings', static::defaultSettings($state));
+                                }
+                            })
                             ->helperText('Pick the kind of account this profile represents.'),
                         TextInput::make('description')
                             ->maxLength(255)
@@ -48,5 +54,41 @@ class CredentialProfileForm
                     ])
                     ->columns(1),
             ]);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function defaultSettings(string $type): array
+    {
+        return match ($type) {
+            'ssh' => [
+                'username' => 'root',
+                'port' => '22',
+                'private_key' => '',
+                'sudo_password' => '',
+            ],
+            'cpanel' => [
+                'username' => '',
+                'api_token' => '',
+                'api_port' => '2083',
+            ],
+            'github' => [
+                'api_token' => '',
+                'username' => '',
+                'repository' => '',
+            ],
+            'dns' => [
+                'provider' => 'cloudflare',
+                'api_token' => '',
+                'zone_id' => '',
+                'proxy_records' => '1',
+            ],
+            'webhook' => [
+                'webhook_url' => '',
+                'secret' => '',
+            ],
+            default => [],
+        };
     }
 }

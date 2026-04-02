@@ -122,6 +122,36 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function listDomains(Server $server): array
+    {
+        return $this->request($server, 'DomainInfo', 'domains_data');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function setHttpsRedirect(Server $server, string $domain, bool $state): array
+    {
+        return $this->request($server, 'DomainInfo', 'set_https_redirect', [
+            'domain' => $domain,
+            'enabled' => $state ? 1 : 0,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function checkAutoSsl(Server $server): array
+    {
+        // For a specific user context (already set by Token/Username)
+        return $this->request($server, 'SSL', 'autossl_check_for_user', [
+            'user' => $this->cpanelUsername($server),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function mkdir(Server $server, string $path, string $name, ?string $permissions = null): array
     {
         $query = [
@@ -424,32 +454,42 @@ class CpanelApiClient
 
     protected function client(Server $server)
     {
+        $port = $server->effectiveCpanelApiPort() ?: 2083;
+        $prefix = ($port == 2087) ? 'whm' : 'cpanel';
+
         $baseUrl = sprintf(
             'https://%s:%d/execute',
             $server->ip_address,
-            $server->effectiveCpanelApiPort() ?: 2083,
+            $port,
         );
 
         return Http::baseUrl($baseUrl)
             ->acceptJson()
             ->asJson()
             ->timeout(30)
-            ->withBasicAuth($this->cpanelUsername($server), (string) $server->effectiveCpanelApiToken());
+            ->withHeaders([
+                'Authorization' => "{$prefix} ".$this->cpanelUsername($server).':'.(string) $server->effectiveCpanelApiToken(),
+            ]);
     }
 
     protected function api2Client(Server $server)
     {
+        $port = $server->effectiveCpanelApiPort() ?: 2083;
+        $prefix = ($port == 2087) ? 'whm' : 'cpanel';
+
         $baseUrl = sprintf(
             'https://%s:%d/json-api/cpanel',
             $server->ip_address,
-            $server->effectiveCpanelApiPort() ?: 2083,
+            $port,
         );
 
         return Http::baseUrl($baseUrl)
             ->acceptJson()
             ->asJson()
             ->timeout(30)
-            ->withBasicAuth($this->cpanelUsername($server), (string) $server->effectiveCpanelApiToken());
+            ->withHeaders([
+                'Authorization' => "{$prefix} ".$this->cpanelUsername($server).':'.(string) $server->effectiveCpanelApiToken(),
+            ]);
     }
 
     protected function cpanelUsername(Server $server): string
