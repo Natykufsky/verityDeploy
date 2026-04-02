@@ -67,6 +67,7 @@ class Site extends Model
         'vhost_apply_last_error',
         'vhost_apply_last_steps',
         'active',
+        'health_check_endpoint',
         'last_deployed_at',
         'notes',
     ];
@@ -96,6 +97,7 @@ class Site extends Model
             'vhost_apply_last_steps' => 'array',
             'ignore_local_source_ignored_files' => 'boolean',
             'active' => 'boolean',
+            'health_check_endpoint' => 'string',
             'last_deployed_at' => 'datetime',
             'current_release_path' => 'string',
             'local_source_path' => 'string',

@@ -256,11 +256,11 @@ class DeployProject
                 'label' => 'Preflight checks',
                 'command' => $site->deploy_source === 'git'
                     ? sprintf(
-                        'mkdir -p %s && command -v git >/dev/null && (command -v composer >/dev/null || command -v composer2 >/dev/null || command -v ea-composer >/dev/null || [ -x /opt/cpanel/composer/bin/composer ]) && command -v php >/dev/null',
+                        'mkdir -p %s && command -v git >/dev/null && command -v curl >/dev/null && (command -v composer >/dev/null || command -v composer2 >/dev/null || command -v ea-composer >/dev/null || [ -x /opt/cpanel/composer/bin/composer ]) && command -v php >/dev/null',
                         escapeshellarg($basePath),
                     )
                     : sprintf(
-                        'mkdir -p %s && command -v tar >/dev/null && (command -v composer >/dev/null || command -v composer2 >/dev/null || command -v ea-composer >/dev/null || [ -x /opt/cpanel/composer/bin/composer ]) && command -v php >/dev/null',
+                        'mkdir -p %s && command -v tar >/dev/null && command -v curl >/dev/null && (command -v composer >/dev/null || command -v composer2 >/dev/null || command -v ea-composer >/dev/null || [ -x /opt/cpanel/composer/bin/composer ]) && command -v php >/dev/null',
                         escapeshellarg($basePath),
                     ),
             ];
@@ -316,6 +316,21 @@ class DeployProject
             $commands[] = [
                 'label' => 'Restart queue workers',
                 'command' => sprintf('cd %s && php artisan queue:restart', escapeshellarg($basePath)),
+            ];
+        }
+
+        if (filled($site->health_check_endpoint) && filled($site->primary_domain)) {
+            $endpoint = '/'.ltrim((string) $site->health_check_endpoint, '/');
+            $scheme = $site->force_https ? 'https' : 'http';
+            $url = $scheme.'://'.$site->primary_domain->name.$endpoint;
+
+            $commands[] = [
+                'label' => 'Health check',
+                'command' => sprintf(
+                    'curl -IsfL %s || (echo "Health check failed for %s" && exit 1)',
+                    escapeshellarg($url),
+                    escapeshellarg($url)
+                ),
             ];
         }
 

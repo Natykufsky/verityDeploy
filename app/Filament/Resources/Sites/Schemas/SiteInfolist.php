@@ -55,6 +55,11 @@ class SiteInfolist
                                         TextEntry::make('last_deployed_at')
                                             ->label('Last deployed')
                                             ->dateTime(),
+                                        TextEntry::make('health_check_endpoint')
+                                            ->label('Health check path')
+                                            ->placeholder('None')
+                                            ->prefix('GET ')
+                                            ->copyable(),
                                         TextEntry::make('notes')
                                             ->label('Notes')
                                             ->columnSpanFull(),

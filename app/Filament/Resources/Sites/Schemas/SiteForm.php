@@ -29,6 +29,8 @@ class SiteForm
 
         $identityFields = [
             Section::make('Core Details')
+                ->description('Link your app to a target server and team.')
+                ->icon('heroicon-o-fingerprint')
                 ->schema([
                     Select::make('server_id')
                         ->relationship('server', 'name')
@@ -51,6 +53,8 @@ class SiteForm
 
         $sourceFields = [
             Section::make('Deployment Source')
+                ->description('Specify where your code lives and how to pull it.')
+                ->icon('heroicon-o-cloud-arrow-down')
                 ->schema([
                     Select::make('deploy_source')
                         ->options([
@@ -82,6 +86,8 @@ class SiteForm
 
         $configFields = [
             Section::make('Path Configuration')
+                ->description('Where the files will be placed on the remote disk.')
+                ->icon('heroicon-o-folder-open')
                 ->schema([
                     TextInput::make('deploy_path')
                         ->label('Absolute Deploy Path')
@@ -93,6 +99,8 @@ class SiteForm
                         ->default('public'),
                 ])->columns(['md' => 2]),
             Section::make('Domain Mapping')
+                ->description('Web server configuration for inbound traffic.')
+                ->icon('heroicon-o-globe-alt')
                 ->schema([
                     Select::make('primary_domain_id')
                         ->label('Primary Domain')
@@ -103,11 +111,17 @@ class SiteForm
                     Toggle::make('force_https')
                         ->label('Force HTTPS')
                         ->default(true),
+                    TextInput::make('health_check_endpoint')
+                        ->label('Health Check Path')
+                        ->placeholder('/api/health')
+                        ->helperText('Endpoint to probe after deployment to verify site is up.'),
                 ])->columns(['md' => 2]),
         ];
 
         $runtimeFields = [
             Section::make('Environment Variables')
+                ->description('Secrets and configurations applied at runtime.')
+                ->icon('heroicon-o-variable')
                 ->schema([
                     Textarea::make('shared_env_contents')
                         ->label('Static .env content')
@@ -118,11 +132,13 @@ class SiteForm
                         ->columnSpanFull(),
                 ]),
             Section::make('Shared Files')
+                ->description('Persistent files that should be symlinked or kept across releases.')
+                ->icon('heroicon-o-document-duplicate')
                 ->schema([
                     Repeater::make('shared_files')
                         ->schema([
-                            TextInput::make('path')->required(),
-                            Textarea::make('contents')->rows(4)->columnSpanFull(),
+                            TextInput::make('path')->required()->placeholder('e.g. storage/database.sqlite'),
+                            Textarea::make('contents')->rows(4)->columnSpanFull()->placeholder('Initial file content...'),
                         ])->columnSpanFull(),
                 ]),
         ];

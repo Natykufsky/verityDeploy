@@ -30,17 +30,28 @@ class ServersTable
                     ->searchable(),
                 TextColumn::make('ip_address')
                     ->label('IP address')
+                    ->copyable()
+                    ->fontFamily('mono')
                     ->searchable(),
                 TextColumn::make('ssh_port')
-                    ->label('SSH port')
+                    ->label('Port')
                     ->numeric()
+                    ->color('gray')
                     ->sortable(),
                 TextColumn::make('ssh_user')
-                    ->label('SSH user')
+                    ->label('User')
+                    ->color('gray')
                     ->searchable(),
                 TextColumn::make('provider_type')
                     ->label('Provider')
                     ->badge()
+                    ->icon(fn (string $state): string => match ($state) {
+                        'digitalocean' => 'heroicon-m-globe-alt',
+                        'aws' => 'heroicon-m-cloud',
+                        'hetzner' => 'heroicon-m-server-stack',
+                        'cpanel' => 'heroicon-m-cpu-chip',
+                        default => 'heroicon-m-question-mark-circle',
+                    })
                     ->color(fn (string $state): string => match ($state) {
                         'digitalocean' => 'info',
                         'aws' => 'warning',
@@ -51,7 +62,13 @@ class ServersTable
                         default => 'slate',
                     }),
                 TextColumn::make('connection_type')
+                    ->label('Auth')
                     ->badge()
+                    ->icon(fn (string $state): string => match ($state) {
+                        'ssh_key' => 'heroicon-m-key',
+                        'password' => 'heroicon-m-lock-closed',
+                        default => 'heroicon-m-link',
+                    })
                     ->color(fn (string $state): string => match ($state) {
                         'ssh_key' => 'success',
                         'password' => 'warning',
@@ -60,6 +77,12 @@ class ServersTable
                     }),
                 TextColumn::make('status')
                     ->badge()
+                    ->icon(fn (string $state): string => match ($state) {
+                        'online' => 'heroicon-m-check-circle',
+                        'offline' => 'heroicon-m-no-symbol',
+                        'error' => 'heroicon-m-exclamation-triangle',
+                        default => 'heroicon-m-arrow-path',
+                    })
                     ->color(fn (string $state): string => match ($state) {
                         'online' => 'success',
                         'offline' => 'gray',

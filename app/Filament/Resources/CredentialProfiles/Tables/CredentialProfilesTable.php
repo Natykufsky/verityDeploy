@@ -26,20 +26,31 @@ class CredentialProfilesTable
                     ->color(fn ($state, $record): string => $record->type_badge_color ?? 'gray'),
                 IconColumn::make('is_default')
                     ->label('Default')
-                    ->boolean(),
+                    ->boolean()
+                    ->trueIcon('heroicon-s-star')
+                    ->falseIcon('heroicon-o-star')
+                    ->trueColor('warning')
+                    ->falseColor('gray'),
                 IconColumn::make('is_active')
                     ->label('Active')
-                    ->boolean(),
+                    ->boolean()
+                    ->trueIcon('heroicon-s-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
                 TextColumn::make('settings_summary')
                     ->label('Settings')
                     ->wrap()
+                    ->description(fn ($record): ?string => $record->description)
                     ->toggleable(),
                 TextColumn::make('updated_at')
                     ->dateTime()
+                    ->color('gray')
                     ->sortable(),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->icon('heroicon-m-pencil-square'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

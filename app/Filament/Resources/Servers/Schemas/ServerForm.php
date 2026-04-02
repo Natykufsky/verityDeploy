@@ -16,6 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
@@ -30,6 +31,8 @@ class ServerForm
 
         $foundationFields = [
             Section::make('Foundation')
+                ->description('Platform identity and basic connectivity.')
+                ->icon('heroicon-o-building-office-2')
                 ->schema([
                     Select::make('connection_type')
                         ->label('Connection System')
@@ -61,16 +64,62 @@ class ServerForm
 
         $authFields = [
             Section::make('Terminal Access')
+                ->description('Credentials used to establish the initial connection.')
+                ->icon('heroicon-o-command-line')
                 ->schema([
                     TextInput::make('ssh_port')
                         ->label('SSH Port')
                         ->numeric()
                         ->default(22)
-                        ->required(),
+                        ->required()
+                        ->helperText('The network port for terminal access. Use the search icon to auto-discover.')
+                        ->suffixAction(
+                            Action::make('discoverPort')
+                                ->icon('heroicon-o-magnifying-glass')
+                                ->visible(fn (Get $get): bool => $get('connection_type') === 'cpanel')
+                                ->action(function (Get $get, Set $set) {
+                                    $profileId = $get('cpanel_credential_profile_id');
+                                    $ip = $get('ip_address');
+
+                                    if (! $profileId || ! $ip) {
+                                        Notification::make()
+                                            ->title('IP and cPanel Profile required')
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    try {
+                                        // Build a transient server to use the discovery service
+                                        $tempServer = new Server([
+                                            'ip_address' => $ip,
+                                            'cpanel_credential_profile_id' => $profileId,
+                                            'connection_type' => 'cpanel',
+                                        ]);
+
+                                        $discoveredPort = app(CpanelApiClient::class)->discoverSshPort($tempServer);
+
+                                        $set('ssh_port', $discoveredPort);
+
+                                        Notification::make()
+                                            ->title('SSH Port discovered: '.$discoveredPort)
+                                            ->success()
+                                            ->send();
+                                    } catch (Throwable $e) {
+                                        Notification::make()
+                                            ->title('Auto-discovery failed')
+                                            ->body($e->getMessage())
+                                            ->danger()
+                                            ->send();
+                                    }
+                                })
+                        ),
                     TextInput::make('ssh_user')
                         ->label('SSH User')
                         ->default('root')
-                        ->required(),
+                        ->required()
+                        ->helperText('Remote account name (e.g. root, forge).'),
                     TextInput::make('password')
                         ->password()
                         ->label('SSH Password')

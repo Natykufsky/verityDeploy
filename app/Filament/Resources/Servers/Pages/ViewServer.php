@@ -4,12 +4,17 @@ namespace App\Filament\Resources\Servers\Pages;
 
 use App\Filament\Resources\Servers\ServerResource;
 use App\Jobs\CheckServerHealth;
+use App\Models\CredentialProfile;
 use App\Models\ServerConnectionTest;
+use App\Services\Security\SshKeyService;
+use App\Services\Server\Connections\SshPasswordStrategy;
 use App\Services\Server\ServerConnector;
 use App\Services\Server\ServerKeyGenerator;
 use App\Services\Server\ServerProvisioner;
 use App\Services\Server\ServerPuTTYKeyExporter;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\View\View;
@@ -104,6 +109,25 @@ class ViewServer extends ViewRecord
                 ->icon('heroicon-o-heart')
                 ->color('success')
                 ->action(fn () => $this->checkHealth()),
+            Action::make('authorizeSshKey')
+                ->label('Authorize SSH Key')
+                ->icon('heroicon-o-shield-check')
+                ->color('info')
+                ->modalHeading('Authorize a Credential Profile?')
+                ->modalDescription('Select an SSH profile to push its public key to this server. If you don\'t have access yet, you can provide a bootstrap password.')
+                ->form([
+                    Select::make('credential_profile_id')
+                        ->label('SSH Profile')
+                        ->options(fn () => CredentialProfile::ofType('ssh')->pluck('name', 'id'))
+                        ->required()
+                        ->searchable(),
+                    TextInput::make('bootstrap_password')
+                        ->label('One-time password')
+                        ->password()
+                        ->revealable()
+                        ->helperText('Optional. If the current server key/password doesn\'t work, this will be used for the authorization step only.'),
+                ])
+                ->action(fn (array $data) => $this->authorizeSshKey($data)),
         ];
     }
 
@@ -226,6 +250,69 @@ class ViewServer extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to queue health check')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function authorizeSshKey(array $data): void
+    {
+        $profile = CredentialProfile::findOrFail($data['credential_profile_id']);
+        $publicKey = data_get($profile->settings, 'public_key');
+
+        if (blank($publicKey)) {
+            $publicKey = app(SshKeyService::class)->derivePublicKey(data_get($profile->settings, 'private_key'), (string) data_get($profile->settings, 'passphrase'));
+        }
+
+        if (blank($publicKey)) {
+            Notification::make()
+                ->title('Invalid key')
+                ->body('Could not find or derive a public key for this profile.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        try {
+            $server = $this->record;
+
+            if (filled($data['bootstrap_password'])) {
+                // One-time bootstrap password
+                $tempServer = $server->replicate();
+                $tempServer->id = $server->id; // Keep ID for strategy logs if needed
+
+                $strategy = new SshPasswordStrategy(
+                    server: $tempServer,
+                    timeout: 30
+                );
+
+                // We must trick the effectiveSudoPassword by making it think it's part of a profile
+                // or just manually setting it if SshPasswordStrategy allowed it.
+                // Since SshPasswordStrategy uses $this->server->sudo_password, and that's a magic attribute:
+                // We'll use a dynamic property on the model for this run.
+                $tempServer->forceFill(['sudo_password' => $data['bootstrap_password']]);
+            } else {
+                $strategy = app(ServerConnector::class)->strategy($this->record);
+            }
+
+            $command = sprintf(
+                'mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo %s >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys',
+                escapeshellarg(trim((string) $publicKey))
+            );
+
+            $strategy->run($command);
+
+            Notification::make()
+                ->title('SSH key authorized')
+                ->body("Public key for \"{$profile->name}\" has been added to authorized_keys on {$this->record->name}.")
+                ->success()
+                ->send();
+
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Authorization failed')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();

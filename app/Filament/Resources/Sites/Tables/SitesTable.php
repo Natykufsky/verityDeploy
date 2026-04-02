@@ -32,31 +32,55 @@ class SitesTable
                     ->label('Server')
                     ->searchable(),
                 TextColumn::make('name')
-                    ->searchable(),
+                    ->searchable()
+                    ->weight('bold'),
                 TextColumn::make('repository_url')
+                    ->label('Repository')
+                    ->icon('heroicon-m-link')
+                    ->color('primary')
+                    ->copyable()
                     ->searchable(),
                 TextColumn::make('default_branch')
+                    ->label('Branch')
+                    ->badge()
+                    ->icon('heroicon-m-code-bracket')
+                    ->color('info')
                     ->searchable(),
                 TextColumn::make('deploy_path')
+                    ->label('Path')
+                    ->fontFamily('mono')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
                 TextColumn::make('php_version')
-                    ->searchable(),
-                TextColumn::make('web_root')
+                    ->label('PHP')
+                    ->badge()
+                    ->color('success')
                     ->searchable(),
                 TextColumn::make('deploy_source')
+                    ->label('Source')
+                    ->badge()
+                    ->icon(fn (string $state): string => $state === 'git' ? 'heroicon-m-cloud-arrow-down' : 'heroicon-m-computer-desktop')
+                    ->color(fn (string $state): string => $state === 'git' ? 'primary' : 'gray')
                     ->searchable(),
                 IconColumn::make('active')
-                    ->boolean(),
+                    ->label('Online')
+                    ->boolean()
+                    ->trueIcon('heroicon-s-check-circle')
+                    ->falseIcon('heroicon-o-x-circle'),
                 TextColumn::make('last_deployed_at')
-                    ->dateTime()
+                    ->label('Last Deploy')
+                    ->since()
+                    ->dateTimeTooltip()
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
+                    ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
+                    ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
