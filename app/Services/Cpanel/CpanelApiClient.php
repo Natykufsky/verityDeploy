@@ -14,8 +14,8 @@ class CpanelApiClient
      */
     public function request(Server $server, string $module, string $function, array $query = []): array
     {
-        $response = $this->client($server)
-            ->get(sprintf('%s/%s', $module, $function), $query);
+        $response = retry(3, fn () => $this->client($server)
+            ->get(sprintf('%s/%s', $module, $function), $query), 1000);
 
         if ($response->failed()) {
             throw new RuntimeException($this->errorMessage($response));
@@ -61,14 +61,14 @@ class CpanelApiClient
      */
     public function requestApi2(Server $server, string $module, string $function, array $query = []): array
     {
-        $response = $this->api2Client($server)
+        $response = retry(3, fn () => $this->api2Client($server)
             ->asForm()
             ->post('', array_merge([
                 'cpanel_jsonapi_user' => $this->cpanelUsername($server),
                 'cpanel_jsonapi_apiversion' => 2,
                 'cpanel_jsonapi_module' => $module,
                 'cpanel_jsonapi_func' => $function,
-            ], $query));
+            ], $query)), 1000);
 
         if ($response->failed()) {
             throw new RuntimeException($this->errorMessage($response));
@@ -494,7 +494,8 @@ class CpanelApiClient
         return Http::baseUrl($baseUrl)
             ->acceptJson()
             ->asJson()
-            ->timeout(30)
+            ->timeout(180)
+            ->connectTimeout(15)
             ->withHeaders([
                 'Authorization' => "{$prefix} ".$this->cpanelUsername($server).':'.(string) $server->effectiveCpanelApiToken(),
             ]);
@@ -514,7 +515,8 @@ class CpanelApiClient
         return Http::baseUrl($baseUrl)
             ->acceptJson()
             ->asJson()
-            ->timeout(30)
+            ->timeout(180)
+            ->connectTimeout(15)
             ->withHeaders([
                 'Authorization' => "{$prefix} ".$this->cpanelUsername($server).':'.(string) $server->effectiveCpanelApiToken(),
             ]);

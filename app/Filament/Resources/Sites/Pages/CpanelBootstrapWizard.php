@@ -55,6 +55,7 @@ class CpanelBootstrapWizard extends ViewSite
 
     protected function runBootstrapWizard(): void
     {
+        @set_time_limit(300);
         $this->wizardLog = [];
 
         try {

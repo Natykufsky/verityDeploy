@@ -39,154 +39,182 @@ class ViewSite extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('deploy')
-                ->label('Deploy')
-                ->icon('heroicon-o-rocket-launch')
-                ->color('primary')
-                ->requiresConfirmation()
-                ->modalHeading('Queue a deployment?')
-                ->modalDescription('This creates a new deployment record and hands it to the queue worker so the selected site can deploy in the background.')
-                ->modalSubmitActionLabel('Queue deployment')
-                ->action(fn () => $this->deploySite()),
-            Action::make('openTerminal')
-                ->label('Open terminal')
-                ->icon('heroicon-o-command-line')
+            Action::make('showGuide')
+                ->label('Dashboard guide')
+                ->icon('heroicon-m-academic-cap')
+                ->iconButton()
                 ->color('gray')
-                ->outlined()
-                ->url(fn (): string => static::getResource()::getUrl('view', [
-                    'record' => $this->record,
-                    'tab' => 'terminal',
-                ]).'#site-terminal'),
-            Action::make('bootstrapDeployPath')
-                ->label('Bootstrap path')
-                ->icon('heroicon-o-cube-transparent')
+                ->modalWidth('4xl')
+                ->modalHeading('Site Management Guide')
+                ->modalFooterActions([])
+                ->modalContent(fn (): View => view('filament.sites.management-guide')),
+            ActionGroup::make([
+                Action::make('deploy')
+                    ->label('Deploy now')
+                    ->icon('heroicon-o-rocket-launch')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Queue a deployment?')
+                    ->modalDescription('This creates a new deployment record and hands it to the queue worker.')
+                    ->modalSubmitActionLabel('Queue deployment')
+                    ->visible(fn (): bool => $this->record->active)
+                    ->action(fn () => $this->deploySite()),
+                Action::make('openTerminal')
+                    ->label('Open terminal')
+                    ->icon('heroicon-o-command-line')
+                    ->color('gray')
+                    ->outlined()
+                    ->url(fn (): string => static::getResource()::getUrl('view', [
+                        'record' => $this->record,
+                        'tab' => 'terminal',
+                    ]).'#site-terminal'),
+            ])
+                ->label('Ship')
+                ->icon('heroicon-m-paper-airplane')
+                ->color('primary')
+                ->button(),
+
+            ActionGroup::make([
+                Action::make('bootstrapDeployPath')
+                    ->label('Bootstrap path')
+                    ->icon('heroicon-o-cube-transparent')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->deploy_path) && $this->record->server?->connection_type !== 'cpanel')
+                    ->modalHeading('Bootstrap the deployment path?')
+                    ->modalDescription('This checks the server, then creates the releases and shared directories needed.')
+                    ->modalSubmitActionLabel('Bootstrap path')
+                    ->action(fn () => $this->bootstrapDeployPath()),
+                Action::make('provisionDomain')
+                    ->label('Provision domain')
+                    ->icon('heroicon-o-globe-alt')
+                    ->color('success')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_domains)
+                    ->modalWidth('7xl')
+                    ->modalHeading('Provision the site domain?')
+                    ->modalDescription('This creates the addon domain in cPanel.')
+                    ->modalContent(fn (): View => view('filament.sites.cpanel-domain-provision-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Provision domain')
+                    ->action(fn () => $this->provisionDomain()),
+                Action::make('provisionDns')
+                    ->label('Provision DNS')
+                    ->icon('heroicon-o-globe-alt')
+                    ->color('info')
+                    ->visible(fn (): bool => (bool) ($this->record->server?->can_manage_dns) && ($this->record->server?->dns_provider === 'cloudflare') && filled($this->record->primary_domain))
+                    ->modalWidth('7xl')
+                    ->modalHeading('Provision Cloudflare DNS?')
+                    ->modalDescription('This creates or updates the DNS records.')
+                    ->modalContent(fn (): View => view('filament.sites.dns-provision-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Provision DNS')
+                    ->action(fn () => $this->provisionDns()),
+                Action::make('provisionSsl')
+                    ->label('Provision SSL')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('success')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_ssl)
+                    ->modalWidth('7xl')
+                    ->modalHeading('Provision SSL for this site?')
+                    ->modalDescription('This generates a cPanel SSL certificate.')
+                    ->modalContent(fn (): View => view('filament.sites.ssl-provision-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Provision SSL')
+                    ->action(fn () => $this->provisionSsl()),
+            ])
+                ->label('Provisioning')
+                ->icon('heroicon-m-bolt')
                 ->color('warning')
-                ->requiresConfirmation()
-                ->visible(fn (): bool => filled($this->record->deploy_path) && $this->record->server?->connection_type !== 'cpanel')
-                ->modalHeading('Bootstrap the deployment path?')
-                ->modalDescription('This checks the server, then creates the releases and shared directories needed for the first git-based deploy so future deploys can switch releases safely.')
-                ->modalSubmitActionLabel('Bootstrap path')
-                ->action(fn () => $this->bootstrapDeployPath()),
-            Action::make('provisionDomain')
-                ->label('Provision domain')
-                ->icon('heroicon-o-globe-alt')
-                ->color('success')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_domains)
-                ->modalWidth('7xl')
-                ->modalHeading('Provision the site domain?')
-                ->modalDescription('This creates the addon domain in cPanel, then provisions the matching subdomains and parked alias domains that belong to this site.')
-                ->modalContent(fn (): View => view('filament.sites.cpanel-domain-provision-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Provision domain')
-                ->action(fn () => $this->provisionDomain()),
-            Action::make('provisionDns')
-                ->label('Provision DNS')
-                ->icon('heroicon-o-globe-alt')
+                ->button()
+                ->outlined(),
+
+            ActionGroup::make([
+                Action::make('syncInventory')
+                    ->label('Sync inventory')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->server?->cpanel_api_token))
+                    ->modalWidth('7xl')
+                    ->modalHeading('Sync the live cPanel inventory?')
+                    ->modalContent(fn (): View => view('filament.sites.cpanel-inventory-sync-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Sync inventory')
+                    ->action(fn () => $this->syncInventory()),
+                Action::make('repairInventory')
+                    ->label('Repair drift')
+                    ->icon('heroicon-o-wrench-screwdriver')
+                    ->color('danger')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->server?->cpanel_api_token))
+                    ->modalWidth('7xl')
+                    ->modalHeading('Repair the live cPanel inventory?')
+                    ->modalContent(fn (): View => view('filament.sites.cpanel-inventory-repair-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Repair drift')
+                    ->requiresConfirmation()
+                    ->action(fn () => $this->repairInventory()),
+                Action::make('syncVhostInventory')
+                    ->label('Sync vhost inventory')
+                    ->icon('heroicon-o-arrows-right-left')
+                    ->color('info')
+                    ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
+                    ->modalWidth('7xl')
+                    ->modalHeading('Sync the live vhost inventory?')
+                    ->modalContent(fn (): View => view('filament.sites.vhost-inventory-sync-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Sync vhost inventory')
+                    ->action(fn () => $this->syncVhostInventory()),
+                Action::make('repairVhostPlan')
+                    ->label('Repair vhost plan')
+                    ->icon('heroicon-o-wrench-screwdriver')
+                    ->color('warning')
+                    ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
+                    ->modalWidth('7xl')
+                    ->modalHeading('Review the VPS repair plan?')
+                    ->modalContent(fn (): View => view('filament.sites.vhost-repair-plan-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Close')
+                    ->action(fn () => $this->repairVhostPlan()),
+                Action::make('applyVhostConfig')
+                    ->label('Apply vhost config')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('success')
+                    ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
+                    ->modalWidth('7xl')
+                    ->modalHeading('Apply the VPS vhost config?')
+                    ->modalContent(fn (): View => view('filament.sites.vhost-repair-plan-modal', [
+                        'record' => $this->record->fresh(['server']),
+                    ]))
+                    ->modalSubmitActionLabel('Apply config')
+                    ->requiresConfirmation()
+                    ->action(fn () => $this->applyVhostConfig()),
+            ])
+                ->label('Diagnostics')
+                ->icon('heroicon-m-beaker')
                 ->color('info')
-                ->visible(fn (): bool => (bool) ($this->record->server?->can_manage_dns) && ($this->record->server?->dns_provider === 'cloudflare') && filled($this->record->primary_domain))
-                ->modalWidth('7xl')
-                ->modalHeading('Provision Cloudflare DNS?')
-                ->modalDescription('This creates or updates the DNS records for the site hostnames in Cloudflare.')
-                ->modalContent(fn (): View => view('filament.sites.dns-provision-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Provision DNS')
-                ->action(fn () => $this->provisionDns()),
-            Action::make('provisionSsl')
-                ->label('Provision SSL')
-                ->icon('heroicon-o-shield-check')
-                ->color('success')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_ssl)
-                ->modalWidth('7xl')
-                ->modalHeading('Provision SSL for this site?')
-                ->modalDescription('This generates a cPanel SSL certificate for the site primary domain and records the site as ssl ready.')
-                ->modalContent(fn (): View => view('filament.sites.ssl-provision-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Provision SSL')
-                ->action(fn () => $this->provisionSsl()),
-            Action::make('syncInventory')
-                ->label('Sync inventory')
-                ->icon('heroicon-o-arrow-path')
-                ->color('info')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->server?->cpanel_api_token))
-                ->modalWidth('7xl')
-                ->modalHeading('Sync the live cPanel inventory?')
-                ->modalDescription('This reads the current cPanel domain, DNS, and SSL inventory and stores a normalized snapshot on the site record without changing the server configuration.')
-                ->modalContent(fn (): View => view('filament.sites.cpanel-inventory-sync-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Sync inventory')
-                ->action(fn () => $this->syncInventory()),
-            Action::make('repairInventory')
-                ->label('Repair drift')
-                ->icon('heroicon-o-wrench-screwdriver')
-                ->color('warning')
-                ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->server?->cpanel_api_token))
-                ->modalWidth('7xl')
-                ->modalHeading('Repair the live cPanel inventory?')
-                ->modalDescription('This reapplies the managed domain and SSL provisioning steps that match the site intent, then refreshes the live inventory snapshot.')
-                ->modalContent(fn (): View => view('filament.sites.cpanel-inventory-repair-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Repair drift')
-                ->requiresConfirmation()
-                ->action(fn () => $this->repairInventory()),
-            Action::make('syncVhostInventory')
-                ->label('Sync vhost inventory')
-                ->icon('heroicon-o-arrows-right-left')
-                ->color('info')
-                ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
-                ->modalWidth('7xl')
-                ->modalHeading('Sync the live vhost inventory?')
-                ->modalDescription('This reads the current web server config and stores a normalized vhost snapshot on the site record without changing the server configuration.')
-                ->modalContent(fn (): View => view('filament.sites.vhost-inventory-sync-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Sync vhost inventory')
-                ->action(fn () => $this->syncVhostInventory()),
-            Action::make('repairVhostPlan')
-                ->label('Repair vhost plan')
-                ->icon('heroicon-o-wrench-screwdriver')
-                ->color('warning')
-                ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
-                ->modalWidth('7xl')
-                ->modalHeading('Review the VPS repair plan?')
-                ->modalDescription('This does not change the server. It shows the commands and paths that would be used to align the live vhost config with the site intent. Use the copy button to grab the plan.')
-                ->modalContent(fn (): View => view('filament.sites.vhost-repair-plan-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Close')
-                ->action(fn () => $this->repairVhostPlan()),
-            Action::make('applyVhostConfig')
-                ->label('Apply vhost config')
-                ->icon('heroicon-o-shield-check')
-                ->color('success')
-                ->visible(fn (): bool => $this->record->server?->connection_type !== 'cpanel' && (bool) $this->record->server?->can_manage_vhosts)
-                ->modalWidth('7xl')
-                ->modalHeading('Apply the VPS vhost config?')
-                ->modalDescription('This writes the vhost file, enables it, and reloads the web server using the explicit server paths configured for this server. Use the copy button if you want the raw commands first.')
-                ->modalContent(fn (): View => view('filament.sites.vhost-repair-plan-modal', [
-                    'record' => $this->record->fresh(['server']),
-                ]))
-                ->modalSubmitActionLabel('Apply config')
-                ->requiresConfirmation()
-                ->action(fn () => $this->applyVhostConfig()),
+                ->button()
+                ->outlined(),
             ActionGroup::make([
                 Action::make('provisionCpanelSite')
                     ->label('cPanel site wizard')
                     ->icon('heroicon-o-wrench-screwdriver')
                     ->color('primary')
                     ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel')
-                    ->modalWidth('7xl')
                     ->steps([
                         Step::make('Workspace')
+                            ->key('cpanel-provision-workspace-step')
                             ->description('Review the cPanel account and deployment target.')
                             ->schema([
                                 SchemaView::make('filament.sites.cpanel-provision-wizard'),
                             ]),
                         Step::make('Confirm')
+                            ->key('cpanel-provision-confirm-step')
                             ->description('Confirm that the cPanel workspace should be created.')
                             ->schema([
                                 Toggle::make('confirm_provisioning')

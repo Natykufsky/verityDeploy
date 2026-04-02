@@ -30,7 +30,7 @@ class SiteForm
         $identityFields = [
             Section::make('Core Details')
                 ->description('Link your app to a target server and team.')
-                ->icon('heroicon-o-fingerprint')
+                ->icon('heroicon-o-finger-print')
                 ->schema([
                     Select::make('server_id')
                         ->relationship('server', 'name')
@@ -146,18 +146,23 @@ class SiteForm
         return $schema->components([
             Wizard::make([
                 Step::make('Identity')
+                    ->key('site-step-identity')
                     ->description('Basic info')
                     ->schema($identityFields),
                 Step::make('Source')
+                    ->key('site-step-source')
                     ->description('Code location')
                     ->schema($sourceFields),
                 Step::make('Config')
+                    ->key('site-step-config')
                     ->description('Paths & Domains')
                     ->schema($configFields),
                 Step::make('Runtime')
+                    ->key('site-step-runtime')
                     ->description('Environment')
                     ->schema($runtimeFields),
                 Step::make('Ready')
+                    ->key('site-step-ready')
                     ->description($isCreatePage ? 'Finalize & Launch' : 'Review & Update')
                     ->schema([
                         Section::make($isCreatePage ? 'Launch Summary' : 'Change History')
@@ -173,6 +178,7 @@ class SiteForm
                             ]),
                     ]),
             ])
+                ->key('site-creation-wizard')
                 ->columnSpanFull()
                 ->persistStepInQueryString('step'),
         ]);

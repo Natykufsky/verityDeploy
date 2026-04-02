@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Sites\Tables;
 use App\Actions\DeployProject;
 use App\Models\Site;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -109,22 +110,29 @@ class SitesTable
                     ->action(fn ($livewire): mixed => $livewire->resetTableFiltersForm()),
             ])
             ->recordActions([
-                Action::make('deploy')
-                    ->label('Deploy')
-                    ->icon('heroicon-o-rocket-launch')
-                    ->color('primary')
-                    ->requiresConfirmation()
-                    ->action(function (Site $record): void {
-                        app(DeployProject::class)->dispatch($record, auth()->user());
+                ActionGroup::make([
+                    Action::make('deploy')
+                        ->label('Deploy now')
+                        ->icon('heroicon-o-rocket-launch')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->visible(fn (Site $record): bool => $record->active && filled($record->repository_url))
+                        ->action(function (Site $record): void {
+                            app(DeployProject::class)->dispatch($record, auth()->user());
 
-                        Notification::make()
-                            ->title('Deployment queued')
-                            ->body("{$record->name} has been queued for deployment.")
-                            ->success()
-                            ->send();
-                    }),
-                ViewAction::make(),
-                EditAction::make(),
+                            Notification::make()
+                                ->title('Deployment queued')
+                                ->body("{$record->name} has been queued for deployment.")
+                                ->success()
+                                ->send();
+                        }),
+                    ViewAction::make(),
+                    EditAction::make(),
+                ])
+                    ->label('Actions')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray')
+                    ->button(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

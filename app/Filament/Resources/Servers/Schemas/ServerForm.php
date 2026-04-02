@@ -6,6 +6,7 @@ use App\Models\CredentialProfile;
 use App\Models\Server;
 use App\Models\Team;
 use App\Services\Cpanel\CpanelApiClient;
+use App\Services\Security\SshKeyService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
@@ -158,7 +159,13 @@ class ServerForm
                                     if (! file_exists($sshDir)) {
                                         mkdir($sshDir, 0700, true);
                                     }
-                                    shell_exec('ssh-keygen -t rsa -b 4096 -f '.escapeshellarg($sshDir.'/id_rsa')." -N '' -q");
+
+                                    $pair = app(SshKeyService::class)->generateKeyPair('rsa');
+
+                                    file_put_contents($sshDir.'/id_rsa', $pair['private_key']);
+                                    file_put_contents($sshDir.'/id_rsa.pub', $pair['public_key']);
+                                    chmod($sshDir.'/id_rsa', 0600);
+
                                     Notification::make()->title('Master SSH Key Regenerated')->success()->send();
                                 } catch (Throwable $e) {
                                     Notification::make()->title('Key Generation Failed')->body($e->getMessage())->danger()->send();
@@ -197,10 +204,25 @@ class ServerForm
                             ->modalHeading('Authorize SSH Key?')
                             ->action(function (Server $record) {
                                 try {
-                                    $publicKey = @file_get_contents(base_path('.ssh/id_rsa.pub'));
-                                    if (! $publicKey) {
-                                        throw new \Exception('Dashboard key not found.');
+                                    $sshDir = base_path('.ssh');
+                                    $publicKeyPath = $sshDir.'/id_rsa.pub';
+
+                                    // Auto-generate if missing
+                                    if (! file_exists($publicKeyPath)) {
+                                        if (! file_exists($sshDir)) {
+                                            mkdir($sshDir, 0700, true);
+                                        }
+                                        $pair = app(SshKeyService::class)->generateKeyPair('rsa');
+                                        file_put_contents($sshDir.'/id_rsa', $pair['private_key']);
+                                        file_put_contents($publicKeyPath, $pair['public_key']);
+                                        chmod($sshDir.'/id_rsa', 0600);
                                     }
+
+                                    $publicKey = @file_get_contents($publicKeyPath);
+                                    if (! $publicKey) {
+                                        throw new \Exception('Dashboard key could not be read.');
+                                    }
+
                                     app(CpanelApiClient::class)->authorizeSshKey($record, $publicKey);
                                     Notification::make()->title('Key authorized on cPanel.')->success()->send();
                                 } catch (Throwable $e) {
@@ -214,10 +236,20 @@ class ServerForm
         return $schema->components([
             Hidden::make('user_id')->default(fn (): ?int => auth()->id()),
             Wizard::make([
-                Step::make('Foundation')->description('Platform & IP')->schema($foundationFields),
-                Step::make('Access')->description('Credentials')->schema($authFields),
-                Step::make('Security')->description('Handshake')->schema($securityFields),
+                Step::make('Foundation')
+                    ->key('server-step-foundation')
+                    ->description('Platform & IP')
+                    ->schema($foundationFields),
+                Step::make('Access')
+                    ->key('server-step-access')
+                    ->description('Credentials')
+                    ->schema($authFields),
+                Step::make('Security')
+                    ->key('server-step-security')
+                    ->description('Handshake')
+                    ->schema($securityFields),
                 Step::make('Ready')
+                    ->key('server-step-ready')
                     ->description($isCreatePage ? 'Finalize' : 'Update')
                     ->schema([
                         Section::make('Audit')
@@ -233,7 +265,9 @@ class ServerForm
                                     ->disabled(),
                             ])->columns(['md' => 2]),
                     ]),
-            ])->columnSpanFull()
+            ])
+                ->key('server-creation-wizard')
+                ->columnSpanFull()
                 ->persistStepInQueryString('step'),
         ]);
     }

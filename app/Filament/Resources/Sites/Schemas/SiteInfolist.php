@@ -73,22 +73,13 @@ class SiteInfolist
                             ->badge(fn ($record): string => $record->domain_status === 'ready' ? 'Ready' : 'Setup')
                             ->badgeColor(fn ($record): string => $record->domain_status === 'ready' ? 'success' : 'warning')
                             ->schema([
-                                Section::make('Domain configuration')
+                                Section::make('Domain Mirror')
+                                    ->description('This mirrors the live server configuration for all hostnames mapped to this site.')
                                     ->schema([
-                                        View::make('filament.sites.ssl-preview')
-                                            ->columnSpanFull()
-                                            ->viewData(fn ($record): array => [
-                                                'preview' => $record->ssl_preview,
-                                            ]),
-                                        View::make('filament.sites.domain-preview')
+                                        View::make('filament.sites.domain-management-mirror')
                                             ->columnSpanFull()
                                             ->viewData(fn ($record): array => [
                                                 'preview' => $record->domain_preview,
-                                            ]),
-                                        View::make('filament.sites.vhost-preview')
-                                            ->columnSpanFull()
-                                            ->viewData(fn ($record): array => [
-                                                'preview' => $record->vhost_preview,
                                             ]),
                                         View::make('filament.sites.dns-preview')
                                             ->columnSpanFull()

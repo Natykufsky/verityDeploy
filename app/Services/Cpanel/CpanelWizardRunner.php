@@ -86,6 +86,7 @@ class CpanelWizardRunner
             );
 
             $this->finishRun($run, $steps, 'successful', null);
+            $site->update(['active' => true]);
 
             return $steps;
         } catch (Throwable $throwable) {
