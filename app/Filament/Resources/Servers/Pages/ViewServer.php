@@ -186,7 +186,7 @@ class ViewServer extends ViewRecord
 
             Notification::make()
                 ->title('SSH key generated')
-                ->body('A new encrypted Ed25519 private key was saved to the server record. The public key is ready to copy in the modal.')
+                ->body('A new OpenSSH Ed25519 private key was saved to the server record. The public key is ready to copy in the modal.')
                 ->success()
                 ->send();
         } catch (Throwable $throwable) {

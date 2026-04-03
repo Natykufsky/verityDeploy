@@ -4,6 +4,7 @@ namespace App\Services\Security;
 
 use phpseclib3\Crypt\Common\PrivateKey;
 use phpseclib3\Crypt\EC;
+use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use Symfony\Component\Finder\Finder;
 
@@ -34,17 +35,23 @@ class SshKeyService
     public function derivePublicKey(string $privateKey, string $passphrase = ''): ?string
     {
         try {
-            /** @var PrivateKey $private */
-            $private = RSA::load($privateKey, $passphrase);
+            $private = PublicKeyLoader::load($privateKey, $passphrase);
         } catch (\Throwable) {
-            try {
-                $private = EC::load($privateKey, $passphrase);
-            } catch (\Throwable) {
-                return null;
-            }
+            return null;
         }
 
         return $private->getPublicKey()->toString('OpenSSH');
+    }
+
+    public function normalizePrivateKey(string $privateKey, string $passphrase = ''): ?string
+    {
+        try {
+            $key = PublicKeyLoader::load($privateKey, $passphrase);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $key->toString('OpenSSH');
     }
 
     /**

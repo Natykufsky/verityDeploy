@@ -4,6 +4,7 @@ namespace App\Services\Deployment;
 
 use App\Models\Deployment;
 use App\Models\Server;
+use App\Services\Security\SshKeyService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
@@ -168,10 +169,18 @@ class FileTransportService
         $agentEnv = $this->startSshAgent();
 
         try {
+            $normalizedKey = app(SshKeyService::class)->normalizePrivateKey((string) $sshKey);
+
+            if (! $normalizedKey) {
+                throw new RuntimeException('The server SSH private key is not in a supported format.');
+            }
+
+            $keyPath = $this->writeTemporaryPrivateKey($normalizedKey);
+
+            try {
             $keyLoad = Process::env($agentEnv)
                 ->timeout(30)
-                ->input(rtrim((string) $sshKey).PHP_EOL)
-                ->run(['ssh-add', '-']);
+                ->run(['ssh-add', $keyPath]);
 
             if ($keyLoad->failed()) {
                 throw new RuntimeException(trim($keyLoad->errorOutput() ?: $keyLoad->output()) ?: 'Unable to load the SSH key into the agent.');
@@ -193,6 +202,11 @@ class FileTransportService
 
             if ($scp->failed()) {
                 throw new RuntimeException(trim($scp->errorOutput() ?: $scp->output()) ?: 'Unable to upload the deployment archive.');
+            }
+            } finally {
+                if (File::exists($keyPath)) {
+                    File::delete($keyPath);
+                }
             }
         } finally {
             $this->stopSshAgent($agentEnv);

@@ -2,9 +2,9 @@
 
 namespace App\Services\Server;
 
+use App\Models\CredentialProfile;
 use App\Models\Server;
-use Illuminate\Support\Facades\Process;
-use RuntimeException;
+use App\Services\Security\SshKeyService;
 
 class ServerKeyGenerator
 {
@@ -13,30 +13,32 @@ class ServerKeyGenerator
      */
     public function generate(Server $server): array
     {
-        $privateProcess = Process::run(['openssl', 'genpkey', '-algorithm', 'ED25519']);
+        $pair = app(SshKeyService::class)->generateKeyPair('ed25519');
+        $profile = $server->sshCredentialProfile
+            ?: CredentialProfile::query()->create([
+                'name' => sprintf('SSH key for %s', $server->name),
+                'type' => 'ssh',
+                'description' => 'Automatically generated SSH credential profile for server access.',
+                'settings' => [],
+                'is_default' => false,
+                'is_active' => true,
+            ]);
 
-        if ($privateProcess->failed()) {
-            throw new RuntimeException(trim($privateProcess->errorOutput() ?: $privateProcess->output()) ?: 'Unable to generate SSH key pair.');
-        }
-
-        $privateKey = trim($privateProcess->output());
-
-        $publicProcess = Process::input($privateKey)->run(['openssl', 'pkey', '-pubout']);
-
-        if ($publicProcess->failed()) {
-            throw new RuntimeException(trim($publicProcess->errorOutput() ?: $publicProcess->output()) ?: 'Unable to generate SSH public key.');
-        }
-
-        $publicKey = trim($publicProcess->output());
+        $profile->update([
+            'settings' => array_merge((array) $profile->settings, [
+                'private_key' => $pair['private_key'],
+                'public_key' => $pair['public_key'],
+            ]),
+        ]);
 
         $server->update([
             'connection_type' => 'ssh_key',
-            'ssh_key' => $privateKey,
+            'ssh_credential_profile_id' => $profile->id,
         ]);
 
         return [
-            'private_key' => $privateKey,
-            'public_key' => $publicKey,
+            'private_key' => $pair['private_key'],
+            'public_key' => $pair['public_key'],
         ];
     }
 }
