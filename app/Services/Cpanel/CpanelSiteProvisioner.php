@@ -173,12 +173,11 @@ class CpanelSiteProvisioner
 
     protected function linkSharedPath($server, string $sourcePath, string $destinationPath): void
     {
-        try {
-            $this->client->unlinkPath($server, $destinationPath);
-        } catch (RuntimeException) {
-            // Ignore missing links or files.
-        }
-
         $this->client->linkPath($server, $sourcePath, $destinationPath);
+    }
+
+    protected function syncLiveDocroot(Site $site): ?string
+    {
+        return null;
     }
 }

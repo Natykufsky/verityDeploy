@@ -44,7 +44,7 @@ class CpanelConnectionWizard extends ViewServer
             ->color('primary')
             ->requiresConfirmation()
             ->modalHeading('Run the cPanel connection wizard?')
-            ->modalDescription('This discovers the SSH port, validates the cPanel API, and runs the server provisioning preflight in one pass.')
+            ->modalDescription('This discovers the SSH port, validates the cPanel API, authorizes the server SSH key, and runs the server provisioning preflight in one pass.')
             ->modalSubmitActionLabel('Run wizard')
             ->action(fn () => $this->runWizard()));
 
@@ -70,7 +70,7 @@ class CpanelConnectionWizard extends ViewServer
 
             Notification::make()
                 ->title('cPanel wizard complete')
-                ->body('SSH port discovery, cPanel API validation, and server provisioning all completed successfully.')
+                ->body('SSH port discovery, cPanel API validation, SSH key authorization, and server provisioning all completed successfully.')
                 ->success()
                 ->send();
         } catch (Throwable $throwable) {

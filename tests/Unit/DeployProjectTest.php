@@ -342,7 +342,7 @@ class DeployProjectTest extends TestCase
 
         $this->assertCount(1, $commands);
         $this->assertSame('Extract uploaded archive', $commands[0]['label']);
-        $this->assertStringContainsString('/tmp/veritydeploy-'.$deployment->id.'.tar.gz', $commands[0]['command']);
+        $this->assertStringContainsString('/tmp/veritydeploy-'.$deployment->id.'.zip', $commands[0]['command']);
     }
 
     public function test_resume_requeues_the_same_deployment_record(): void

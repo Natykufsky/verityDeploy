@@ -2,11 +2,12 @@
 
 namespace Tests\Unit;
 
-use App\Models\Server;
 use App\Models\CredentialProfile;
+use App\Models\Server;
 use App\Services\Security\SshKeyService;
 use App\Services\Server\ServerKeyGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use Tests\TestCase;
 
@@ -22,6 +23,23 @@ class SshKeyServiceTest extends TestCase
 
         $this->assertNotNull($normalized);
         $this->assertStringStartsWith('-----BEGIN OPENSSH PRIVATE KEY-----', $normalized);
+    }
+
+    public function test_it_exports_deploy_private_keys_without_passphrases(): void
+    {
+        $passphrase = 'deploy-passphrase';
+        $privateKey = RSA::createKey(2048)->withPassword($passphrase)->toString('OpenSSH');
+
+        $deployKey = app(SshKeyService::class)->exportDeployPrivateKey($privateKey, $passphrase);
+
+        $this->assertNotNull($deployKey);
+        $this->assertStringStartsWith('-----BEGIN OPENSSH PRIVATE KEY-----', $deployKey);
+
+        $loaded = PublicKeyLoader::load($deployKey, '');
+        $this->assertSame(
+            $loaded->getPublicKey()->toString('OpenSSH'),
+            app(SshKeyService::class)->derivePublicKey($privateKey, $passphrase),
+        );
     }
 
     public function test_server_key_generator_stores_openssh_private_keys(): void

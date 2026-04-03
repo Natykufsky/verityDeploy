@@ -1,4 +1,17 @@
-<div id="deployment-terminal" class="max-h-155 space-y-4 overflow-y-auto pr-1">
+@php
+    $bridgeConfig = $bridge ?? ['enabled' => false, 'url' => null];
+@endphp
+
+<div
+    id="deployment-terminal"
+    x-data="verityDeploymentStream({
+        bridgeUrl: @js($bridgeConfig['url'] ?? null),
+        componentId: @js($this->getId()),
+        refreshMethod: 'refreshFromBridge',
+    })"
+    x-init="init()"
+    class="max-h-155 space-y-4 overflow-y-auto pr-1"
+>
     <div class="deployment-frost-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
         <div>
             <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
@@ -9,8 +22,27 @@
                 {{ count($lines) }} log line{{ count($lines) === 1 ? '' : 's' }} tracked
             </div>
         </div>
-        <div class="text-xs text-slate-400">
-            {{ $deployment->status === 'running' ? 'Live updates are on' : 'Historical logs' }}
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span
+                class="inline-flex items-center gap-2 rounded-full border px-3 py-1 font-semibold uppercase tracking-[0.2em]"
+                :class="bridgeStatusClasses()"
+            >
+                <span
+                    x-show="bridgeState === 'connecting' || bridgeState === 'reconnecting'"
+                    x-cloak
+                    class="inline-flex h-2.5 w-2.5 items-center justify-center rounded-full border border-current/40"
+                >
+                    <span class="h-1.5 w-1.5 animate-spin rounded-full border border-current border-t-transparent"></span>
+                </span>
+                <span
+                    x-show="bridgeState !== 'connecting' && bridgeState !== 'reconnecting'"
+                    x-cloak
+                    class="h-2 w-2 rounded-full"
+                    :class="bridgeDotClasses()"
+                ></span>
+                <span x-text="bridgeStatusLabel()"></span>
+            </span>
+            <span>{{ $deployment->status === 'running' ? 'Live updates are on' : 'Historical logs' }}</span>
         </div>
     </div>
 

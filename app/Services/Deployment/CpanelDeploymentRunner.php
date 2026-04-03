@@ -165,7 +165,8 @@ class CpanelDeploymentRunner
     {
         $site = $deployment->site;
         $releasePath = (string) $deployment->release_path;
-        $transferCommands = [];
+        $archivePath = null;
+        $remoteArchivePath = rtrim($releasePath, '/').'/veritydeploy-source-'.$deployment->id.'.zip';
 
         return [
             [
@@ -193,31 +194,34 @@ class CpanelDeploymentRunner
             ],
             [
                 'label' => 'Transfer local source archive',
-                'command' => 'scp source.tar.gz remote',
-                'runner' => function () use ($deployment, &$transferCommands): array {
-                    $transferCommands = $this->fileTransportService->transferCommands($deployment);
+                'command' => 'upload source.zip remote',
+                'runner' => function () use ($deployment, &$archivePath, $remoteArchivePath, $site): array {
+                    $archivePath = $this->fileTransportService->packageLocalSourceArchive($deployment);
+
+                    try {
+                        $this->client->uploadFile($site->server, dirname($remoteArchivePath), $archivePath, basename($remoteArchivePath));
+
+                        $deployment->forceFill([
+                            'archive_uploaded_at' => now(),
+                        ])->saveQuietly();
+                    } finally {
+                        if ($archivePath && is_file($archivePath)) {
+                            @unlink($archivePath);
+                        }
+                    }
 
                     return [
-                        'summary' => 'Archive packaged and uploaded via SSH.',
-                        'commands' => $transferCommands,
+                        'summary' => 'Archive packaged and uploaded via cPanel.',
+                        'remote_archive_path' => $remoteArchivePath,
                     ];
                 },
             ],
             [
                 'label' => 'Extract source archive',
-                'command' => 'tar -xzf archive -C release',
-                'runner' => function () use ($site, $releasePath, &$transferCommands): array {
-                    $extractCommand = data_get($transferCommands, '0.command');
-
-                    if (blank($extractCommand)) {
-                        throw new RuntimeException('The local source archive transfer did not prepare an extraction command.');
-                    }
-
-                    $process = $this->sshCommandRunner->execute($site->server, $extractCommand);
-
-                    if (! $process->isSuccessful()) {
-                        throw new RuntimeException(trim($process->getErrorOutput() ?: $process->getOutput()) ?: 'Unable to extract the uploaded archive.');
-                    }
+                'command' => 'unzip archive -d release',
+                'runner' => function () use ($site, $releasePath, $remoteArchivePath): array {
+                    $this->client->extractArchive($site->server, $remoteArchivePath, $releasePath, 'zip');
+                    $this->client->unlinkPath($site->server, $remoteArchivePath);
 
                     return [
                         'summary' => 'Archive extracted into the release directory.',

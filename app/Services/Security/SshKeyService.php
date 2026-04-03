@@ -54,6 +54,17 @@ class SshKeyService
         return $key->toString('OpenSSH');
     }
 
+    public function exportDeployPrivateKey(string $privateKey, string $passphrase = ''): ?string
+    {
+        try {
+            $key = PublicKeyLoader::load($privateKey, $passphrase);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $key->withPassword(false)->toString('OpenSSH');
+    }
+
     /**
      * @return array<string, string>
      */

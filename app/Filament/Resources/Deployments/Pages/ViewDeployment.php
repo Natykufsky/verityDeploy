@@ -16,12 +16,18 @@ class ViewDeployment extends ViewRecord
 
     protected function getPollingInterval(): ?string
     {
-        return in_array($this->record->status, ['pending', 'running'], true) ? '5s' : null;
+        return null;
     }
 
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('refresh')
+                ->label('Refresh')
+                ->icon('heroicon-o-arrow-path')
+                ->color('gray')
+                ->outlined()
+                ->action(fn () => $this->refreshDeployment()),
             Action::make('resume')
                 ->label('Resume deployment')
                 ->icon('heroicon-o-play')
@@ -174,6 +180,21 @@ class ViewDeployment extends ViewRecord
                 ->danger()
                 ->send();
         }
+    }
+
+    protected function refreshDeployment(): void
+    {
+        $this->record = $this->record->fresh([
+            'site.server',
+            'steps',
+            'triggeredBy',
+        ]);
+
+        Notification::make()
+            ->title('Deployment refreshed')
+            ->body('The latest deployment status, steps, and logs have been reloaded.')
+            ->success()
+            ->send();
     }
 
     protected function getRollbackTarget(): ?Deployment

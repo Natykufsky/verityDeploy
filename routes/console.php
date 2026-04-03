@@ -3,6 +3,7 @@
 use App\Jobs\CleanupStaleReleases;
 use App\Jobs\DispatchServerHealthChecks;
 use App\Jobs\RefreshWebhookStatuses;
+use App\Services\Deployment\DeploymentWebSocketBridge;
 use App\Services\ServerMetrics\ServerMetricsWebSocketBridge;
 use App\Services\Terminal\TerminalWebSocketBridge;
 use Illuminate\Foundation\Inspiring;
@@ -34,6 +35,17 @@ Artisan::command('server-metrics:bridge {--host=127.0.0.1} {--port=8788}', funct
 
     return 0;
 })->purpose('Serve the websocket bridge for live server metric updates');
+
+Artisan::command('deployment:bridge {--host=127.0.0.1} {--port=8789}', function (DeploymentWebSocketBridge $bridge): int {
+    $host = (string) $this->option('host');
+    $port = (int) $this->option('port');
+
+    $this->line(sprintf('starting deployment bridge on ws://%s:%d', $host, $port));
+
+    $bridge->serve($host, $port);
+
+    return 0;
+})->purpose('Serve the websocket bridge for live deployment progress updates');
 
 Schedule::job(new DispatchServerHealthChecks)
     ->hourly()

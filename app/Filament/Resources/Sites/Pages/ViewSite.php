@@ -48,6 +48,17 @@ class ViewSite extends ViewRecord
                 ->modalHeading('Site Management Guide')
                 ->modalFooterActions([])
                 ->modalContent(fn (): View => view('filament.sites.management-guide')),
+            Action::make('openLiveSite')
+                ->label('Open live site')
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->color('success')
+                ->visible(fn (): bool => filled($this->record->primary_domain))
+                ->url(fn (): string => sprintf(
+                    '%s://%s',
+                    $this->record->force_https || in_array((string) $this->record->ssl_state, ['valid', 'issued', 'active', 'installed'], true) ? 'https' : 'http',
+                    $this->record->primary_domain,
+                ))
+                ->openUrlInNewTab(),
             ActionGroup::make([
                 Action::make('deploy')
                     ->label('Deploy now')

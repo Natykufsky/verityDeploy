@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Deployments\Schemas;
 
 use App\Livewire\DeploymentCommandToolbar;
+use App\Livewire\DeploymentProgressPanel;
 use App\Livewire\DeploymentTerminal;
 use App\Models\Deployment;
 use Filament\Infolists\Components\TextEntry;
@@ -19,10 +20,6 @@ class DeploymentInfolist
     {
         return $schema
             ->components([
-                Section::make('How this page works')
-                    ->schema([
-                        View::make('filament.pages.deployment-guide'),
-                    ]),
                 Tabs::make('Deployment tabs')
                     ->columnSpanFull()
                     ->persistTab()
@@ -97,7 +94,7 @@ class DeploymentInfolist
                             ->schema([
                                 Section::make('Deployment progress')
                                     ->schema([
-                                        View::make('filament.deployments.deployment-progress')
+                                        Livewire::make(DeploymentProgressPanel::class)
                                             ->columnSpanFull(),
                                     ]),
                             ]),

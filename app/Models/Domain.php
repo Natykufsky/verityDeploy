@@ -2,13 +2,30 @@
 
 namespace App\Models;
 
+use App\Services\Domains\DomainServerSyncService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use RuntimeException;
 
 class Domain extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::created(function (Domain $domain): void {
+            $domain->syncLiveDomain('created');
+        });
+
+        static::updated(function (Domain $domain): void {
+            $domain->syncLiveDomain('updated');
+        });
+
+        static::deleted(function (Domain $domain): void {
+            $domain->syncLiveDomain('deleted');
+        });
+    }
 
     protected $fillable = [
         'server_id',
@@ -46,6 +63,24 @@ class Domain extends Model
     public function site(): BelongsTo
     {
         return $this->belongsTo(Site::class);
+    }
+
+    protected function syncLiveDomain(string $action): void
+    {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        $result = match ($action) {
+            'created' => app(DomainServerSyncService::class)->syncCreated($this),
+            'updated' => app(DomainServerSyncService::class)->syncUpdated($this),
+            'deleted' => app(DomainServerSyncService::class)->syncDeleted($this),
+            default => ['success' => false, 'message' => 'Unknown domain sync action.'],
+        };
+
+        if (! ($result['success'] ?? false)) {
+            throw new RuntimeException((string) ($result['message'] ?? 'Unable to sync the domain to cPanel.'));
+        }
     }
 
     /**

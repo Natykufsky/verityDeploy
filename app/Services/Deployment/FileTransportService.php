@@ -8,12 +8,9 @@ use App\Services\Security\SshKeyService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
-use Phar;
-use PharData;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
-use Throwable;
 
 class FileTransportService
 {
@@ -30,7 +27,7 @@ class FileTransportService
             throw new RuntimeException("The local source path [{$sourcePath}] does not exist.");
         }
 
-        $archivePath = storage_path('app/deployment-archives/'.$deployment->id.'-'.Str::uuid().'.tar.gz');
+        $archivePath = storage_path('app/deployment-archives/'.$deployment->id.'-'.Str::uuid().'.zip');
         File::ensureDirectoryExists(dirname($archivePath));
 
         $ignoreFiltered = (bool) ($site->ignore_local_source_ignored_files ?? true);
@@ -104,7 +101,7 @@ class FileTransportService
             [
                 'label' => 'Extract uploaded archive',
                 'command' => sprintf(
-                    'mkdir -p %1$s && tar -xzf %2$s -C %1$s && rm -f %2$s',
+                    'mkdir -p %1$s && unzip -o %2$s -d %1$s && rm -f %2$s',
                     escapeshellarg($releasePath),
                     escapeshellarg($remoteArchivePath),
                 ),
@@ -166,93 +163,50 @@ class FileTransportService
             return;
         }
 
-        $agentEnv = $this->startSshAgent();
+        $sshKeyService = app(SshKeyService::class);
+        $normalizedKey = $sshKeyService->exportDeployPrivateKey(
+            (string) $sshKey,
+            (string) data_get($server->sshCredentialProfile?->settings, 'passphrase', ''),
+        );
+
+        if (! $normalizedKey) {
+            throw new RuntimeException('The server SSH private key is not in a supported format.');
+        }
+
+        $keyPath = $this->writeTemporaryPrivateKey($normalizedKey);
 
         try {
-            $normalizedKey = app(SshKeyService::class)->normalizePrivateKey((string) $sshKey);
+            $this->securePrivateKeyPermissions($keyPath);
 
-            if (! $normalizedKey) {
-                throw new RuntimeException('The server SSH private key is not in a supported format.');
-            }
-
-            $keyPath = $this->writeTemporaryPrivateKey($normalizedKey);
-
-            try {
-            $keyLoad = Process::env($agentEnv)
-                ->timeout(30)
-                ->run(['ssh-add', $keyPath]);
-
-            if ($keyLoad->failed()) {
-                throw new RuntimeException(trim($keyLoad->errorOutput() ?: $keyLoad->output()) ?: 'Unable to load the SSH key into the agent.');
-            }
-
-            $scp = Process::env($agentEnv)
-                ->timeout(300)
-                ->run([
-                    'scp',
-                    '-P',
-                    (string) $sshPort,
-                    '-o',
-                    'StrictHostKeyChecking=no',
-                    '-o',
-                    'UserKnownHostsFile=/dev/null',
-                    $archivePath,
-                    $destination,
-                ]);
+            $scp = Process::timeout(300)->run([
+                'scp',
+                '-i',
+                $keyPath,
+                '-P',
+                (string) $sshPort,
+                '-o',
+                'BatchMode=yes',
+                '-o',
+                'StrictHostKeyChecking=no',
+                '-o',
+                'UserKnownHostsFile=/dev/null',
+                $archivePath,
+                $destination,
+            ]);
 
             if ($scp->failed()) {
                 throw new RuntimeException(trim($scp->errorOutput() ?: $scp->output()) ?: 'Unable to upload the deployment archive.');
             }
-            } finally {
-                if (File::exists($keyPath)) {
-                    File::delete($keyPath);
-                }
-            }
         } finally {
-            $this->stopSshAgent($agentEnv);
-        }
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function startSshAgent(): array
-    {
-        $process = Process::timeout(30)->run(['ssh-agent', '-s']);
-
-        if ($process->failed()) {
-            throw new RuntimeException(trim($process->errorOutput() ?: $process->output()) ?: 'Unable to start ssh-agent.');
-        }
-
-        $output = $process->output();
-        preg_match('/SSH_AUTH_SOCK=([^;]+)/', $output, $socketMatches);
-        preg_match('/SSH_AGENT_PID=([0-9]+)/', $output, $pidMatches);
-
-        if (! isset($socketMatches[1], $pidMatches[1])) {
-            throw new RuntimeException('Unable to parse ssh-agent environment.');
-        }
-
-        return [
-            'SSH_AUTH_SOCK' => trim($socketMatches[1]),
-            'SSH_AGENT_PID' => trim($pidMatches[1]),
-        ];
-    }
-
-    /**
-     * @param  array<string, string>  $agentEnv
-     */
-    protected function stopSshAgent(array $agentEnv): void
-    {
-        try {
-            Process::env($agentEnv)->timeout(30)->run(['ssh-agent', '-k']);
-        } catch (Throwable) {
-            // Best-effort cleanup only.
+            if (File::exists($keyPath)) {
+                File::delete($keyPath);
+            }
         }
     }
 
     protected function remoteArchivePath(Deployment $deployment): string
     {
-        return sprintf('/tmp/veritydeploy-%s.tar.gz', $deployment->id);
+        return sprintf('/tmp/veritydeploy-%s.zip', $deployment->id);
     }
 
     protected function shouldUsePuTTY(): bool
@@ -277,6 +231,31 @@ class FileTransportService
         File::put($path, $privateKey);
 
         return $path;
+    }
+
+    protected function securePrivateKeyPermissions(string $path): void
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $identity = trim((string) Process::timeout(10)->run(['whoami'])->output());
+
+            if ($identity !== '') {
+                $process = Process::timeout(15)->run([
+                    'icacls',
+                    $path,
+                    '/inheritance:r',
+                    '/grant:r',
+                    $identity.':(F)',
+                ]);
+
+                if ($process->failed()) {
+                    throw new RuntimeException(trim($process->errorOutput() ?: $process->output()) ?: 'Unable to secure the SSH private key file permissions.');
+                }
+
+                return;
+            }
+        }
+
+        @chmod($path, 0600);
     }
 
     protected function hostKeyFingerprint(Server $server): string
@@ -336,13 +315,6 @@ class FileTransportService
 
     protected function createLocalSourceArchive(string $sourcePath, string $archivePath, bool $ignoreFiltered): void
     {
-        $tarPath = preg_replace('/\.gz$/', '', $archivePath) ?: ($archivePath.'.tar');
-        $tempTarPath = str_ends_with($tarPath, '.tar') ? $tarPath : $tarPath.'.tar';
-
-        if (File::exists($tempTarPath)) {
-            File::delete($tempTarPath);
-        }
-
         if (File::exists($archivePath)) {
             File::delete($archivePath);
         }
@@ -353,7 +325,16 @@ class FileTransportService
             throw new RuntimeException('No files were found to package from the local source directory.');
         }
 
-        $phar = new PharData($tempTarPath);
+        if (! class_exists(ZipArchive::class)) {
+            throw new RuntimeException('ZipArchive is not available on this machine.');
+        }
+
+        $zip = new ZipArchive();
+        $result = $zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        if ($result !== true) {
+            throw new RuntimeException('Unable to create the deployment zip archive.');
+        }
 
         foreach ($paths as $relativePath) {
             $fullPath = $sourcePath.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
@@ -362,23 +343,10 @@ class FileTransportService
                 continue;
             }
 
-            $phar->addFile($fullPath, $relativePath);
+            $zip->addFile($fullPath, $relativePath);
         }
 
-        if (File::exists($archivePath)) {
-            File::delete($archivePath);
-        }
-
-        $phar->compress(Phar::GZ);
-
-        $gzPath = $tempTarPath.'.gz';
-        if (! File::move($gzPath, $archivePath)) {
-            throw new RuntimeException('Unable to finalize the compressed archive.');
-        }
-
-        if (File::exists($tempTarPath)) {
-            File::delete($tempTarPath);
-        }
+        $zip->close();
     }
 
     /**

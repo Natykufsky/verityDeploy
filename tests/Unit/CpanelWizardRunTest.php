@@ -4,11 +4,13 @@ namespace Tests\Unit;
 
 use App\Actions\BootstrapDeployPath;
 use App\Models\CpanelWizardRun;
+use App\Models\CredentialProfile;
 use App\Models\Server;
 use App\Models\ServerConnectionTest;
 use App\Models\Site;
 use App\Services\Cpanel\CpanelApiClient;
 use App\Services\Cpanel\CpanelWizardRunner;
+use App\Services\Security\SshKeyService;
 use App\Services\Server\ServerProvisioner;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Mockery;
@@ -45,6 +47,7 @@ class CpanelWizardRunTest extends TestCase
             'connection_type' => 'cpanel',
             'cpanel_api_port' => 2083,
             'cpanel_api_token' => 'token',
+            'ssh_credential_profile_id' => $this->makeSshCredentialProfile()->id,
             'status' => 'pending',
         ]);
 
@@ -52,7 +55,7 @@ class CpanelWizardRunTest extends TestCase
 
         $steps = $runner->runServerChecks($server);
 
-        $this->assertCount(6, $steps);
+        $this->assertCount(8, $steps);
         $this->assertSame(2222, $server->fresh()->ssh_port);
         $this->assertSame('online', $server->fresh()->status);
         $this->assertSame(
@@ -70,7 +73,7 @@ class CpanelWizardRunTest extends TestCase
 
         $this->assertSame('server_checks', $run->wizard_type);
         $this->assertSame('successful', $run->status);
-        $this->assertCount(6, $run->steps);
+        $this->assertCount(8, $run->steps);
         $this->assertStringContainsString('discover ssh port', strtolower((string) $run->summary));
         $this->assertSame($server->id, $run->server_id);
         $this->assertNull($run->site_id);
@@ -86,6 +89,7 @@ class CpanelWizardRunTest extends TestCase
             'connection_type' => 'cpanel',
             'cpanel_api_port' => 2083,
             'cpanel_api_token' => 'token',
+            'ssh_credential_profile_id' => $this->makeSshCredentialProfile()->id,
             'status' => 'pending',
         ]);
 
@@ -107,7 +111,7 @@ class CpanelWizardRunTest extends TestCase
 
         $steps = $runner->runSiteBootstrap($site);
 
-        $this->assertCount(8, $steps);
+        $this->assertCount(10, $steps);
         $this->assertSame(2223, $server->fresh()->ssh_port);
         $this->assertSame(
             1,
@@ -126,7 +130,7 @@ class CpanelWizardRunTest extends TestCase
 
         $this->assertSame('site_bootstrap', $run->wizard_type);
         $this->assertSame('successful', $run->status);
-        $this->assertCount(8, $run->steps);
+        $this->assertCount(10, $run->steps);
         $this->assertSame($server->id, $run->server_id);
         $this->assertSame($site->id, $run->site_id);
         $this->assertStringContainsString('Bootstrap deploy path', (string) $run->summary);
@@ -142,6 +146,7 @@ class CpanelWizardRunTest extends TestCase
             'connection_type' => 'cpanel',
             'cpanel_api_port' => 2083,
             'cpanel_api_token' => 'token',
+            'ssh_credential_profile_id' => $this->makeSshCredentialProfile()->id,
             'status' => 'pending',
         ]);
 
@@ -156,7 +161,10 @@ class CpanelWizardRunTest extends TestCase
         $bootstrapDeployPath = Mockery::mock(BootstrapDeployPath::class);
         $bootstrapDeployPath->shouldIgnoreMissing();
 
-        $runner = new CpanelWizardRunner($client, $serverProvisioner, $bootstrapDeployPath);
+        $sshKeyService = Mockery::mock(SshKeyService::class);
+        $sshKeyService->shouldIgnoreMissing();
+
+        $runner = new CpanelWizardRunner($client, $serverProvisioner, $bootstrapDeployPath, $sshKeyService);
 
         try {
             $runner->runServerChecks($server);
@@ -182,6 +190,9 @@ class CpanelWizardRunTest extends TestCase
         $client->shouldReceive('ping')
             ->once()
             ->andReturn(['status' => 'ok']);
+        $client->shouldReceive('authorizeSshKey')
+            ->once()
+            ->andReturn(['status' => 'ok']);
 
         $serverProvisioner = Mockery::mock(ServerProvisioner::class);
         $serverProvisioner->shouldReceive('preflight')
@@ -191,7 +202,11 @@ class CpanelWizardRunTest extends TestCase
         $bootstrapDeployPath = Mockery::mock(BootstrapDeployPath::class);
         $bootstrapDeployPath->shouldIgnoreMissing();
 
-        return new CpanelWizardRunner($client, $serverProvisioner, $bootstrapDeployPath);
+        $sshKeyService = Mockery::mock(SshKeyService::class);
+        $sshKeyService->shouldReceive('derivePublicKey')
+            ->never();
+
+        return new CpanelWizardRunner($client, $serverProvisioner, $bootstrapDeployPath, $sshKeyService);
     }
 
     protected function makeSiteBootstrapRunner(int $port, array $bootstrapSummary): CpanelWizardRunner
@@ -201,6 +216,9 @@ class CpanelWizardRunTest extends TestCase
             ->once()
             ->andReturn($port);
         $client->shouldReceive('ping')
+            ->once()
+            ->andReturn(['status' => 'ok']);
+        $client->shouldReceive('authorizeSshKey')
             ->once()
             ->andReturn(['status' => 'ok']);
 
@@ -214,7 +232,11 @@ class CpanelWizardRunTest extends TestCase
             ->once()
             ->andReturn($bootstrapSummary);
 
-        return new CpanelWizardRunner($client, $serverProvisioner, $bootstrapDeployPath);
+        $sshKeyService = Mockery::mock(SshKeyService::class);
+        $sshKeyService->shouldReceive('derivePublicKey')
+            ->never();
+
+        return new CpanelWizardRunner($client, $serverProvisioner, $bootstrapDeployPath, $sshKeyService);
     }
 
     protected function tearDown(): void
@@ -232,5 +254,19 @@ class CpanelWizardRunTest extends TestCase
         ]);
 
         return $test;
+    }
+
+    protected function makeSshCredentialProfile(): CredentialProfile
+    {
+        return CredentialProfile::query()->create([
+            'name' => 'Audit SSH Profile',
+            'type' => 'ssh',
+            'description' => 'Test SSH profile',
+            'settings' => [
+                'public_key' => 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMockKey veritydeploy@test',
+            ],
+            'is_default' => false,
+            'is_active' => true,
+        ]);
     }
 }

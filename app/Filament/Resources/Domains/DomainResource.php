@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Domains;
 
+use App\Filament\Resources\Domains\Pages\EditDomain;
 use App\Filament\Resources\Domains\Pages\ManageDomains;
+use App\Filament\Resources\Domains\Schemas\DomainInfolist;
 use App\Models\Domain;
 use App\Models\Server;
 use App\Services\AppSettings;
@@ -15,6 +17,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -36,6 +39,8 @@ use Illuminate\Database\Eloquent\Builder;
 class DomainResource extends Resource
 {
     protected static ?string $model = Domain::class;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGlobeAlt;
 
@@ -86,8 +91,10 @@ class DomainResource extends Resource
                             ->default('inherit')
                             ->placeholder(fn (): string => app(AppSettings::class)->defaultPhpVersion() ?? '8.3'),
                         TextInput::make('web_root')
+                            ->label('cPanel document root')
                             ->default(fn (): string => app(AppSettings::class)->defaultWebRoot())
-                            ->placeholder('public'),
+                            ->placeholder('public')
+                            ->helperText('This value is pushed directly to cPanel as the live document root.'),
                         TextInput::make('external_id')
                             ->label('Identifier')
                             ->placeholder('Auto-populated'),
@@ -96,6 +103,20 @@ class DomainResource extends Resource
                             ->default(true),
                     ])
                     ->columns(['lg' => 2]),
+
+                Section::make('Sync mode')
+                    ->description('This tells you which save actions will update cPanel immediately and which ones stay as local database changes.')
+                    ->schema([
+                        Placeholder::make('sync_mode')
+                            ->label('Live sync behavior')
+                            ->content(fn (Get $get): string => match ($get('type')) {
+                                'primary' => 'Primary domains are provisioned through the site workflow so cPanel stays aligned with the site record.',
+                                'addon' => 'Addon domains sync to cPanel when saved, and their directory updates are pushed live on supported accounts.',
+                                'subdomain' => 'Subdomains sync to cPanel when saved, including live document-root changes.',
+                                'alias' => 'Alias domains sync to cPanel when saved and are removed or recreated as needed.',
+                                default => 'Choose a domain type to see how this record syncs with cPanel.',
+                            }),
+                    ]),
 
                 Section::make('SSL Security')
                     ->schema([
@@ -134,6 +155,11 @@ class DomainResource extends Resource
                     ->columns(['default' => 1])
                     ->collapsible(),
             ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return DomainInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
@@ -299,6 +325,7 @@ class DomainResource extends Resource
     {
         return [
             'index' => ManageDomains::route('/'),
+            'edit' => EditDomain::route('/{record}/edit'),
         ];
     }
 }

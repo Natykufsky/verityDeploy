@@ -53,7 +53,7 @@ class CpanelInventorySyncService
         }
 
         try {
-            $domainsPayload = $this->client->request($server, 'DomainInfo', 'list_domains');
+            $domainsPayload = $this->client->request($server, 'DomainInfo', 'domains_data');
             $sslPayload = $this->client->request($server, 'SSL', 'installed_hosts');
             $dnsPayload = filled($site->primary_domain)
                 ? $this->client->requestApi2($server, 'ZoneEdit', 'fetchzone_records', [

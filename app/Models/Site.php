@@ -151,6 +151,23 @@ class Site extends Model
         return $this->belongsTo(Domain::class, 'primary_domain_id');
     }
 
+    public static function deriveDeployPathFromDomain(Server $server, ?string $primaryDomain): ?string
+    {
+        $primaryDomain = trim((string) $primaryDomain);
+
+        if ($primaryDomain === '') {
+            return null;
+        }
+
+        $sshUser = trim((string) $server->effectiveSshUser());
+
+        if ($sshUser === '') {
+            return null;
+        }
+
+        return sprintf('/home/%s/public_html/%s', $sshUser, $primaryDomain);
+    }
+
     public function currentDomain(): BelongsTo
     {
         return $this->primaryDomain();

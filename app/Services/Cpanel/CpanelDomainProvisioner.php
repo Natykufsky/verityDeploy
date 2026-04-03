@@ -18,7 +18,7 @@ class CpanelDomainProvisioner
      */
     public function preview(Site $site): array
     {
-        $primaryDomain = trim((string) $site->primary_domain);
+        $primaryDomain = trim((string) $this->primaryDomainName($site));
         $addonSubdomain = $this->addonSubdomainLabel($primaryDomain);
         $documentRoot = $this->documentRoot($site);
 
@@ -64,11 +64,12 @@ class CpanelDomainProvisioner
             throw new RuntimeException('Domain management is disabled on this server. Enable the domain capability first.');
         }
 
-        if (blank($site->primary_domain)) {
+        $primaryDomain = trim((string) $this->primaryDomainName($site));
+
+        if (blank($primaryDomain)) {
             throw new RuntimeException('The site does not have a primary domain configured.');
         }
 
-        $primaryDomain = trim((string) $site->primary_domain);
         $addonSubdomain = $this->addonSubdomainLabel($primaryDomain);
         $documentRoot = $this->documentRoot($site);
         $summary = [];
@@ -128,9 +129,7 @@ class CpanelDomainProvisioner
 
     protected function documentRoot(Site $site): string
     {
-        $basePath = filled($site->current_release_path)
-            ? rtrim((string) $site->current_release_path, '/')
-            : rtrim((string) $site->deploy_path, '/').'/current';
+        $basePath = rtrim((string) $site->deploy_path, '/').'/current';
 
         $webRoot = trim((string) ($site->web_root ?: 'public'), '/');
 
@@ -140,5 +139,12 @@ class CpanelDomainProvisioner
     protected function relativeDocumentRoot($server, string $documentRoot): string
     {
         return $this->client->toHomeRelativePath($server, $documentRoot);
+    }
+
+    protected function primaryDomainName(Site $site): ?string
+    {
+        return data_get($site, 'currentDomain.name')
+            ?: data_get($site, 'primaryDomain.name')
+            ?: (string) ($site->primary_domain ?: '');
     }
 }

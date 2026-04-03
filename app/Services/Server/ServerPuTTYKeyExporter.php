@@ -3,6 +3,7 @@
 namespace App\Services\Server;
 
 use App\Models\Server;
+use App\Services\Security\SshKeyService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
@@ -15,7 +16,7 @@ class ServerPuTTYKeyExporter
      */
     public function export(Server $server): array
     {
-        $privateKey = trim((string) ($server->effectiveSshKey() ?: $server->private_key));
+        $privateKey = trim((string) $server->effectiveSshKey());
 
         if ($privateKey === '') {
             throw new RuntimeException('The server does not have an SSH private key configured.');
@@ -34,7 +35,12 @@ class ServerPuTTYKeyExporter
         $inputPath = $workingDirectory.'/'.Str::uuid().'.key';
         $outputPath = $workingDirectory.'/'.Str::uuid().'.ppk';
 
-        File::put($inputPath, $privateKey);
+        $deployKey = app(SshKeyService::class)->exportDeployPrivateKey(
+            $privateKey,
+            (string) data_get($server->sshCredentialProfile?->settings, 'passphrase', ''),
+        ) ?: $privateKey;
+
+        File::put($inputPath, $deployKey);
 
         try {
             $process = Process::timeout(60)->run([

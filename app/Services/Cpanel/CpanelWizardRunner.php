@@ -7,6 +7,7 @@ use App\Models\CpanelWizardRun;
 use App\Models\CredentialProfile;
 use App\Models\Server;
 use App\Models\Site;
+use App\Services\Security\SshKeyService;
 use App\Services\Server\ServerProvisioner;
 use RuntimeException;
 use Throwable;
@@ -17,6 +18,7 @@ class CpanelWizardRunner
         protected CpanelApiClient $client,
         protected ServerProvisioner $serverProvisioner,
         protected BootstrapDeployPath $bootstrapDeployPath,
+        protected SshKeyService $sshKeyService,
     ) {}
 
     /**
@@ -118,6 +120,10 @@ class CpanelWizardRunner
         ]);
         $this->appendStep($run, $steps, 'test cpanel api', 'successful', 'the cpanel api responded successfully.');
 
+        $this->appendStep($run, $steps, 'authorize ssh key', 'running', 'pushing the server ssh public key into authorized_keys...');
+        $this->authorizeServerSshKey($server->fresh());
+        $this->appendStep($run, $steps, 'authorize ssh key', 'successful', 'the ssh public key was authorized on the cpanel account.');
+
         $this->appendStep($run, $steps, 'server provisioning', 'running', 'running the server provisioning preflight...');
         $test = $this->serverProvisioner->preflight($server->fresh());
         $this->appendStep(
@@ -216,6 +222,30 @@ class CpanelWizardRunner
                 ['port' => $port],
             ),
         ]);
+    }
+
+    protected function authorizeServerSshKey(Server $server): void
+    {
+        $profile = $server->sshCredentialProfile;
+
+        if (! $profile || $profile->type !== 'ssh') {
+            throw new RuntimeException('The server does not have an SSH credential profile configured.');
+        }
+
+        $publicKey = data_get($profile->settings, 'public_key');
+
+        if (blank($publicKey)) {
+            $publicKey = $this->sshKeyService->derivePublicKey(
+                (string) data_get($profile->settings, 'private_key'),
+                (string) data_get($profile->settings, 'passphrase'),
+            );
+        }
+
+        if (blank($publicKey)) {
+            throw new RuntimeException('The SSH credential profile does not contain a usable public key.');
+        }
+
+        $this->client->authorizeSshKey($server, (string) $publicKey);
     }
 
     protected function recoveryHint(Throwable $throwable, string $wizardType, ?Server $server = null, ?Site $site = null): string

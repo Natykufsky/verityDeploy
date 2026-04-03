@@ -55,7 +55,7 @@ class CredentialProfileForm
                     ->columns(2),
 
                 Section::make('SSH configuration')
-                    ->description('Configure your SSH identity, including key management and terminal defaults.')
+                    ->description('Configure your SSH identity, including key management and terminal defaults. If you already have a matching keypair, upload both files separately.')
                     ->visible(fn (Get $get): bool => $get('type') === 'ssh')
                     ->schema([
                         TextInput::make('settings.username')
@@ -94,18 +94,13 @@ class CredentialProfileForm
                             ->live(onBlur: true)
                             ->dehydrated(true)
                             ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
-                                if (filled($state)) {
-                                    $publicKey = app(SshKeyService::class)->derivePublicKey($state, (string) $get('settings.passphrase'));
-                                    if ($publicKey) {
-                                        $set('settings.public_key', $publicKey);
-                                    }
-                                }
+                                self::syncPublicKey($get, $set, $state);
                             })
                             ->extraAttributes(['class' => 'font-mono text-sm']),
 
                         Actions::make([
                             Action::make('uploadKeyFile')
-                                ->label('Upload key file')
+                                ->label('Upload private key')
                                 ->icon('heroicon-o-document-plus')
                                 ->color('primary')
                                 ->form([
@@ -127,19 +122,46 @@ class CredentialProfileForm
                                     $content = file_get_contents($path);
 
                                     $set('settings.private_key', $content);
-
-                                    // Derive and set public key immediately
-                                    $publicKey = app(SshKeyService::class)->derivePublicKey($content, (string) $get('settings.passphrase'));
-                                    if ($publicKey) {
-                                        $set('settings.public_key', $publicKey);
-                                    }
+                                    self::syncPublicKey($get, $set, $content);
 
                                     // Cleanup
                                     Storage::disk('local')->delete($data['key_file']);
 
                                     Notification::make()
                                         ->title('File imported')
-                                        ->body('Successfully read key from file.')
+                                        ->body('Successfully read the private key file.')
+                                        ->success()
+                                        ->send();
+                                }),
+                            Action::make('uploadPublicKeyFile')
+                                ->label('Upload public key')
+                                ->icon('heroicon-o-document-text')
+                                ->color('gray')
+                                ->form([
+                                    FileUpload::make('public_key_file')
+                                        ->label('Select public key file')
+                                        ->disk('local')
+                                        ->directory('temp_keys')
+                                        ->visibility('private')
+                                        ->required()
+                                        ->preserveFilenames()
+                                        ->helperText('Select your matching .pub file if you already have one.'),
+                                ])
+                                ->action(function (array $data, Set $set): void {
+                                    if (blank($data['public_key_file'] ?? null)) {
+                                        return;
+                                    }
+
+                                    $path = Storage::disk('local')->path($data['public_key_file']);
+                                    $content = trim((string) file_get_contents($path));
+
+                                    $set('settings.public_key', $content !== '' ? $content : null);
+
+                                    Storage::disk('local')->delete($data['public_key_file']);
+
+                                    Notification::make()
+                                        ->title('File imported')
+                                        ->body('Successfully read the public key file.')
                                         ->success()
                                         ->send();
                                 }),
@@ -182,12 +204,7 @@ class CredentialProfileForm
                                     $path = array_key_first($keys);
                                     $privateKey = file_get_contents($path);
                                     $set('settings.private_key', $privateKey);
-
-                                    // Derive and set public key immediately
-                                    $publicKey = app(SshKeyService::class)->derivePublicKey($privateKey, (string) $get('settings.passphrase'));
-                                    if ($publicKey) {
-                                        $set('settings.public_key', $publicKey);
-                                    }
+                                    self::syncPublicKey($get, $set, $privateKey);
 
                                     Notification::make()
                                         ->title('Key imported')
@@ -364,5 +381,18 @@ class CredentialProfileForm
             ],
             default => [],
         };
+    }
+
+    protected static function syncPublicKey(Get $get, Set $set, ?string $privateKey): void
+    {
+        if (blank($privateKey)) {
+            $set('settings.public_key', null);
+
+            return;
+        }
+
+        $publicKey = app(SshKeyService::class)->derivePublicKey($privateKey, (string) $get('settings.passphrase'));
+
+        $set('settings.public_key', $publicKey ?: null);
     }
 }

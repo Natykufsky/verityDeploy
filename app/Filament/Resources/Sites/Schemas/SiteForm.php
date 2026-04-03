@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\Sites\Schemas;
 
 use App\Models\CredentialProfile;
+use App\Models\Domain;
 use App\Models\Server;
 use App\Models\Site;
 use App\Models\Team;
 use App\Services\AppSettings;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -85,19 +87,6 @@ class SiteForm
         ];
 
         $configFields = [
-            Section::make('Path Configuration')
-                ->description('Where the files will be placed on the remote disk.')
-                ->icon('heroicon-o-folder-open')
-                ->schema([
-                    TextInput::make('deploy_path')
-                        ->label('Absolute Deploy Path')
-                        ->placeholder('/home/user/apps/myapp')
-                        ->required(),
-                    TextInput::make('web_root')
-                        ->label('Web Root Folder')
-                        ->required()
-                        ->default('public'),
-                ])->columns(['md' => 2]),
             Section::make('Domain Mapping')
                 ->description('Web server configuration for inbound traffic.')
                 ->icon('heroicon-o-globe-alt')
@@ -107,7 +96,22 @@ class SiteForm
                         ->relationship('primaryDomain', 'name', fn ($query, Get $get) => $query->where('server_id', $get('server_id')))
                         ->searchable()
                         ->preload()
+                        ->live()
                         ->required(),
+                    Placeholder::make('generated_deploy_path')
+                        ->label('Generated Deploy Path')
+                        ->content(function (Get $get): string {
+                            $server = filled($get('server_id')) ? Server::query()->find($get('server_id')) : null;
+                            $primaryDomain = filled($get('primary_domain_id')) ? Domain::query()->find($get('primary_domain_id')) : null;
+
+                            if (! $server || ! $primaryDomain) {
+                                return 'Select a server and primary domain to preview the deployment path.';
+                            }
+
+                            return Site::deriveDeployPathFromDomain($server, $primaryDomain->name)
+                                ?? 'Unable to generate a deploy path for the selected domain.';
+                        })
+                        ->columnSpanFull(),
                     Toggle::make('force_https')
                         ->label('Force HTTPS')
                         ->default(true),
@@ -186,18 +190,31 @@ class SiteForm
 
     protected static function sitePreview(Get $get): Site
     {
-        $site = new Site([
-            'primary_domain_id' => $get('primary_domain_id'),
-            'force_https' => (bool) $get('force_https'),
-            'deploy_path' => $get('deploy_path'),
-            'web_root' => $get('web_root'),
-        ]);
+        $server = null;
 
         if (filled($get('server_id'))) {
             $server = Server::query()->find($get('server_id'));
-            if ($server) {
-                $site->setRelation('server', $server);
-            }
+        }
+
+        $primaryDomain = null;
+
+        if (filled($get('primary_domain_id'))) {
+            $primaryDomain = Domain::query()->find($get('primary_domain_id'));
+        }
+
+        $site = new Site([
+            'primary_domain_id' => $get('primary_domain_id'),
+            'force_https' => (bool) $get('force_https'),
+            'deploy_path' => $server && $primaryDomain ? Site::deriveDeployPathFromDomain($server, $primaryDomain->name) : null,
+            'web_root' => 'public',
+        ]);
+
+        if ($server) {
+            $site->setRelation('server', $server);
+        }
+
+        if ($primaryDomain) {
+            $site->setRelation('primaryDomain', $primaryDomain);
         }
 
         return $site;

@@ -154,6 +154,8 @@ class CpanelApiClient
      */
     public function mkdir(Server $server, string $path, string $name, ?string $permissions = null): array
     {
+        $path = $this->toHomeRelativePath($server, $path);
+
         $query = [
             'path' => $path,
             'name' => $name,
@@ -194,6 +196,28 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function deleteSubdomain(Server $server, string $domain): array
+    {
+        return $this->requestApi2($server, 'SubDomain', 'delsubdomain', [
+            'domain' => $domain,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function changeSubdomainDocroot(Server $server, string $subdomain, string $rootDomain, string $directory): array
+    {
+        return $this->requestApi2($server, 'SubDomain', 'changedocroot', [
+            'subdomain' => $subdomain,
+            'rootdomain' => $rootDomain,
+            'dir' => $directory,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function parkDomain(Server $server, string $domain, string $topDomain): array
     {
         return $this->requestApi2($server, 'Park', 'park', [
@@ -206,8 +230,32 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function unparkDomain(Server $server, string $domain, string $topDomain): array
+    {
+        return $this->requestApi2($server, 'Park', 'unpark', [
+            'domain' => $domain,
+            'topdomain' => $topDomain,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function delAddonDomain(Server $server, string $domain, string $subdomain): array
+    {
+        return $this->requestApi2($server, 'AddonDomain', 'deladdondomain', [
+            'domain' => $domain,
+            'subdomain' => $subdomain,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function saveFile(Server $server, string $path, string $filename, string $content): array
     {
+        $path = $this->toHomeRelativePath($server, $path);
+
         return $this->client($server)
             ->asForm()
             ->post('Fileman/save_file_content', [
@@ -224,6 +272,8 @@ class CpanelApiClient
      */
     public function getFileContent(Server $server, string $path, string $filename): array
     {
+        $path = $this->toHomeRelativePath($server, $path);
+
         return $this->request($server, 'Fileman', 'get_file_content', [
             'dir' => $path,
             'file' => $filename,
@@ -236,14 +286,15 @@ class CpanelApiClient
     public function authorizeSshKey(Server $server, string $publicKey): array
     {
         // 1. Import the key
-        $import = $this->request($server, 'SSH', 'import_key', [
+        $import = $this->requestApi2($server, 'SSH', 'importkey', [
             'key' => $publicKey,
             'name' => 'veritydeploy-dashboard',
         ]);
 
         // 2. Authorize the key
-        return $this->request($server, 'SSH', 'authorize_key', [
+        return $this->requestApi2($server, 'SSH', 'authkey', [
             'key' => 'veritydeploy-dashboard',
+            'action' => 'authorize',
         ]);
     }
 
@@ -253,21 +304,17 @@ class CpanelApiClient
     public function uploadFile(Server $server, string $directory, string $path, ?string $filename = null): array
     {
         $filename ??= basename($path);
-        $directory = rtrim(str_replace('\\', '/', $directory), '/');
+        $directory = rtrim($this->toHomeRelativePath($server, $directory), '/');
         $contents = file_get_contents($path);
 
         if ($contents === false) {
             throw new RuntimeException("Unable to read the file at [{$path}].");
         }
 
-        $response = $this->api2Client($server)
+        $response = $this->client($server)
             ->asMultipart()
             ->attach('file-1', $contents, $filename)
-            ->post('', [
-                'cpanel_jsonapi_user' => $this->cpanelUsername($server),
-                'cpanel_jsonapi_apiversion' => 2,
-                'cpanel_jsonapi_module' => 'Fileman',
-                'cpanel_jsonapi_func' => 'uploadfiles',
+            ->post('Fileman/upload_files', [
                 'dir' => $directory,
             ]);
 
@@ -281,10 +328,28 @@ class CpanelApiClient
             throw new RuntimeException('cPanel upload_files returned an invalid response.');
         }
 
-        if (! data_get($payload, 'cpanelresult.event.result')) {
-            $reason = data_get($payload, 'cpanelresult.error')
-                ?? data_get($payload, 'cpanelresult.data.0.uploads.0.reason')
-                ?? data_get($payload, 'cpanelresult.data.0.reason');
+        $status = data_get($payload, 'result.status');
+
+        if ($status === null) {
+            $status = data_get($payload, 'status');
+        }
+
+        if (! $status) {
+            $messages = data_get($payload, 'result.errors')
+                ?? data_get($payload, 'result.messages')
+                ?? data_get($payload, 'errors')
+                ?? data_get($payload, 'messages')
+                ?? [];
+
+            if (is_array($messages) && filled($messages)) {
+                throw new RuntimeException(implode(' ', array_map('strval', $messages)));
+            }
+
+            $reason = data_get($payload, 'result.reason')
+                ?? data_get($payload, 'errors.0')
+                ?? data_get($payload, 'messages.0')
+                ?? data_get($payload, 'data.0.uploads.0.reason')
+                ?? data_get($payload, 'data.0.reason');
 
             if (filled($reason)) {
                 throw new RuntimeException((string) $reason);
@@ -293,7 +358,7 @@ class CpanelApiClient
             throw new RuntimeException('Unable to upload the file to cPanel.');
         }
 
-        $data = data_get($payload, 'cpanelresult.data');
+        $data = data_get($payload, 'result.data');
 
         return is_array($data) ? $data : ['value' => $data];
     }
@@ -301,7 +366,7 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
-    public function extractArchive(Server $server, string $archivePath, string $destinationDirectory, string $metadata = 'tar.gz'): array
+    public function extractArchive(Server $server, string $archivePath, string $destinationDirectory, string $metadata = 'zip'): array
     {
         return $this->fileOp($server, 'extract', [
             'sourcefiles' => $this->toHomeRelativePath($server, $archivePath),
@@ -484,14 +549,16 @@ class CpanelApiClient
     {
         $port = $server->effectiveCpanelApiPort() ?: 2083;
         $prefix = ($port == 2087) ? 'whm' : 'cpanel';
+        $host = $this->cpanelHost($server);
 
         $baseUrl = sprintf(
             'https://%s:%d/execute',
-            $server->ip_address,
+            $host,
             $port,
         );
 
         return Http::baseUrl($baseUrl)
+            ->withoutVerifying()
             ->acceptJson()
             ->asJson()
             ->timeout(180)
@@ -505,14 +572,16 @@ class CpanelApiClient
     {
         $port = $server->effectiveCpanelApiPort() ?: 2083;
         $prefix = ($port == 2087) ? 'whm' : 'cpanel';
+        $host = $this->cpanelHost($server);
 
         $baseUrl = sprintf(
             'https://%s:%d/json-api/cpanel',
-            $server->ip_address,
+            $host,
             $port,
         );
 
         return Http::baseUrl($baseUrl)
+            ->withoutVerifying()
             ->acceptJson()
             ->asJson()
             ->timeout(180)
@@ -525,6 +594,17 @@ class CpanelApiClient
     protected function cpanelUsername(Server $server): string
     {
         return trim((string) ($server->effectiveCpanelUsername() ?: $server->effectiveSshUser()));
+    }
+
+    protected function cpanelHost(Server $server): string
+    {
+        $providerReference = trim((string) ($server->provider_reference ?? ''));
+
+        if (filled($providerReference)) {
+            return $providerReference;
+        }
+
+        return trim((string) $server->ip_address);
     }
 
     protected function errorMessage(Response $response): string

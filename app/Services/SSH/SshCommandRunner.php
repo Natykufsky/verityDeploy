@@ -3,6 +3,8 @@
 namespace App\Services\SSH;
 
 use App\Models\Server;
+use App\Services\Security\SshKeyService;
+use App\Services\Server\ServerPuTTYKeyExporter;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process as ProcessFacade;
 use Illuminate\Support\Str;
@@ -12,49 +14,32 @@ use Symfony\Component\Process\Process;
 
 class SshCommandRunner
 {
+    protected int $timeout = 0;
+
+    protected int $minimumTimeout = 20;
+
     public function execute(Server $server, array|string $commands, ?callable $onOutput = null): Process
     {
-        if ($this->shouldUsePuTTY()) {
-            return $this->shouldUsePasswordAuthentication($server)
-                ? $this->executeWithPuTTYPassword($server, $commands, $onOutput)
-                : $this->executeWithPuTTYKey($server, $commands, $onOutput);
-        }
-
-        $ssh = Ssh::create(
-            $this->loginUsername($server),
-            $server->host,
-            $server->port ?? 22,
-            $this->shouldUsePasswordAuthentication($server) ? (string) $server->sudo_password : null,
-        )
-            ->disableStrictHostKeyChecking();
-
-        $temporaryKeyPath = null;
-
-        if ($server->private_key && ! $this->shouldUsePasswordAuthentication($server)) {
-            $temporaryKeyPath = $this->writeTemporaryPrivateKey($server->private_key);
-            $ssh->usePrivateKey($temporaryKeyPath);
-        }
-
-        if ($onOutput) {
-            $ssh->onOutput($onOutput);
-        }
-
-        try {
-            return $ssh->execute($commands);
-        } finally {
-            if ($temporaryKeyPath && File::exists($temporaryKeyPath)) {
-                File::delete($temporaryKeyPath);
+        if ($this->shouldUsePasswordAuthentication($server)) {
+            if ($this->shouldUsePuTTY()) {
+                return $this->executeWithPuTTYPassword($server, $commands, $onOutput);
             }
+
+            return $this->executeWithPassword($server, $commands, $onOutput);
         }
+
+        return $this->executeWithOpenSshKey($server, $commands, $onOutput);
     }
 
     protected function executeWithPuTTYKey(Server $server, array|string $commands, ?callable $onOutput = null): Process
     {
-        if (! filled($server->private_key)) {
+        $puttyKey = app(ServerPuTTYKeyExporter::class)->export($server)['putty_private_key'] ?? null;
+
+        if (! filled($puttyKey)) {
             throw new RuntimeException('SSH key authentication was requested, but no private key is stored for this server.');
         }
 
-        $temporaryKeyPath = $this->writeTemporaryPrivateKey((string) $server->private_key, '.ppk');
+        $temporaryKeyPath = $this->writeTemporaryPrivateKey((string) $puttyKey, '.ppk');
         $hostKey = $this->hostKeyFingerprint($server);
         $command = is_array($commands) ? implode(' && ', $commands) : $commands;
         $process = new Process([
@@ -62,7 +47,7 @@ class SshCommandRunner
             '-ssh',
             '-batch',
             '-P',
-            (string) ($server->port ?: 22),
+            (string) $this->sshPort($server),
             '-i',
             $temporaryKeyPath,
             '-hostkey',
@@ -101,7 +86,7 @@ class SshCommandRunner
             '-batch',
             '-ssh',
             '-P',
-            (string) ($server->port ?: 22),
+            (string) $this->sshPort($server),
             '-pw',
             (string) $server->sudo_password,
             '-hostkey',
@@ -125,6 +110,102 @@ class SshCommandRunner
         return $process;
     }
 
+    protected function executeWithPassword(Server $server, array|string $commands, ?callable $onOutput = null): Process
+    {
+        $ssh = Ssh::create(
+            $this->loginUsername($server),
+            $server->host,
+            $server->port ?? 22,
+            (string) $server->sudo_password,
+        )
+            ->disableStrictHostKeyChecking();
+
+        if ($onOutput) {
+            $ssh->onOutput($onOutput);
+        }
+
+        return $ssh->execute($commands);
+    }
+
+    protected function executeWithOpenSshKey(Server $server, array|string $commands, ?callable $onOutput = null): Process
+    {
+        $privateKey = $server->effectiveSshKey();
+
+        if (! filled($privateKey)) {
+            throw new RuntimeException('SSH key authentication was requested, but no private key is stored for this server.');
+        }
+
+        $deployKey = app(SshKeyService::class)->exportDeployPrivateKey(
+            (string) $privateKey,
+            (string) data_get($server->sshCredentialProfile?->settings, 'passphrase', ''),
+        ) ?: (string) $privateKey;
+
+        $keyPath = $this->writeTemporaryPrivateKey($deployKey);
+
+        try {
+            $command = is_array($commands) ? implode(' && ', $commands) : $commands;
+            if (PHP_OS_FAMILY === 'Windows') {
+                $this->securePrivateKeyPermissions($keyPath);
+
+                $process = new Process([
+                    'ssh',
+                    '-i',
+                    $keyPath,
+                    '-p',
+                    (string) $this->sshPort($server),
+                    '-o',
+                    'BatchMode=yes',
+                    '-o',
+                    'StrictHostKeyChecking=no',
+                    '-o',
+                    'UserKnownHostsFile=/dev/null',
+                    sprintf('%s@%s', $this->loginUsername($server), $server->host),
+                    $command,
+                ]);
+
+                $process->setTimeout($this->effectiveTimeout());
+                $process->run(function (string $type, string $buffer) use ($onOutput): void {
+                    if ($onOutput) {
+                        $onOutput($type, $buffer);
+                    }
+                });
+
+                return $process;
+            }
+
+            $this->securePrivateKeyPermissions($keyPath);
+
+            $process = new Process([
+                'ssh',
+                '-i',
+                $keyPath,
+                '-p',
+                (string) $this->sshPort($server),
+                '-o',
+                'BatchMode=yes',
+                '-o',
+                'StrictHostKeyChecking=no',
+                '-o',
+                'UserKnownHostsFile=/dev/null',
+                sprintf('%s@%s', $this->loginUsername($server), $server->host),
+                $command,
+            ]);
+
+            $process->setTimeout($this->effectiveTimeout());
+            $process->run(function (string $type, string $buffer) use ($onOutput): void {
+                if ($onOutput) {
+                    $onOutput($type, $buffer);
+                }
+            });
+
+            return $process;
+        } finally {
+            if (File::exists($keyPath)) {
+                File::delete($keyPath);
+            }
+        }
+    }
+
     protected function writeTemporaryPrivateKey(string $privateKey): string
     {
         $directory = storage_path('app/ssh-keys');
@@ -139,6 +220,40 @@ class SshCommandRunner
         return $path;
     }
 
+    protected function securePrivateKeyPermissions(string $path): void
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $identity = trim((string) ProcessFacade::timeout(10)->run(['whoami'])->output());
+
+            if ($identity !== '') {
+                $process = ProcessFacade::timeout(15)->run([
+                    'icacls',
+                    $path,
+                    '/inheritance:r',
+                    '/grant:r',
+                    $identity.':(F)',
+                ]);
+
+                if ($process->failed()) {
+                    throw new RuntimeException(trim($process->errorOutput() ?: $process->output()) ?: 'Unable to secure the SSH private key file permissions.');
+                }
+
+                return;
+            }
+        }
+
+        @chmod($path, 0600);
+    }
+
+    protected function effectiveTimeout(): int
+    {
+        if ($this->timeout <= 0) {
+            return 300;
+        }
+
+        return max($this->timeout, $this->minimumTimeout);
+    }
+
     protected function shouldUsePuTTY(): bool
     {
         return PHP_OS_FAMILY === 'Windows' && File::exists('C:\\Program Files\\PuTTY\\plink.exe');
@@ -146,7 +261,7 @@ class SshCommandRunner
 
     protected function shouldUsePasswordAuthentication(Server $server): bool
     {
-        return $server->connection_type === 'password' || blank($server->private_key);
+        return $server->connection_type === 'password' || blank($server->effectiveSshKey());
     }
 
     protected function loginUsername(Server $server): string
@@ -219,7 +334,7 @@ class SshCommandRunner
             return ProcessFacade::timeout(15)->run([
                 $this->windowsOpenSshExecutable('ssh-keyscan.exe'),
                 '-p',
-                (string) ($server->port ?: 22),
+                (string) $this->sshPort($server),
                 '-t',
                 'ed25519',
                 $server->host,
@@ -232,5 +347,10 @@ class SshCommandRunner
     protected function windowsOpenSshExecutable(string $name): string
     {
         return 'C:\\Windows\\System32\\OpenSSH\\'.$name;
+    }
+
+    protected function sshPort(Server $server): int
+    {
+        return $server->effectiveSshPort() ?: $server->port ?: 22;
     }
 }
