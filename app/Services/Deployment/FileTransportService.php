@@ -165,39 +165,6 @@ class FileTransportService
             return;
         }
 
-        if ($this->shouldUsePuTTY()) {
-            if (blank($sshKey)) {
-                throw new RuntimeException('The server does not have an SSH private key configured for file transfer.');
-            }
-
-            $keyPath = $this->writeTemporaryPrivateKey((string) $sshKey, '.ppk');
-
-            try {
-                $scp = Process::timeout(300)->run([
-                    $this->puttyExecutable('pscp.exe'),
-                    '-batch',
-                    '-P',
-                    (string) $sshPort,
-                    '-i',
-                    $keyPath,
-                    '-hostkey',
-                    $this->hostKeyFingerprint($server),
-                    $archivePath,
-                    $destination,
-                ]);
-
-                if ($scp->failed()) {
-                    throw new RuntimeException(trim($scp->errorOutput() ?: $scp->output()) ?: 'Unable to upload the deployment archive.');
-                }
-
-                return;
-            } finally {
-                if (File::exists($keyPath)) {
-                    File::delete($keyPath);
-                }
-            }
-        }
-
         $agentEnv = $this->startSshAgent();
 
         try {

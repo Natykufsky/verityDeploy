@@ -46,8 +46,8 @@ class DeploymentTimelineWidgetTest extends TestCase
             'branch' => 'main',
             'commit_hash' => 'abc123',
             'release_path' => '/var/www/timeline-site/releases/001',
-            'started_at' => now()->subMinutes(20),
-            'finished_at' => now()->subMinutes(18),
+            'started_at' => now()->addHour(),
+            'finished_at' => now()->addHour()->addMinutes(2),
             'exit_code' => 0,
         ]);
 
@@ -58,8 +58,8 @@ class DeploymentTimelineWidgetTest extends TestCase
             'command' => 'git fetch',
             'status' => 'successful',
             'output' => 'Fetched.',
-            'started_at' => now()->subMinutes(20),
-            'finished_at' => now()->subMinutes(19),
+            'started_at' => now()->addHour(),
+            'finished_at' => now()->addHour()->addMinutes(1),
             'exit_code' => 0,
         ]);
 
@@ -70,8 +70,8 @@ class DeploymentTimelineWidgetTest extends TestCase
             'command' => 'composer install',
             'status' => 'successful',
             'output' => 'Installed.',
-            'started_at' => now()->subMinutes(19),
-            'finished_at' => now()->subMinutes(18),
+            'started_at' => now()->addHour()->addMinutes(1),
+            'finished_at' => now()->addHour()->addMinutes(2),
             'exit_code' => 0,
         ]);
 

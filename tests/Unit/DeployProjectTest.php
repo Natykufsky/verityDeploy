@@ -252,6 +252,53 @@ class DeployProjectTest extends TestCase
         $this->assertStringContainsString('Recovery', $deployment->output);
     }
 
+    public function test_failed_job_marks_running_deployment_as_failed(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Deploy User',
+            'email' => 'job-failure@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $server = Server::query()->create([
+            'name' => 'Job Failure Server',
+            'ip_address' => '203.0.113.86',
+            'ssh_port' => 22,
+            'ssh_user' => 'forge',
+            'connection_type' => 'ssh_key',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'name' => 'job-failure-site',
+            'deploy_path' => '/var/www/job-failure-site',
+            'deploy_source' => 'git',
+            'repository_url' => 'https://github.com/acme/job-failure-site.git',
+            'default_branch' => 'main',
+        ]);
+
+        $deployment = $site->deployments()->create([
+            'triggered_by_user_id' => $user->id,
+            'source' => 'manual',
+            'status' => 'running',
+            'branch' => 'main',
+            'commit_hash' => 'commit-job-failure',
+            'release_path' => '/var/www/job-failure-site/releases/20260401010101-1',
+            'started_at' => now()->subMinutes(3),
+        ]);
+
+        $job = new DeployJob($deployment->id);
+
+        $job->failed(new RuntimeException('Unexpected deployment crash.'));
+
+        $deployment = $deployment->fresh();
+
+        $this->assertSame('failed', $deployment->status);
+        $this->assertNotNull($deployment->finished_at);
+        $this->assertSame('Unexpected deployment crash.', $deployment->error_message);
+    }
+
     public function test_local_source_resume_skips_reupload_when_archive_was_already_uploaded(): void
     {
         $server = Server::query()->create([
