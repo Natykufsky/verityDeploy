@@ -41,70 +41,60 @@
         </div>
     </summary>
 
-    <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>Owner</span>
-                <x-info-tooltip text="The owner is the primary user account, while the team is the shared access group if one is assigned." label="Owner help" />
+    <div class="mt-5 grid gap-4 md:grid-cols-2">
+        <div class="space-y-4">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div class="deployment-frost-panel rounded-2xl p-4">
+                    <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        <span>Sites</span>
+                    </div>
+                    <div class="mt-2 text-2xl font-semibold text-white">{{ $record->sites()->count() }}</div>
+                    <div class="mt-1 text-sm text-slate-400">Deployed sites</div>
+                </div>
+
+                <div class="deployment-frost-panel rounded-2xl p-4">
+                    <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        <span>Domains</span>
+                    </div>
+                    <div class="mt-2 text-2xl font-semibold text-white">{{ $record->domains()->count() }}</div>
+                    <div class="mt-1 text-sm text-slate-400">Managed domains</div>
+                </div>
             </div>
-            <div class="mt-2 text-sm font-semibold text-white">{{ $record->owner?->name ?? 'Unassigned' }}</div>
-            <div class="mt-1 text-sm text-slate-400">{{ $record->team?->name ?? 'No team assigned' }}</div>
+
+            <div class="deployment-frost-panel rounded-2xl p-4">
+                <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    <span>Owner</span>
+                </div>
+                <div class="mt-2 text-sm font-semibold text-white">{{ $record->owner?->name ?? 'Unassigned' }}</div>
+                <div class="mt-1 text-sm text-slate-400">{{ $record->team?->name ?? 'No team assigned' }}</div>
+            </div>
         </div>
 
-        <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>Connection</span>
-                <x-info-tooltip text="Connection mode controls how the app reaches the server: SSH key, password, local host, or cPanel." label="Connection help" />
+        <div class="space-y-4">
+            <div class="deployment-frost-panel rounded-2xl p-4">
+                <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    <span>Connection</span>
+                </div>
+                <div class="mt-2 text-sm font-semibold text-white">{{ ucfirst((string) $record->connection_type) }}</div>
+                <div class="mt-1 text-sm text-slate-400">IP: {{ $record->ip_address }}</div>
             </div>
-            <div class="mt-2 text-sm font-semibold text-white">{{ ucfirst((string) $record->connection_type) }}</div>
-            <div class="mt-1 text-sm text-slate-400">SSH user: {{ $record->ssh_user ?? 'n/a' }}</div>
-        </div>
 
-        <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>Last connected</span>
-                <x-info-tooltip text="This shows when the server last responded successfully to a connection or health check." label="Last connected help" />
+            <div class="deployment-frost-panel rounded-2xl p-4">
+                <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    <span>Provider</span>
+                </div>
+                <div class="mt-2 text-sm font-semibold text-white">{{ $record->provider_label }}</div>
+                <div class="mt-1 text-sm text-slate-400">{{ $record->provider_region ?: 'No region set' }}</div>
             </div>
-            <div class="mt-2 text-sm font-semibold text-white">{{ $record->last_connected_at?->format('M d, Y H:i') ?? 'Never' }}</div>
-            <div class="mt-1 text-sm text-slate-400">{{ $record->connectionTests()->count() }} connection checks recorded</div>
-        </div>
-
-        <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>Provider</span>
-                <x-info-tooltip text="The provider tells the app which platform or host manages this server." label="Provider help" />
-            </div>
-            <div class="mt-2 text-sm font-semibold text-white">{{ $record->provider_label }}</div>
-            <div class="mt-1 text-sm text-slate-400">{{ $record->provider_region ?: 'No region set' }}</div>
         </div>
     </div>
 
-    <div class="mt-3 grid gap-3 md:grid-cols-3">
-        <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>SSH profile</span>
-                <x-info-tooltip text="This is the shared SSH credential profile linked to the server, or the default profile inherited from App Settings." label="SSH profile help" />
-            </div>
-            <div class="mt-2 text-sm font-semibold text-white">{{ $record->ssh_credential_profile_label }}</div>
-            <div class="mt-1 text-sm text-slate-400">{{ filled($record->ssh_credential_profile_id) ? 'Linked directly to this server.' : 'Inherited from the shared default.' }}</div>
-        </div>
-
-        <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>cPanel profile</span>
-                <x-info-tooltip text="This is the shared cPanel credential profile linked to the server, or the default profile inherited from App Settings." label="cPanel profile help" />
-            </div>
-            <div class="mt-2 text-sm font-semibold text-white">{{ $record->cpanel_credential_profile_label }}</div>
-            <div class="mt-1 text-sm text-slate-400">{{ filled($record->cpanel_credential_profile_id) ? 'Linked directly to this server.' : 'Inherited from the shared default.' }}</div>
-        </div>
-
-        <div class="deployment-frost-panel rounded-2xl p-4">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>DNS profile</span>
-                <x-info-tooltip text="This is the shared DNS credential profile linked to the server, or the default profile inherited from App Settings." label="DNS profile help" />
-            </div>
-            <div class="mt-2 text-sm font-semibold text-white">{{ $record->dns_credential_profile_label }}</div>
-            <div class="mt-1 text-sm text-slate-400">{{ filled($record->dns_credential_profile_id) ? 'Linked directly to this server.' : 'Inherited from the shared default.' }}</div>
-        </div>
+    <div class="mt-4 flex gap-4">
+        <a href="?tab=Sites" class="inline-flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20">
+            View Sites
+        </a>
+        <a href="?tab=Live%20Domains" class="inline-flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-300 hover:bg-blue-500/20">
+            View Domains
+        </a>
     </div>
 </details>

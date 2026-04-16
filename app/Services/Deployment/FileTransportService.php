@@ -11,20 +11,17 @@ use Illuminate\Support\Str;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
+use ZipArchive;
 
 class FileTransportService
 {
     public function packageLocalSourceArchive(Deployment $deployment): string
     {
         $site = $deployment->site;
-        $sourcePath = rtrim((string) $site->local_source_path, DIRECTORY_SEPARATOR);
+        $sourceInput = $site->local_source_archive;
 
-        if ($sourcePath === '') {
-            throw new RuntimeException('A local source path must be configured for local deployments.');
-        }
-
-        if (! File::isDirectory($sourcePath)) {
-            throw new RuntimeException("The local source path [{$sourcePath}] does not exist.");
+        if (blank($sourceInput)) {
+            throw new RuntimeException('A local source archive must be configured for local deployments.');
         }
 
         $archivePath = storage_path('app/deployment-archives/'.$deployment->id.'-'.Str::uuid().'.zip');
@@ -32,7 +29,23 @@ class FileTransportService
 
         $ignoreFiltered = (bool) ($site->ignore_local_source_ignored_files ?? true);
 
-        $this->createLocalSourceArchive($sourcePath, $archivePath, $ignoreFiltered);
+        if (File::isFile($sourceInput) && str_ends_with(strtolower($sourceInput), '.zip')) {
+            // It's a ZIP file, unzip to temp directory first
+            $tempDir = storage_path('app/temp-extract/'.Str::uuid());
+            File::ensureDirectoryExists($tempDir);
+
+            try {
+                $this->unzipArchive($sourceInput, $tempDir);
+                $this->createLocalSourceArchive($tempDir, $archivePath, $ignoreFiltered);
+            } finally {
+                File::deleteDirectory($tempDir);
+            }
+        } elseif (File::isDirectory($sourceInput)) {
+            // It's a directory, zip it directly
+            $this->createLocalSourceArchive($sourceInput, $archivePath, $ignoreFiltered);
+        } else {
+            throw new RuntimeException("The local source archive [{$sourceInput}] is not a valid file or directory.");
+        }
 
         return $archivePath;
     }
@@ -233,6 +246,40 @@ class FileTransportService
         return $path;
     }
 
+    protected function writeTemporaryArchiveScript(string $contents, string $extension): string
+    {
+        $directory = storage_path('app/deployment-archives');
+
+        if (! File::exists($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        $path = $directory.'/'.Str::uuid().$extension;
+        File::put($path, $contents);
+
+        return $path;
+    }
+
+    protected function powershellExecutable(): string
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return File::exists('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe')
+                ? 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+                : 'powershell';
+        }
+
+        return 'pwsh';
+    }
+
+    protected function commandExists(string $command): bool
+    {
+        $process = Process::timeout(10)->run(PHP_OS_FAMILY === 'Windows'
+            ? ['where', $command]
+            : ['sh', '-lc', sprintf('command -v %s', escapeshellarg($command))]);
+
+        return $process->successful();
+    }
+
     protected function securePrivateKeyPermissions(string $path): void
     {
         if (PHP_OS_FAMILY === 'Windows') {
@@ -325,28 +372,148 @@ class FileTransportService
             throw new RuntimeException('No files were found to package from the local source directory.');
         }
 
-        if (! class_exists(ZipArchive::class)) {
-            throw new RuntimeException('ZipArchive is not available on this machine.');
-        }
+        if (class_exists(ZipArchive::class)) {
+            $zip = new ZipArchive();
+            $result = $zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
-        $zip = new ZipArchive();
-        $result = $zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-
-        if ($result !== true) {
-            throw new RuntimeException('Unable to create the deployment zip archive.');
-        }
-
-        foreach ($paths as $relativePath) {
-            $fullPath = $sourcePath.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
-
-            if (! File::exists($fullPath) || ! is_file($fullPath)) {
-                continue;
+            if ($result !== true) {
+                throw new RuntimeException('Unable to create the deployment zip archive.');
             }
 
-            $zip->addFile($fullPath, $relativePath);
+            foreach ($paths as $relativePath) {
+                $fullPath = $sourcePath.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+
+                if (! File::exists($fullPath) || ! is_file($fullPath)) {
+                    continue;
+                }
+
+                $zip->addFile($fullPath, $relativePath);
+            }
+
+            $zip->close();
+
+            return;
         }
 
-        $zip->close();
+        if (PHP_OS_FAMILY === 'Windows') {
+            $this->createLocalSourceArchiveWithPowerShell($sourcePath, $archivePath, $paths);
+
+            return;
+        }
+
+        $this->createLocalSourceArchiveWithZipCommand($sourcePath, $archivePath, $paths);
+    }
+
+    /**
+     * @param  array<int, string>  $paths
+     */
+    protected function createLocalSourceArchiveWithPowerShell(string $sourcePath, string $archivePath, array $paths): void
+    {
+        $scriptPath = $this->writeTemporaryArchiveScript(<<<'PS1'
+param(
+    [string] $SourcePath,
+    [string] $ArchivePath,
+    [string] $EntriesPath
+)
+
+$ErrorActionPreference = 'Stop'
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+if (Test-Path -LiteralPath $ArchivePath) {
+    Remove-Item -LiteralPath $ArchivePath -Force
+}
+
+$entries = Get-Content -LiteralPath $EntriesPath -Raw | ConvertFrom-Json
+$directory = Split-Path -Parent $ArchivePath
+
+if ($directory -and -not (Test-Path -LiteralPath $directory)) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+}
+
+$zip = [System.IO.Compression.ZipFile]::Open($ArchivePath, [System.IO.Compression.ZipArchiveMode]::Create)
+
+try {
+    foreach ($entry in $entries) {
+        $relativePath = [string] $entry.relative
+
+        if ([string]::IsNullOrWhiteSpace($relativePath)) {
+            continue
+        }
+
+        $fullPath = Join-Path -Path $SourcePath -ChildPath ($relativePath.Replace('/', [System.IO.Path]::DirectorySeparatorChar))
+
+        if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+            continue
+        }
+
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $zip,
+            $fullPath,
+            $relativePath,
+            [System.IO.Compression.CompressionLevel]::Optimal
+        ) | Out-Null
+    }
+}
+finally {
+    $zip.Dispose()
+}
+PS1, '.ps1');
+
+        $entriesPath = $this->writeTemporaryArchiveScript(json_encode(
+            array_map(fn (string $relativePath): array => ['relative' => $relativePath], $paths),
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        ) ?: '[]', '.json');
+
+        try {
+            $process = Process::timeout(300)->run([
+                $this->powershellExecutable(),
+                '-NoProfile',
+                '-ExecutionPolicy',
+                'Bypass',
+                '-File',
+                $scriptPath,
+                '-SourcePath',
+                $sourcePath,
+                '-ArchivePath',
+                $archivePath,
+                '-EntriesPath',
+                $entriesPath,
+            ]);
+
+            if ($process->failed()) {
+                throw new RuntimeException(trim($process->errorOutput() ?: $process->output()) ?: 'Unable to create the deployment zip archive.');
+            }
+        } finally {
+            if (File::exists($scriptPath)) {
+                File::delete($scriptPath);
+            }
+
+            if (File::exists($entriesPath)) {
+                File::delete($entriesPath);
+            }
+        }
+    }
+
+    /**
+     * @param  array<int, string>  $paths
+     */
+    protected function createLocalSourceArchiveWithZipCommand(string $sourcePath, string $archivePath, array $paths): void
+    {
+        if (! $this->commandExists('zip')) {
+            throw new RuntimeException('ZipArchive is not available on this machine, and no zip command could be found to create the deployment archive.');
+        }
+
+        $process = Process::path($sourcePath)->timeout(300)->run(array_merge([
+            'zip',
+            '-q',
+            '-r',
+            $archivePath,
+        ], $paths));
+
+        if ($process->failed()) {
+            throw new RuntimeException(trim($process->errorOutput() ?: $process->output()) ?: 'Unable to create the deployment zip archive.');
+        }
     }
 
     /**
@@ -422,5 +589,39 @@ class FileTransportService
             || str_starts_with($normalized, 'vendor/')
             || str_starts_with($normalized, 'node_modules/')
             || str_starts_with($normalized, 'storage/');
+    }
+
+    protected function unzipArchive(string $zipPath, string $extractTo): void
+    {
+        if (class_exists(ZipArchive::class)) {
+            $zip = new ZipArchive();
+            $result = $zip->open($zipPath);
+
+            if ($result !== true) {
+                throw new RuntimeException('Unable to open the uploaded ZIP archive.');
+            }
+
+            $zip->extractTo($extractTo);
+            $zip->close();
+
+            return;
+        }
+
+        // Fallback to unzip command
+        if (! $this->commandExists('unzip')) {
+            throw new RuntimeException('ZipArchive is not available, and no unzip command could be found.');
+        }
+
+        $process = Process::timeout(300)->run([
+            'unzip',
+            '-q',
+            $zipPath,
+            '-d',
+            $extractTo,
+        ]);
+
+        if ($process->failed()) {
+            throw new RuntimeException(trim($process->errorOutput() ?: $process->output()) ?: 'Unable to unzip the uploaded archive.');
+        }
     }
 }

@@ -359,8 +359,8 @@ class DeployProject
             throw new \RuntimeException('The site does not have a Git repository configured.');
         }
 
-        if ($site->deploy_source === 'local' && blank($site->local_source_path)) {
-            throw new \RuntimeException('The site does not have a local source path configured.');
+        if ($site->deploy_source === 'local' && blank($site->local_source_archive)) {
+            throw new \RuntimeException('The site does not have a local source archive configured.');
         }
 
         if ($server?->connection_type === 'cpanel' && blank($server->cpanel_api_token)) {

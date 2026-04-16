@@ -24,12 +24,19 @@ class SiteInfolist
                             ->badge(fn ($record): string => $record->current_release_status === 'active' ? 'Live' : 'Setup')
                             ->badgeColor(fn ($record): string => $record->current_release_status === 'active' ? 'success' : 'warning')
                             ->schema([
-                                Section::make('Site overview')
+                                Section::make('')
                                     ->schema([
                                         View::make('filament.sites.site-overview')
                                             ->columnSpanFull(),
                                     ])
-                                    ->columnSpanFull(),
+                                    ->compact(),
+                                Section::make('Recent Deployments')
+                                    ->schema([
+                                        View::make('filament.sites.release-history')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(),
                                 Section::make('Site details')
                                     ->schema([
                                         TextEntry::make('repository_url')
@@ -39,9 +46,9 @@ class SiteInfolist
                                             ->label('Default branch'),
                                         TextEntry::make('deploy_path')
                                             ->label('Deploy path'),
-                                        TextEntry::make('local_source_path')
-                                            ->label('Local source path')
-                                            ->copyable(),
+                                         TextEntry::make('local_source_archive')
+                                             ->label('Local source archive')
+                                             ->copyable(),
                                         TextEntry::make('php_version')
                                             ->label('PHP version'),
                                         TextEntry::make('web_root')
@@ -100,15 +107,35 @@ class SiteInfolist
                                         'md' => 2,
                                     ]),
                             ]),
-                        Tab::make('History')
-                            ->badge(fn ($record): string => (string) count($record->recent_admin_deployments))
+                        Tab::make('Scheduler')
+                            ->badge(fn ($record): string => (string) $record->scheduledJobs()->count())
                             ->badgeColor('primary')
                             ->schema([
-                                Section::make('Release history')
+                                Section::make('Scheduled Jobs')
+                                    ->description('Manage cron jobs for this site.')
                                     ->schema([
-                                        View::make('filament.sites.release-history')
+                                        View::make('filament.sites.site-scheduler')
                                             ->columnSpanFull(),
                                     ]),
+                            ]),
+                        Tab::make('History')
+                            ->badge(fn ($record): string => (string) count($record->connectionTests))
+                            ->badgeColor('primary')
+                            ->schema([
+                                Section::make('Operational timeline')
+                                    ->schema([
+                                        View::make('filament.schemas.components.operational-timeline'),
+                                    ]),
+                                Section::make('Recent connection checks')
+                                    ->schema([
+                                        View::make('filament.schemas.components.connection-tests')
+                                            ->viewData(fn ($record): array => [
+                                                'record' => $record->load([
+                                                    'connectionTests' => fn ($query) => $query->latest('tested_at')->latest()->limit(5),
+                                                ]),
+                                            ]),
+                                    ]),
+                            ]),
                             ]),
                         Tab::make('Backups')
                             ->badge(fn ($record): string => $record->backup_status_badge)

@@ -56,6 +56,7 @@ Update `.env` with your environment values, including:
 
 ## Documentation
 
+- [Laravel Forge Audit & Roadmap](docs/laravel-forge-audit.md) - Feature comparison and improvement plan
 - [Production setup guide](docs/production-setup.md)
 - [Minimum deployment checklist](docs/minimum-deployment-checklist.md)
 - [SSH terminal upgrade plan](docs/ssh-terminal-upgrade-plan.md)

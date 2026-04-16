@@ -41,6 +41,15 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Per-user alert preferences and alert delivery status logging.
 - Team collaboration, team workspaces, and permission-aware resource access.
 - CI, automated tests, production docs, and scheduled maintenance jobs.
+- Project templates (Laravel, Node.js, Python, Static) with auto-configured settings.
+- Multi-language deployment support with build commands and port configuration.
+- Live domain synchronization from cPanel servers.
+- Enhanced SSL management with auto-renewal options.
+- Database setup and optional creation during site provisioning.
+- Inline domain creation with type selection (addon/subdomain/alias).
+- Improved server UI with sites overview and metrics.
+- ZIP file upload support for local deployments.
+- Scheduled jobs management UI (basic implementation).
 
 ### Still Pending
 
@@ -50,6 +59,12 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Custom deploy hooks before and after deploys.
 - A lightweight agent for more reliable server communication.
 - Additional live staging smoke tests for rollback and cPanel edge cases.
+- Full scheduled jobs deployment integration (currently UI-only).
+- Background daemon/process management.
+- File manager and code editor integration.
+- Advanced SSL certificate management (manual upload, renewal tracking).
+- Database management interface.
+- Monitoring & alerts expansion.
 
 ## MVP Definition
 

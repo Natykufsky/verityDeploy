@@ -1,0 +1,48 @@
+<div class="space-y-4">
+    @php
+        $jobs = $record->scheduledJobs;
+    @endphp
+
+    <div class="flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Scheduled Jobs</h3>
+        <a href="{{ route('filament.admin.resources.scheduled-jobs.create') }}?site_id={{ $record->id }}" class="inline-flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20">
+            Add Job
+        </a>
+    </div>
+
+    @forelse ($jobs as $job)
+        <div class="deployment-frost-card rounded-2xl p-4">
+            <div class="flex items-center justify-between">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <code class="text-sm font-mono bg-slate-800 px-2 py-1 rounded">{{ $job->command }}</code>
+                        <span class="inline-flex items-center rounded-full border border-white/10 px-2 py-1 text-xs font-semibold uppercase tracking-[0.2em] {{ $job->is_active ? 'bg-emerald-500/15 text-emerald-300' : 'bg-gray-500/15 text-gray-300' }}">
+                            {{ $job->is_active ? 'Active' : 'Inactive' }}
+                        </span>
+                    </div>
+                    <div class="text-sm text-slate-400">
+                        <strong>Schedule:</strong> {{ $job->frequency }}
+                        @if($job->description)
+                            • {{ $job->description }}
+                        @endif
+                    </div>
+                    @if($job->last_run_at)
+                        <div class="text-xs text-slate-500">
+                            Last run: {{ $job->last_run_at->diffForHumans() }}
+                        </div>
+                    @endif
+                </div>
+                <div class="flex gap-2">
+                    <a href="{{ route('filament.admin.resources.scheduled-jobs.edit', $job) }}" class="inline-flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm font-medium text-blue-300 hover:bg-blue-500/20">
+                        Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+    @empty
+        <div class="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-center text-slate-400">
+            No scheduled jobs configured for this site.
+            <a href="{{ route('filament.admin.resources.scheduled-jobs.create') }}?site_id={{ $record->id }}" class="text-cyan-400 hover:text-cyan-300">Add your first job</a>.
+        </div>
+    @endforelse
+</div>

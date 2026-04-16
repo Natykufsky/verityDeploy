@@ -36,7 +36,7 @@
             <p class="mt-1 font-semibold text-slate-900 dark:text-slate-100">Dashboard source packaging</p>
             <p class="mt-2 leading-6">
                 The next deployment will package the dashboard source from
-                <span class="font-mono text-xs">{{ $record->local_source_path ?? 'Not configured' }}</span>
+                <span class="font-mono text-xs">{{ $record->local_source_archive ?? 'Not configured' }}</span>
                 and upload it to the cPanel workspace before extraction.
             </p>
         </div>

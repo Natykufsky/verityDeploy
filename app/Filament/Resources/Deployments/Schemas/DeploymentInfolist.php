@@ -25,6 +25,31 @@ class DeploymentInfolist
                     ->persistTab()
                     ->persistTabInQueryString('tab')
                     ->tabs([
+                        Tab::make('Progress')
+                            ->badge(fn (Deployment $record): string => $record->step_progress['summary'])
+                            ->badgeColor(fn (Deployment $record): string => $record->step_progress['failed'] > 0
+                                ? 'danger'
+                                : ($record->step_progress['running'] > 0 ? 'warning' : ($record->step_progress['completed'] > 0 ? 'success' : 'gray')))
+                            ->schema([
+                                Section::make('')
+                                    ->schema([
+                                        View::make('filament.deployments.deployment-hero')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->compact(),
+                                Section::make('Deployment Timeline')
+                                    ->schema([
+                                        Livewire::make(DeploymentProgressPanel::class)
+                                            ->columnSpanFull(),
+                                    ]),
+                                Section::make('Live Logs')
+                                    ->schema([
+                                        Livewire::make(DeploymentTerminal::class)
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(fn (Deployment $record) => $record->status !== 'running'),
+                            ]),
                         Tab::make('Overview')
                             ->badge(fn (Deployment $record): string => ucfirst((string) $record->status))
                             ->badgeColor(fn (Deployment $record): string => match ($record->status) {
@@ -41,12 +66,7 @@ class DeploymentInfolist
                                             ->columnSpanFull(),
                                     ])
                                     ->columnSpanFull(),
-                                Section::make('Deployment actions')
-                                    ->schema([
-                                        View::make('filament.deployments.deployment-actions')
-                                            ->columnSpanFull(),
-                                    ])
-                                    ->columnSpanFull(),
+
                                 Section::make('Deployment summary')
                                     ->schema([
                                         TextEntry::make('site.name')

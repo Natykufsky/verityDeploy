@@ -2,15 +2,16 @@
 
 namespace App\Filament\Resources\Sites\Schemas;
 
+use Filament\Forms\Set;
 use App\Models\CredentialProfile;
 use App\Models\Domain;
 use App\Models\Server;
 use App\Models\Site;
 use App\Models\Team;
+use App\Services\Servers\ServerDomainSynchronizer;
 use App\Services\AppSettings;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -50,6 +51,15 @@ class SiteForm
                         ->options(Team::query()->accessibleTo()->pluck('name', 'id')->all())
                         ->searchable()
                         ->placeholder('Inherit from server'),
+                    Select::make('environment')
+                        ->label('Environment')
+                        ->options([
+                            'production' => 'Production',
+                            'staging' => 'Staging',
+                            'development' => 'Development',
+                        ])
+                        ->default('production')
+                        ->required(),
                 ])->columns(['md' => 2]),
         ];
 
@@ -58,6 +68,19 @@ class SiteForm
                 ->description('Specify where your code lives and how to pull it.')
                 ->icon('heroicon-o-cloud-arrow-down')
                 ->schema([
+                    Select::make('project_type')
+                        ->label('Project Template')
+                        ->options([
+                            'laravel' => 'Laravel',
+                            'symfony' => 'Symfony',
+                            'nodejs' => 'Node.js',
+                            'python' => 'Python (Django, Flask)',
+                            'static' => 'Static Site',
+                            'custom' => 'Custom PHP',
+                        ])
+                        ->live()
+                        ->default('laravel')
+                        ->required(),
                     Select::make('deploy_source')
                         ->options([
                             'git' => 'Git Repository',
@@ -71,11 +94,14 @@ class SiteForm
                         ->placeholder('git@github.com:user/repo.git')
                         ->url()
                         ->visible(fn (Get $get): bool => $get('deploy_source') === 'git'),
-                    TextInput::make('local_source_path')
-                        ->label('Local absolute path')
-                        ->placeholder('C:\Apps\MySite')
+                    \Filament\Forms\Components\FileUpload::make('local_source_archive')
+                        ->label('Upload Local Source')
+                        ->directory(true)
+                        ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
+                        ->maxSize(1024 * 100) // 100MB
                         ->visible(fn (Get $get): bool => $get('deploy_source') === 'local')
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->helperText('Select a directory or ZIP file from your local machine to upload as the source.'),
                     Select::make('github_credential_profile_id')
                         ->label('GitHub Profile')
                         ->options(CredentialProfile::query()->ofType('github')->where('is_active', true)->pluck('name', 'id')->all())
@@ -93,14 +119,49 @@ class SiteForm
                 ->schema([
                     Select::make('primary_domain_id')
                         ->label('Primary Domain')
-                        ->relationship('primaryDomain', 'name', fn ($query, Get $get) => $query->where('server_id', $get('server_id')))
+                        ->options(function (callable $get) {
+                            $serverId = $get('server_id');
+                            if (!$serverId) return [];
+
+                            $server = Server::find($serverId);
+                            if (!$server) return [];
+
+                            $synchronizer = app(ServerDomainSynchronizer::class);
+                            $preview = $synchronizer->preview($server);
+
+                            return collect($preview['domains'] ?? [])
+                                ->pluck('domain', 'domain')
+                                ->toArray();
+                        })
                         ->searchable()
-                        ->preload()
                         ->live()
-                        ->required(),
-                    Placeholder::make('generated_deploy_path')
+                        ->required()
+                        ->createOptionForm([
+                            TextInput::make('name')
+                                ->label('Domain Name')
+                                ->required()
+                                ->unique(ignoreRecord: true),
+                            Select::make('type')
+                                ->label('Domain Type')
+                                ->options([
+                                    'primary' => 'Primary Domain',
+                                    'addon' => 'Addon Domain',
+                                    'subdomain' => 'Subdomain',
+                                ])
+                                ->default('addon')
+                                ->required(),
+                            TextInput::make('web_root')
+                                ->label('Document Root')
+                                ->placeholder('/public_html/example.com')
+                                ->helperText('The directory where this domain\'s files are served from.'),
+                            TextInput::make('server_id')
+                                ->hidden()
+                                ->default(fn (Get $get) => $get('../../server_id')),
+                        ])
+                        ->helperText('Domains are loaded directly from the selected server.'),
+                    TextInput::make('generated_deploy_path')
                         ->label('Generated Deploy Path')
-                        ->content(function (Get $get): string {
+                        ->default(function (Get $get): string {
                             $server = filled($get('server_id')) ? Server::query()->find($get('server_id')) : null;
                             $primaryDomain = filled($get('primary_domain_id')) ? Domain::query()->find($get('primary_domain_id')) : null;
 
@@ -111,14 +172,74 @@ class SiteForm
                             return Site::deriveDeployPathFromDomain($server, $primaryDomain->name)
                                 ?? 'Unable to generate a deploy path for the selected domain.';
                         })
+                        ->disabled()
                         ->columnSpanFull(),
                     Toggle::make('force_https')
                         ->label('Force HTTPS')
                         ->default(true),
+                    Toggle::make('auto_ssl')
+                        ->label('Auto SSL Certificate')
+                        ->default(true)
+                        ->helperText('Automatically provision and renew SSL certificates.'),
                     TextInput::make('health_check_endpoint')
                         ->label('Health Check Path')
                         ->placeholder('/api/health')
                         ->helperText('Endpoint to probe after deployment to verify site is up.'),
+                    Select::make('php_version')
+                        ->label('PHP Version')
+                        ->options([
+                            '8.3' => 'PHP 8.3',
+                            '8.2' => 'PHP 8.2',
+                            '8.1' => 'PHP 8.1',
+                            '8.0' => 'PHP 8.0',
+                            '7.4' => 'PHP 7.4',
+                        ])
+                        ->default('8.3')
+                        ->required(),
+                    TextInput::make('web_root')
+                        ->label('Web Directory')
+                        ->placeholder(fn (Get $get): string => match ($get('project_type')) {
+                            'laravel' => 'public',
+                            'symfony' => 'public',
+                            'nodejs' => 'dist',
+                            'python' => 'static',
+                            'static' => 'dist',
+                            'custom' => 'public',
+                            default => 'public',
+                        })
+                        ->default(fn (Get $get): string => match ($get('project_type')) {
+                            'laravel' => 'public',
+                            'symfony' => 'public',
+                            'nodejs' => 'dist',
+                            'python' => 'static',
+                            'static' => 'dist',
+                            'custom' => 'public',
+                            default => 'public',
+                        })
+                        ->required(),
+                    TextInput::make('build_command')
+                        ->label('Build Command')
+                        ->placeholder(fn (Get $get): string => match ($get('project_type')) {
+                            'nodejs' => 'npm run build',
+                            'python' => 'pip install -r requirements.txt',
+                            default => '',
+                        })
+                        ->visible(fn (Get $get): bool => in_array($get('project_type'), ['nodejs', 'python']))
+                        ->helperText('Command to build the project before deployment.'),
+                    TextInput::make('start_command')
+                        ->label('Start Command')
+                        ->placeholder(fn (Get $get): string => match ($get('project_type')) {
+                            'nodejs' => 'npm start',
+                            'python' => 'python app.py',
+                            default => '',
+                        })
+                        ->visible(fn (Get $get): bool => in_array($get('project_type'), ['nodejs', 'python']))
+                        ->helperText('Command to start the application.'),
+                    TextInput::make('port')
+                        ->label('Port')
+                        ->placeholder('3000')
+                        ->visible(fn (Get $get): bool => in_array($get('project_type'), ['nodejs', 'python']))
+                        ->helperText('Port the application runs on.'),
                 ])->columns(['md' => 2]),
         ];
 
@@ -134,6 +255,20 @@ class SiteForm
                     KeyValue::make('environment_variables')
                         ->label('Dynamic Variables')
                         ->columnSpanFull(),
+                ]),
+            Section::make('Database Setup')
+                ->description('Optionally create a database for this site.')
+                ->icon('heroicon-o-circle-stack')
+                ->schema([
+                    Toggle::make('create_database')
+                        ->label('Create database')
+                        ->default(false)
+                        ->live(),
+                    TextInput::make('database_name')
+                        ->label('Database Name')
+                        ->placeholder('e.g. myapp_prod')
+                        ->visible(fn (Get $get): bool => $get('create_database'))
+                        ->required(fn (Get $get): bool => $get('create_database')),
                 ]),
             Section::make('Shared Files')
                 ->description('Persistent files that should be symlinked or kept across releases.')
@@ -175,6 +310,10 @@ class SiteForm
                                 Toggle::make('active')
                                     ->label('Site is active and receiving traffic')
                                     ->default(true),
+                                Toggle::make('deploy_after_create')
+                                    ->label('Deploy immediately after creation')
+                                    ->default(true)
+                                    ->helperText('Start the first deployment right after the site is created.'),
                                 DateTimePicker::make('last_deployed_at')
                                     ->label('Last deployment run')
                                     ->visible(! $isCreatePage)

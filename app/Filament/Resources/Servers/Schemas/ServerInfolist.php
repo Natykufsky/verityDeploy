@@ -22,6 +22,71 @@ class ServerInfolist
                     ->persistTab()
                     ->persistTabInQueryString('tab')
                     ->tabs([
+                        Tab::make('Overview')
+                            ->badge(fn ($record): string => ucfirst((string) $record->status))
+                            ->badgeColor(fn ($record): string => match ($record->status) {
+                                'online' => 'success',
+                                'offline' => 'gray',
+                                'error' => 'danger',
+                                default => 'warning',
+                            })
+                            ->schema([
+                                Section::make('Server overview')
+                                    ->schema([
+                                        View::make('filament.servers.server-overview')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columnSpanFull(),
+                                Section::make('Core details')
+                                    ->schema([
+                                        TextEntry::make('owner.name')
+                                            ->label('Owner')
+                                            ->placeholder('Unassigned'),
+                                        TextEntry::make('team.name')
+                                            ->label('Team')
+                                            ->placeholder('No team assigned'),
+                                        TextEntry::make('ip_address')
+                                            ->label('IP address')
+                                            ->copyable(),
+                                        TextEntry::make('ssh_user')
+                                            ->label('SSH user'),
+                                        TextEntry::make('ssh_port')
+                                            ->label('SSH port'),
+                                        TextEntry::make('cpanel_username')
+                                            ->label('cPanel username')
+                                            ->placeholder('Same as SSH user if not set')
+                                            ->copyable(),
+                                        TextEntry::make('provider_reference')
+                                            ->label('Provider reference')
+                                            ->copyable(),
+                                        TextEntry::make('provider_region')
+                                            ->label('Provider region'),
+                                        TextEntry::make('vhost_config_path')
+                                            ->label('Vhost config path')
+                                            ->placeholder('Auto-derived from provider settings'),
+                                        TextEntry::make('vhost_enabled_path')
+                                            ->label('Vhost enabled path')
+                                            ->placeholder('Auto-derived from provider settings'),
+                                        TextEntry::make('vhost_reload_command')
+                                            ->label('Reload command')
+                                            ->placeholder('Auto-derived from provider settings'),
+                                        TextEntry::make('notes')
+                                            ->label('Notes')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns(2),
+                            ]),
+                        Tab::make('Sites')
+                            ->badge(fn ($record): string => (string) $record->sites()->count())
+                            ->badgeColor('primary')
+                            ->schema([
+                                Section::make('Sites on this server')
+                                    ->description('Sites deployed and managed on this server.')
+                                    ->schema([
+                                        View::make('filament.servers.server-sites')
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
                         Tab::make('Live Domains')
                             ->badge(fn ($record): string => (string) $record->domains()->count())
                             ->badgeColor(fn ($record): string => $record->domains()->count() > 0 ? 'info' : 'gray')
@@ -105,63 +170,6 @@ class ServerInfolist
                                             }),
                                     ])
                                     ->columnSpanFull(),
-                            ]),
-                        Tab::make('Overview')
-                            ->badge(fn ($record): string => ucfirst((string) $record->status))
-                            ->badgeColor(fn ($record): string => match ($record->status) {
-                                'online' => 'success',
-                                'offline' => 'gray',
-                                'error' => 'danger',
-                                default => 'warning',
-                            })
-                            ->schema([
-                                Section::make('Server overview')
-                                    ->schema([
-                                        View::make('filament.servers.server-overview')
-                                            ->columnSpanFull(),
-                                    ])
-                                    ->columnSpanFull(),
-                                Section::make('Core details')
-                                    ->schema([
-                                        TextEntry::make('owner.name')
-                                            ->label('Owner')
-                                            ->placeholder('Unassigned'),
-                                        TextEntry::make('team.name')
-                                            ->label('Team')
-                                            ->placeholder('No team assigned'),
-                                        TextEntry::make('ip_address')
-                                            ->label('IP address')
-                                            ->copyable(),
-                                        TextEntry::make('ssh_user')
-                                            ->label('SSH user'),
-                                        TextEntry::make('ssh_port')
-                                            ->label('SSH port'),
-                                        TextEntry::make('cpanel_username')
-                                            ->label('cPanel username')
-                                            ->placeholder('Same as SSH user if not set')
-                                            ->copyable(),
-                                        TextEntry::make('provider_reference')
-                                            ->label('Provider reference')
-                                            ->copyable(),
-                                        TextEntry::make('provider_region')
-                                            ->label('Provider region'),
-                                        TextEntry::make('vhost_config_path')
-                                            ->label('Vhost config path')
-                                            ->placeholder('Auto-derived from provider settings'),
-                                        TextEntry::make('vhost_enabled_path')
-                                            ->label('Vhost enabled path')
-                                            ->placeholder('Auto-derived from provider settings'),
-                                        TextEntry::make('vhost_reload_command')
-                                            ->label('Reload command')
-                                            ->placeholder('Auto-derived from provider settings'),
-                                        TextEntry::make('notes')
-                                            ->label('Notes')
-                                            ->columnSpanFull(),
-                                    ])
-                                    ->columns([
-                                        'default' => 1,
-                                        'md' => 2,
-                                    ]),
                             ]),
                         Tab::make('Metrics')
                             ->badge('Live')

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use Filament\Support\Assets\Js;
+use Filament\Support\Facades\FilamentAsset;
 use App\Services\Terminal\SshTerminalTransport;
 use App\Services\Terminal\TerminalTransport;
 use Illuminate\Support\Facades\File;
@@ -26,5 +28,10 @@ class AppServiceProvider extends ServiceProvider
 
         config(['view.compiled' => $compiledPath]);
         File::ensureDirectoryExists($compiledPath);
+
+        FilamentAsset::register([
+            Js::make('deployment-stream')
+                ->html(File::get(resource_path('js/deployment-stream.js'))),
+        ]);
     }
 }

@@ -44,11 +44,18 @@ class Site extends Model
         'ssl_last_synced_at',
         'ssl_last_error',
         'current_release_path',
-        'local_source_path',
+        'local_source_archive',
         'ignore_local_source_ignored_files',
         'php_version',
         'web_root',
         'deploy_source',
+        'project_type',
+        'environment',
+        'create_database',
+        'database_name',
+        'build_command',
+        'start_command',
+        'port',
         'environment_variables',
         'shared_env_contents',
         'shared_files',
@@ -67,6 +74,8 @@ class Site extends Model
         'vhost_apply_last_error',
         'vhost_apply_last_steps',
         'active',
+        'auto_ssl',
+        'deploy_after_create',
         'health_check_endpoint',
         'last_deployed_at',
         'notes',
@@ -97,6 +106,8 @@ class Site extends Model
             'vhost_apply_last_steps' => 'array',
             'ignore_local_source_ignored_files' => 'boolean',
             'active' => 'boolean',
+            'create_database' => 'boolean',
+            'port' => 'integer',
             'health_check_endpoint' => 'string',
             'last_deployed_at' => 'datetime',
             'current_release_path' => 'string',
@@ -890,7 +901,7 @@ class Site extends Model
         }
 
         if ($this->deploy_source === 'local') {
-            $items[] = filled($this->local_source_path) ? 'Local source path configured.' : 'Local source path missing.';
+            $items[] = filled($this->local_source_archive) ? 'Local source archive configured.' : 'Local source archive missing.';
         }
 
         return $items;
@@ -1058,5 +1069,10 @@ class Site extends Model
             ->whereNotNull('snapshot_path')
             ->latest('started_at')
             ->first();
+    }
+
+    public function scheduledJobs()
+    {
+        return $this->hasMany(ScheduledJob::class);
     }
 }

@@ -1,4 +1,4 @@
-<div class="sticky top-4 z-20 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.9fr)]">
+<div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.9fr)]">
     <div class="deployment-frost-card rounded-2xl p-4">
         <div class="flex flex-wrap items-center gap-2">
             @if ($record->status === 'running')
@@ -49,26 +49,4 @@
     </div>
 </div>
 
-<div class="deployment-frost-card mt-4 rounded-2xl p-4">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                <span>Quick checklist</span>
-                <x-info-tooltip text="A short checklist for the current deployment state." label="Quick checklist help" />
-            </div>
-            <div class="mt-1 text-sm font-semibold text-white">{{ $record->page_snapshot['headline'] }}</div>
-        </div>
-        <div class="text-xs text-slate-400">
-            {{ $record->steps()->count() }} step{{ $record->steps()->count() === 1 ? '' : 's' }} tracked
-        </div>
-    </div>
 
-    <ul class="mt-4 grid gap-2 md:grid-cols-3">
-        @foreach ($record->page_snapshot['checklist'] as $item)
-            <li class="deployment-frost-panel flex items-start gap-3 rounded-xl px-3 py-3 text-sm leading-6 text-slate-300">
-                <span class="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-[11px] font-bold text-emerald-300">{{ $loop->iteration }}</span>
-                <span>{{ $item }}</span>
-            </li>
-        @endforeach
-    </ul>
-</div>

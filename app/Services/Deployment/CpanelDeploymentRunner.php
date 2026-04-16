@@ -33,8 +33,8 @@ class CpanelDeploymentRunner
                 throw new RuntimeException('The site does not have a Git repository configured.');
             }
 
-            if ($site->deploy_source === 'local' && blank($site->local_source_path)) {
-                throw new RuntimeException('The site does not have a local source path configured.');
+            if ($site->deploy_source === 'local' && blank($site->local_source_archive)) {
+                throw new RuntimeException('The site does not have a local source archive configured.');
             }
 
             $deployment->update([
