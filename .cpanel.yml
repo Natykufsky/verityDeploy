@@ -4,8 +4,21 @@ deployment:
     - export DEPLOYPATH=/home/monaksof/public_html
     - /bin/cp -R /home/monaksof/repositories/verityDeploy/* $DEPLOYPATH
     - cd $DEPLOYPATH
+
+    # 1. Install PHP dependencies
     - /bin/composer install --no-dev --optimize-autoloader
+
+    # 2. Build Frontend Assets (Required for Filament UI)
+    # Note: Ensure your cPanel has Node.js 18+ installed via "Setup Node.js App"
+    - /bin/npm install
+    - /bin/npm run build
+
+    # 3. Database and Core Setup
     - /usr/local/bin/php artisan migrate --force
+    - /usr/local/bin/php artisan storage:link
+
+    # 4. Optimization (Crucial for Production)
     - /usr/local/bin/php artisan config:cache
     - /usr/local/bin/php artisan route:cache
     - /usr/local/bin/php artisan view:cache
+    - /usr/local/bin/php artisan filament:cache-components
