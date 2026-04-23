@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/monaksof/public_html
+    - export DEPLOYPATH=/home/monaksof/public_html/verityDeploy
     - /bin/cp -R /home/monaksof/repositories/verityDeploy/* $DEPLOYPATH
     - cd $DEPLOYPATH
 
