@@ -63,6 +63,51 @@ class CpanelApiClientTest extends TestCase
         });
     }
 
+    public function test_start_autossl_check_uses_the_documented_uapi_endpoint(): void
+    {
+        $profile = CredentialProfile::query()->create([
+            'name' => 'cPanel Profile',
+            'type' => 'cpanel',
+            'description' => 'Test cPanel profile',
+            'settings' => [
+                'username' => 'monaksof',
+                'api_token' => 'test-token',
+                'api_port' => 2083,
+            ],
+            'is_default' => false,
+            'is_active' => true,
+        ]);
+
+        $server = Server::query()->create([
+            'name' => 'cPanel Server',
+            'ip_address' => 'monaksoft.com',
+            'ssh_port' => 22,
+            'ssh_user' => 'monaksof',
+            'connection_type' => 'cpanel',
+            'cpanel_credential_profile_id' => $profile->id,
+            'status' => 'online',
+        ]);
+
+        Http::fake([
+            '*' => Http::response([
+                'apiversion' => 3,
+                'module' => 'SSL',
+                'func' => 'start_autossl_check',
+                'result' => [
+                    'status' => 1,
+                    'data' => [],
+                ],
+            ], 200),
+        ]);
+
+        app(CpanelApiClient::class)->startAutoSslCheck($server);
+
+        Http::assertSentCount(1);
+        Http::assertSent(function ($request): bool {
+            return str_contains((string) $request->url(), '/execute/SSL/start_autossl_check');
+        });
+    }
+
     public function test_upload_file_uses_uapi_upload_files(): void
     {
         $profile = CredentialProfile::query()->create([

@@ -136,6 +136,26 @@ class ViewSite extends ViewRecord
                     ]))
                     ->modalSubmitActionLabel('Provision SSL')
                     ->action(fn () => $this->provisionSsl()),
+                Action::make('refreshSslStatus')
+                    ->label('Refresh SSL status')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_ssl)
+                    ->requiresConfirmation()
+                    ->modalHeading('Refresh SSL status?')
+                    ->modalDescription('This starts a new AutoSSL check for the primary domain and updates the local SSL sync timestamp.')
+                    ->modalSubmitActionLabel('Refresh SSL')
+                    ->action(fn () => $this->refreshSslStatus()),
+                Action::make('syncHttpsRedirect')
+                    ->label('Sync HTTPS redirect')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('gray')
+                    ->visible(fn (): bool => $this->record->server?->connection_type === 'cpanel' && filled($this->record->primary_domain) && (bool) $this->record->server?->can_manage_ssl)
+                    ->requiresConfirmation()
+                    ->modalHeading('Sync HTTPS redirect?')
+                    ->modalDescription('This applies the current Force HTTPS setting from the site record to cPanel.')
+                    ->modalSubmitActionLabel('Sync redirect')
+                    ->action(fn () => $this->syncHttpsRedirect()),
             ])
                 ->label('Provisioning')
                 ->icon('heroicon-m-bolt')
@@ -494,6 +514,44 @@ class ViewSite extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to provision SSL')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function refreshSslStatus(): void
+    {
+        try {
+            $summary = app(CpanelSslProvisioner::class)->refreshStatus($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('SSL status refreshed')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to refresh SSL status')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function syncHttpsRedirect(): void
+    {
+        try {
+            $summary = app(CpanelSslProvisioner::class)->syncHttpsRedirect($this->record->fresh(['server']));
+
+            Notification::make()
+                ->title('HTTPS redirect synced')
+                ->body(implode(' ', $summary))
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to sync HTTPS redirect')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();

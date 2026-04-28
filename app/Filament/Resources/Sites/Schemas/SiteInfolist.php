@@ -107,6 +107,48 @@ class SiteInfolist
                                         'md' => 2,
                                     ]),
                             ]),
+                        Tab::make('SSL')
+                            ->badge(fn ($record): string => $record->ssl_badge)
+                            ->badgeColor(fn ($record): string => match ((string) $record->ssl_state) {
+                                'valid', 'issued', 'active' => 'success',
+                                'pending' => 'warning',
+                                'expired', 'failed' => 'danger',
+                                default => 'gray',
+                            })
+                            ->schema([
+                                Section::make('SSL status')
+                                    ->description('Track SSL state, sync time, and HTTPS redirect behavior for the site primary domain.')
+                                    ->schema([
+                                        TextEntry::make('ssl_badge')
+                                            ->label('SSL state')
+                                            ->badge()
+                                            ->color(fn (string $state): string => match ($state) {
+                                                'ssl ready' => 'success',
+                                                'ssl pending' => 'warning',
+                                                'ssl expired', 'ssl failed' => 'danger',
+                                                default => 'gray',
+                                            }),
+                                        TextEntry::make('ssl_summary')
+                                            ->label('Summary')
+                                            ->columnSpanFull(),
+                                        TextEntry::make('force_https_badge')
+                                            ->label('HTTPS redirect')
+                                            ->badge()
+                                            ->color(fn (string $state): string => $state === 'https enforced' ? 'success' : 'gray'),
+                                        TextEntry::make('force_https_summary')
+                                            ->label('Redirect summary')
+                                            ->columnSpanFull(),
+                                        TextEntry::make('ssl_last_synced_badge')
+                                            ->label('Last SSL sync'),
+                                        TextEntry::make('ssl_last_error_summary')
+                                            ->label('Last SSL error')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns([
+                                        'default' => 1,
+                                        'md' => 2,
+                                    ]),
+                            ]),
                         Tab::make('Files')
                             ->badge(fn ($record): string => filled($record->current_release_path) ? 'Live' : 'Setup')
                             ->badgeColor(fn ($record): string => filled($record->current_release_path) ? 'success' : 'gray')

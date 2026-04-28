@@ -76,4 +76,81 @@ class CpanelSslProvisioner
             $site->force_https ? 'HTTPS redirects remain enabled.' : 'HTTPS redirects remain optional until you toggle them on.',
         ];
     }
+
+    /**
+     * @return array<int, string>
+     */
+    public function refreshStatus(Site $site): array
+    {
+        $server = $site->server;
+
+        if (! $server) {
+            throw new RuntimeException('The site does not have a server configured.');
+        }
+
+        if ($server->connection_type !== 'cpanel') {
+            throw new RuntimeException('SSL automation currently uses the cPanel SSL API.');
+        }
+
+        if (! $server->can_manage_ssl) {
+            throw new RuntimeException('SSL management is disabled on this server. Enable the SSL capability first.');
+        }
+
+        if (blank($site->primary_domain)) {
+            throw new RuntimeException('The site does not have a primary domain configured.');
+        }
+
+        $domain = trim((string) $site->primary_domain);
+
+        $this->client->startAutoSslCheck($server);
+
+        $site->update([
+            'ssl_last_synced_at' => now(),
+            'ssl_last_error' => null,
+        ]);
+
+        return [
+            sprintf('Triggered an AutoSSL check for %s.', $domain),
+            'The SSL status will update after cPanel finishes the check.',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function syncHttpsRedirect(Site $site): array
+    {
+        $server = $site->server;
+
+        if (! $server) {
+            throw new RuntimeException('The site does not have a server configured.');
+        }
+
+        if ($server->connection_type !== 'cpanel') {
+            throw new RuntimeException('HTTPS redirect management currently uses the cPanel SSL API.');
+        }
+
+        if (! $server->can_manage_ssl) {
+            throw new RuntimeException('SSL management is disabled on this server. Enable the SSL capability first.');
+        }
+
+        if (blank($site->primary_domain)) {
+            throw new RuntimeException('The site does not have a primary domain configured.');
+        }
+
+        $domain = trim((string) $site->primary_domain);
+        $enabled = (bool) $site->force_https;
+
+        $this->client->setHttpsRedirect($server, $domain, $enabled);
+
+        $site->update([
+            'ssl_last_synced_at' => now(),
+            'ssl_last_error' => null,
+        ]);
+
+        return [
+            sprintf('%s HTTPS redirects for %s.', $enabled ? 'Enabled' : 'Disabled', $domain),
+            'The cPanel redirect now matches the site force_https setting.',
+        ];
+    }
 }

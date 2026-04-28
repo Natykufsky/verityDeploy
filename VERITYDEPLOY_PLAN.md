@@ -51,6 +51,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - ZIP file upload support for local deployments.
 - Scheduled jobs management UI and deployment integration.
 - Site-linked database request tracking and sync.
+- SSL refresh, status sync, and HTTPS redirect management.
 
 ### Still Pending
 
@@ -62,7 +63,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Additional live staging smoke tests for rollback and cPanel edge cases.
 - Full scheduled jobs deployment integration (currently UI-only).
 - Background daemon/process management.
-- Advanced SSL certificate management (manual upload, renewal tracking).
+- Manual SSL certificate upload and renewal tracking.
 - Monitoring & alerts expansion.
 
 ## MVP Definition
@@ -476,6 +477,7 @@ Use a modular monolith as the default architecture for `verityDeploy`.
 - Use Infolists for logs and read-only data.
 - Use Tables for history and lists.
 - Use Actions for deploy, restart, SSL, and refresh tasks.
+- Use the site SSL tab and actions for AutoSSL refresh and HTTPS redirect sync.
 
 ### Canonical Workflow Rules
 

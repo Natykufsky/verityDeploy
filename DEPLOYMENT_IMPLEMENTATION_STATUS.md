@@ -30,6 +30,7 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - Domain CRUD actions sync to cPanel where supported
 - Site creation links the site to the server and domain flow
 - Live site docroots follow the current release path where the deployment flow expects it
+- SSL status can be refreshed from the site page and HTTPS redirects can be synced back to cPanel
 
 ### Site and Server Management
 
@@ -39,6 +40,7 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - SSH key generation, authorization, and normalization are part of the server workflow
 - Site-driven database requests are tracked as first-class site-linked records
 - The site page now includes a file browser/editor for the current release path
+- The site page now includes SSL status, AutoSSL refresh, and HTTPS redirect sync actions
 
 ### Database Tracking
 
@@ -76,7 +78,7 @@ To use the deployment features effectively:
 ## Current Gaps
 
 - Background daemon and process management are not fully automated
-- Advanced SSL certificate management is still pending
+- Manual SSL certificate upload and renewal tracking are still pending
 - Monitoring and alerting can still be expanded
 
 ## Current Notes
@@ -102,6 +104,7 @@ To use the deployment features effectively:
 - cPanel docroot management: implemented
 - Site/server/domain admin flow: implemented
 - Scheduled jobs resource: implemented
+- SSL refresh and HTTPS redirect sync: implemented
 
 ## Last Updated
 

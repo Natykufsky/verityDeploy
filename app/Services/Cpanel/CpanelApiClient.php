@@ -141,12 +141,17 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function startAutoSslCheck(Server $server): array
+    {
+        return $this->request($server, 'SSL', 'start_autossl_check');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function checkAutoSsl(Server $server): array
     {
-        // For a specific user context (already set by Token/Username)
-        return $this->request($server, 'SSL', 'autossl_check_for_user', [
-            'user' => $this->cpanelUsername($server),
-        ]);
+        return $this->startAutoSslCheck($server);
     }
 
     /**
