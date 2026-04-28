@@ -6,6 +6,33 @@
 
 set -euo pipefail
 
+# Resolve common tools from the current server environment.
+COMPOSER_BIN="$(command -v composer || true)"
+PHP_BIN="$(command -v php || true)"
+NPM_BIN="$(command -v npm || true)"
+
+if [ -z "$COMPOSER_BIN" ]; then
+    if [ -x /opt/cpanel/composer/bin/composer ]; then
+        COMPOSER_BIN="/opt/cpanel/composer/bin/composer"
+    elif [ -x /usr/local/bin/composer ]; then
+        COMPOSER_BIN="/usr/local/bin/composer"
+    fi
+fi
+
+if [ -z "$COMPOSER_BIN" ]; then
+    echo -e "${RED}Composer was not found. Install Composer or make sure it is available in PATH.${NC}"
+    exit 1
+fi
+
+if [ -z "$PHP_BIN" ] && [ -x /usr/local/bin/php ]; then
+    PHP_BIN="/usr/local/bin/php"
+fi
+
+if [ -z "$PHP_BIN" ]; then
+    echo -e "${RED}PHP CLI was not found. Install PHP or make sure it is available in PATH.${NC}"
+    exit 1
+fi
+
 # Color codes for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -92,15 +119,15 @@ echo ""
 # Step 6: Install PHP dependencies
 echo -e "${YELLOW}Step 6: Installing PHP dependencies for deploy.monaksoft.com.ng...${NC}"
 cd "$DEPLOYMENT_PATH"
-/usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction
+"$COMPOSER_BIN" install --no-dev --optimize-autoloader --no-interaction
 echo -e "${GREEN}✓ PHP dependencies installed${NC}"
 echo ""
 
 # Step 7: Install Node.js dependencies and build
 echo -e "${YELLOW}Step 7: Installing Node.js dependencies and building assets for deploy.monaksoft.com.ng...${NC}"
-if command -v npm &> /dev/null; then
-    /bin/npm ci --omit=dev
-    /bin/npm run build
+if [ -n "$NPM_BIN" ]; then
+    "$NPM_BIN" ci --omit=dev
+    "$NPM_BIN" run build
     echo -e "${GREEN}✓ Assets built${NC}"
 else
     echo -e "${RED}! npm not found. Please ensure Node.js 18+ is installed via cPanel${NC}"
@@ -110,7 +137,7 @@ echo ""
 # Step 8: Generate application key
 echo -e "${YELLOW}Step 8: Generating application key for deploy.monaksoft.com.ng...${NC}"
 if ! grep -q "^APP_KEY=base64:" "$DEPLOYMENT_PATH/.env"; then
-    /usr/local/bin/php artisan key:generate --force
+    "$PHP_BIN" artisan key:generate --force
     echo -e "${GREEN}✓ Application key generated${NC}"
 else
     echo -e "${YELLOW}! Application key already exists${NC}"
