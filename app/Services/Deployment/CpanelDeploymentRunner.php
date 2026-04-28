@@ -128,6 +128,15 @@ class CpanelDeploymentRunner
                 ),
             ],
             [
+                'label' => 'Clean repository',
+                'command' => 'git reset --hard && git clean -fdx',
+                'runner' => function () use ($site, $releasePath): array {
+                    return [
+                        'summary' => $this->ensureCleanRepository($site, $releasePath),
+                    ];
+                },
+            ],
+            [
                 'label' => 'Set active branch',
                 'command' => 'uapi VersionControl update',
                 'runner' => fn (): array => $this->client->updateRepository(
@@ -393,6 +402,55 @@ class CpanelDeploymentRunner
             $message,
             sprintf('Recovery: %s', $hint),
         ]);
+    }
+
+    protected function ensureCleanRepository(Site $site, string $releasePath): string
+    {
+        $repositoryRoot = $this->repositoryRoot($site);
+        $server = $site->server;
+
+        if (! $server) {
+            throw new RuntimeException('The site does not have a server configured.');
+        }
+
+        $check = $this->sshCommandRunner->execute($server, sprintf(
+            'cd %s && git status --porcelain',
+            escapeshellarg($repositoryRoot),
+        ));
+
+        if (! $check->isSuccessful()) {
+            throw new RuntimeException(trim($check->getErrorOutput() ?: $check->getOutput()) ?: 'Unable to inspect the cPanel repository status.');
+        }
+
+        $status = trim((string) $check->getOutput());
+
+        if ($status === '') {
+            return sprintf('Repository %s is already clean.', $repositoryRoot);
+        }
+
+        $reset = $this->sshCommandRunner->execute($server, sprintf(
+            'cd %s && git reset --hard HEAD && git clean -fdx && git status --porcelain',
+            escapeshellarg($repositoryRoot),
+        ));
+
+        if (! $reset->isSuccessful()) {
+            throw new RuntimeException(trim($reset->getErrorOutput() ?: $reset->getOutput()) ?: 'Unable to clean the cPanel repository.');
+        }
+
+        if (trim((string) $reset->getOutput()) !== '') {
+            throw new RuntimeException('The cPanel repository still has uncommitted changes after cleanup.');
+        }
+
+        return sprintf('Cleaned cPanel repository at %s before deployment to %s.', $repositoryRoot, $releasePath);
+    }
+
+    protected function repositoryRoot(Site $site): string
+    {
+        $repositoryUrl = trim((string) $site->repository_url);
+        $repositorySlug = basename(parse_url($repositoryUrl, PHP_URL_PATH) ?: '');
+        $repositorySlug = preg_replace('/\\.git$/', '', $repositorySlug) ?: $site->name;
+
+        return sprintf('/home/%s/repositories/%s', $site->server?->ssh_user ?? 'unknown', $repositorySlug);
     }
 
     protected function installScheduledJobs(Site $site): void
