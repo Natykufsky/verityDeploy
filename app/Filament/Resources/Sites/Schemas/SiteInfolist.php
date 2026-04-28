@@ -220,6 +220,24 @@ class SiteInfolist
                                     ->columnSpanFull(),
                             ]),
                     ]),
+                Tab::make('Processes')
+                    ->badge(fn ($record): string => (string) count($record->recent_process_runs ?? []))
+                    ->badgeColor('primary')
+                    ->schema([
+                        Section::make('Process controls')
+                            ->description('Use these controls to manage queue workers and long-running daemons after a deploy.')
+                            ->schema([
+                                View::make('filament.sites.process-overview')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columnSpanFull(),
+                        Section::make('Recent process runs')
+                            ->schema([
+                                View::make('filament.sites.process-history')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columnSpanFull(),
+                    ]),
                 Tab::make('Webhooks')
                     ->badge(fn ($record): string => $record->github_webhook_status === 'provisioned' ? 'Healthy' : 'Needs sync')
                     ->badgeColor(fn ($record): string => match ($record->github_webhook_status) {

@@ -7,6 +7,7 @@ use App\Services\AppSettings;
 use App\Support\SiteDnsPreview;
 use App\Support\SiteDomainPreview;
 use App\Support\SiteVhostPreview;
+use App\Models\SiteTerminalRun;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -1039,6 +1040,27 @@ class Site extends Model
                     'finished_at' => $backup->finished_at,
                     'error_message' => $backup->error_message,
                     'output' => $backup->output,
+                ];
+            })
+            ->all();
+    }
+
+    public function getRecentProcessRunsAttribute(): array
+    {
+        return $this->terminalRuns()
+            ->latest('started_at')
+            ->limit(10)
+            ->get()
+            ->map(function (SiteTerminalRun $run): array {
+                return [
+                    'command' => $run->command,
+                    'output' => $run->output,
+                    'status' => $run->status,
+                    'exit_code' => $run->exit_code,
+                    'started_at' => $run->started_at,
+                    'finished_at' => $run->finished_at,
+                    'error_message' => $run->error_message,
+                    'user_name' => $run->user?->name,
                 ];
             })
             ->all();

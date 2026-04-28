@@ -15,6 +15,7 @@ use App\Services\Cpanel\CpanelSslProvisioner;
 use App\Services\Deployment\ReleaseManager;
 use App\Services\Dns\CloudflareDnsProvisioner;
 use App\Services\GitHub\WebhookProvisioner;
+use App\Services\Processes\SiteProcessService;
 use App\Services\Server\VpsVhostInventorySyncService;
 use App\Services\Server\VpsVhostRepairPlanService;
 use Filament\Actions\Action;
@@ -256,6 +257,44 @@ class ViewSite extends ViewRecord
                     ->modalDescription('This re-validates the cPanel API, ensures the workspace directories exist, re-syncs shared files, and refreshes the deployment path without changing releases.')
                     ->modalSubmitActionLabel('Re-run bootstrap')
                     ->action(fn () => $this->bootstrapDeployPath()),
+                Action::make('restartQueueWorkers')
+                    ->label('Restart queue workers')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->deploy_path) && filled($this->record->server))
+                    ->modalHeading('Restart queue workers?')
+                    ->modalDescription('This will run php artisan queue:restart inside the current release directory.')
+                    ->modalSubmitActionLabel('Restart workers')
+                    ->action(fn () => $this->restartQueueWorkers()),
+                Action::make('terminateHorizon')
+                    ->label('Terminate Horizon')
+                    ->icon('heroicon-o-stop-circle')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->deploy_path) && filled($this->record->server))
+                    ->modalHeading('Terminate Horizon?')
+                    ->modalDescription('This will stop the Horizon daemon so the supervisor or process manager can restart it cleanly.')
+                    ->modalSubmitActionLabel('Terminate Horizon')
+                    ->action(fn () => $this->terminateHorizon()),
+                Action::make('restartSupervisor')
+                    ->label('Restart supervisor')
+                    ->icon('heroicon-o-server-stack')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->deploy_path) && filled($this->record->server))
+                    ->modalHeading('Restart supervisor?')
+                    ->modalDescription('This restarts all supervised processes for the site environment.')
+                    ->modalSubmitActionLabel('Restart supervisor')
+                    ->action(fn () => $this->restartSupervisor()),
+            ])
+                ->label('Processes')
+                ->icon('heroicon-o-cog-6-tooth')
+                ->color('success')
+                ->outlined()
+                ->button()
+                ->size('sm'),
+            ActionGroup::make([
                 Action::make('cleanupReleases')
                     ->label('Clean releases')
                     ->icon('heroicon-o-trash')
@@ -548,6 +587,40 @@ class ViewSite extends ViewRecord
             ->body('Older release directories were rotated successfully.')
             ->success()
             ->send();
+    }
+
+    protected function restartQueueWorkers(): void
+    {
+        $this->runProcessAction('queue_restart', 'Queue workers restarted', 'Unable to restart queue workers.');
+    }
+
+    protected function terminateHorizon(): void
+    {
+        $this->runProcessAction('horizon_terminate', 'Horizon terminated', 'Unable to terminate Horizon.');
+    }
+
+    protected function restartSupervisor(): void
+    {
+        $this->runProcessAction('supervisor_restart', 'Supervisor restarted', 'Unable to restart supervisor.');
+    }
+
+    protected function runProcessAction(string $action, string $successTitle, string $failureTitle): void
+    {
+        try {
+            $run = app(SiteProcessService::class)->run($this->record->fresh(['server']), $action, auth()->user());
+
+            Notification::make()
+                ->title($successTitle)
+                ->body(trim((string) ($run->output ?? '')) !== '' ? (string) $run->output : 'The process command finished successfully.')
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title($failureTitle)
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     protected function createBackup(): void
