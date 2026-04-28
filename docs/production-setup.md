@@ -17,6 +17,7 @@ This guide covers the minimum production tasks for running verityDeploy safely.
 3. Use `Test API` to confirm the token works.
 4. Use `Discover` to pull the SSH port from the cPanel API when needed.
 5. Run the cPanel server wizard, then the site bootstrap wizard, before the first deploy.
+6. For `deploy.monaksoft.com.ng`, point the document root at `/home/thenew12/public_html/deploy.monaksoft.com.ng/public`.
 
 ## Queue Workers
 
