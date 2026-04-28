@@ -10,6 +10,7 @@ set -euo pipefail
 COMPOSER_BIN="$(command -v composer || true)"
 PHP_BIN="$(command -v php || true)"
 NPM_BIN="$(command -v npm || true)"
+COMPOSER_PHAR="$HOME/bin/composer"
 
 if [ -z "$COMPOSER_BIN" ]; then
     if [ -x /opt/cpanel/composer/bin/composer ]; then
@@ -20,8 +21,22 @@ if [ -z "$COMPOSER_BIN" ]; then
 fi
 
 if [ -z "$COMPOSER_BIN" ]; then
-    echo -e "${RED}Composer was not found. Install Composer or make sure it is available in PATH.${NC}"
-    exit 1
+    echo -e "${YELLOW}Composer was not found. Bootstrapping a local Composer binary...${NC}"
+    mkdir -p "$HOME/bin"
+    if [ ! -f "$COMPOSER_PHAR" ]; then
+        if command -v curl >/dev/null 2>&1; then
+            curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
+        elif command -v wget >/dev/null 2>&1; then
+            wget -qO /tmp/composer-setup.php https://getcomposer.org/installer
+        else
+            echo -e "${RED}Neither curl nor wget is available to download Composer.${NC}"
+            exit 1
+        fi
+
+        "$PHP_BIN" /tmp/composer-setup.php --install-dir="$HOME/bin" --filename=composer
+        rm -f /tmp/composer-setup.php
+    fi
+    COMPOSER_BIN="$COMPOSER_PHAR"
 fi
 
 if [ -z "$PHP_BIN" ] && [ -x /usr/local/bin/php ]; then
