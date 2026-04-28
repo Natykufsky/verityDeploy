@@ -130,6 +130,12 @@ class SiteInfolist
                                         TextEntry::make('database.username')
                                             ->label('Database user')
                                             ->placeholder('Not requested'),
+                                        TextEntry::make('database.cpanelDatabaseName')
+                                            ->label('cPanel database')
+                                            ->placeholder('Not provisioned'),
+                                        TextEntry::make('database.cpanelUsername')
+                                            ->label('cPanel user')
+                                            ->placeholder('Not provisioned'),
                                         TextEntry::make('database.status')
                                             ->label('Status')
                                             ->badge()

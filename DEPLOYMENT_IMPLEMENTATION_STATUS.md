@@ -42,8 +42,10 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 ### Database Tracking
 
 - Site form requests now create or clear a site-linked database record
-- The site details view now shows the requested database name, sync time, and notes
-- The record is intentionally lightweight for now, with live cPanel provisioning left for a later pass
+- The site details view now shows the requested database name, live cPanel identifiers, sync time, and notes
+- Databases have a first-class management resource with live provisioning and live removal actions
+- cPanel database provisioning uses the MySQL UAPI to create the database, create the user, and grant privileges
+- Database passwords are stored encrypted and reused for provisioning unless a new one is entered
 
 ### Scheduled Jobs
 
@@ -60,6 +62,14 @@ To use the deployment features effectively:
 3. Ensure the deployment bridge is running for live progress updates
 4. Keep queue workers running so deployment jobs can process
 5. Confirm the live cPanel docroot points at the current release entry point
+
+## Current Gaps
+
+- Backups and restore workflows still need more depth
+- Background daemon and process management are not fully automated
+- File manager and code editor integration are still pending
+- Advanced SSL certificate management is still pending
+- Monitoring and alerting can still be expanded
 
 ## Current Notes
 

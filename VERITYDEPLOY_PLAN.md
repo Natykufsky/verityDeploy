@@ -45,7 +45,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Multi-language deployment support with build commands and port configuration.
 - Live domain synchronization from cPanel servers.
 - Enhanced SSL management with auto-renewal options.
-- Database setup and optional creation during site provisioning.
+- Database setup, optional creation during site provisioning, and live cPanel provisioning.
 - Inline domain creation with type selection (addon/subdomain/alias).
 - Improved server UI with sites overview and metrics.
 - ZIP file upload support for local deployments.
@@ -64,7 +64,6 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Background daemon/process management.
 - File manager and code editor integration.
 - Advanced SSL certificate management (manual upload, renewal tracking).
-- Full database management interface and live cPanel provisioning.
 - Monitoring & alerts expansion.
 
 ## MVP Definition

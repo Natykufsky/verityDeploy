@@ -301,6 +301,70 @@ class CpanelApiClient
     /**
      * @return array<string, mixed>
      */
+    public function createDatabase(Server $server, string $name): array
+    {
+        return $this->request($server, 'Mysql', 'create_database', [
+            'name' => $name,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function deleteDatabase(Server $server, string $name): array
+    {
+        return $this->request($server, 'Mysql', 'delete_database', [
+            'name' => $name,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function createDatabaseUser(Server $server, string $name, string $password): array
+    {
+        return $this->request($server, 'Mysql', 'create_user', [
+            'name' => $name,
+            'password' => $password,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function deleteDatabaseUser(Server $server, string $name): array
+    {
+        return $this->request($server, 'Mysql', 'delete_user', [
+            'name' => $name,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function setDatabasePrivileges(Server $server, string $database, string $user, string $privileges = 'ALL PRIVILEGES'): array
+    {
+        return $this->request($server, 'Mysql', 'set_privileges_on_database', [
+            'database' => $database,
+            'user' => $user,
+            'privileges' => $privileges,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function revokeDatabasePrivileges(Server $server, string $database, string $user): array
+    {
+        return $this->request($server, 'Mysql', 'revoke_access_to_database', [
+            'database' => $database,
+            'user' => $user,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function uploadFile(Server $server, string $directory, string $path, ?string $filename = null): array
     {
         $filename ??= basename($path);
