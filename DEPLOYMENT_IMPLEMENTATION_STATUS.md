@@ -47,6 +47,13 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - cPanel database provisioning uses the MySQL UAPI to create the database, create the user, and grant privileges
 - Database passwords are stored encrypted and reused for provisioning unless a new one is entered
 
+### Backups and Restore
+
+- Site backups are created from the current release into the backups directory
+- Restores copy the selected snapshot into a new release and reactivate the site
+- Backup records are available in their own Filament resource for browsing and manual restore actions
+- The site view still provides the backup shortcuts and history preview for the current site
+
 ### Scheduled Jobs
 
 - Scheduled jobs are managed through a Filament resource
@@ -65,7 +72,6 @@ To use the deployment features effectively:
 
 ## Current Gaps
 
-- Backups and restore workflows still need more depth
 - Background daemon and process management are not fully automated
 - File manager and code editor integration are still pending
 - Advanced SSL certificate management is still pending

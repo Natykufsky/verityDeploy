@@ -55,7 +55,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 ### Still Pending
 
 - Multiple server providers.
-- Backups and restore workflows.
+- Backups and restore workflows are in progress.
 - External alert delivery to Slack or any additional destinations you want beyond email/webhooks.
 - Custom deploy hooks before and after deploys.
 - A lightweight agent for more reliable server communication.
@@ -538,7 +538,6 @@ Even if full rollback is not in v1, design for it early:
 - Team invitations and richer role matrices.
 - Multiple server providers.
 - Zero-downtime deploys with release directories and symlinks.
-- Backups and restore workflows.
 - Alerting to Slack or additional external destinations.
 - Custom deploy hooks before and after deploys.
 - Granular action-level permissions and approval workflows.
