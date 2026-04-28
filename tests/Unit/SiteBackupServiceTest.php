@@ -75,4 +75,61 @@ class SiteBackupServiceTest extends TestCase
             File::deleteDirectory($basePath);
         }
     }
+
+    public function test_it_prunes_old_backups_using_the_site_retention_count(): void
+    {
+        $basePath = storage_path('framework/testing/'.Str::uuid());
+        $releasePath = $basePath.'/releases/20260329000000-1';
+
+        File::ensureDirectoryExists($releasePath);
+        File::put($releasePath.'/index.php', '<?php echo "verityDeploy";');
+
+        $user = User::query()->create([
+            'name' => 'Backup User',
+            'email' => 'backup-retention@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $server = Server::query()->create([
+            'user_id' => $user->id,
+            'name' => 'Retention Server',
+            'ip_address' => '127.0.0.1',
+            'ssh_port' => 22,
+            'ssh_user' => 'local',
+            'provider_type' => 'local',
+            'connection_type' => 'local',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'team_id' => null,
+            'name' => 'retention-site',
+            'deploy_path' => $basePath,
+            'current_release_path' => $releasePath,
+            'deploy_source' => 'local',
+            'local_source_path' => $basePath.'/source',
+            'backup_enabled' => true,
+            'backup_schedule' => 'daily',
+            'backup_retention_count' => 2,
+        ]);
+
+        $service = app(SiteBackupService::class);
+
+        try {
+            $first = $service->backup($site->fresh(['server']), $user, 'Backup one');
+            sleep(1);
+            $second = $service->backup($site->fresh(['server']), $user, 'Backup two');
+            sleep(1);
+            $third = $service->backup($site->fresh(['server']), $user, 'Backup three');
+
+            $this->assertSame('successful', $third->status);
+            $this->assertSame(2, $site->fresh()->backups()->where('operation', 'backup')->count());
+            $this->assertFileDoesNotExist($first->snapshot_path);
+            $this->assertFileExists($second->snapshot_path);
+            $this->assertFileExists($third->snapshot_path);
+        } finally {
+            File::deleteDirectory($basePath);
+        }
+    }
 }

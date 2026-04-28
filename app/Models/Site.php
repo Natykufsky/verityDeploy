@@ -77,6 +77,9 @@ class Site extends Model
         'active',
         'auto_ssl',
         'deploy_after_create',
+        'backup_enabled',
+        'backup_schedule',
+        'backup_retention_count',
         'health_check_endpoint',
         'last_deployed_at',
         'notes',
@@ -108,6 +111,9 @@ class Site extends Model
             'ignore_local_source_ignored_files' => 'boolean',
             'active' => 'boolean',
             'create_database' => 'boolean',
+            'backup_enabled' => 'boolean',
+            'backup_schedule' => 'string',
+            'backup_retention_count' => 'integer',
             'port' => 'integer',
             'health_check_endpoint' => 'string',
             'last_deployed_at' => 'datetime',
@@ -1002,6 +1008,31 @@ class Site extends Model
             'running' => 'running',
             default => 'not run',
         };
+    }
+
+    public function getBackupPolicyBadgeAttribute(): string
+    {
+        return $this->backup_enabled ? 'automatic' : 'manual only';
+    }
+
+    public function getBackupPolicySummaryAttribute(): string
+    {
+        $schedule = filled($this->backup_schedule) ? (string) $this->backup_schedule : 'daily';
+        $retention = max(1, (int) ($this->backup_retention_count ?: 5));
+
+        return sprintf(
+            '%s on a %s schedule, keeping the latest %d successful backups.',
+            $this->backup_enabled ? 'Automatic backups are enabled' : 'Automatic backups are disabled',
+            $schedule,
+            $retention,
+        );
+    }
+
+    public function getBackupRetentionSummaryAttribute(): string
+    {
+        $retention = max(1, (int) ($this->backup_retention_count ?: 5));
+
+        return sprintf('Keeps the latest %d successful backup snapshots.', $retention);
     }
 
     public function getLatestBackupSnapshotPathAttribute(): ?string

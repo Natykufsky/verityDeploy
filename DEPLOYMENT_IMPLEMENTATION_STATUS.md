@@ -53,6 +53,8 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - Restores copy the selected snapshot into a new release and reactivate the site
 - Backup records are available in their own Filament resource for browsing and manual restore actions
 - The site view still provides the backup shortcuts and history preview for the current site
+- Sites now carry a backup policy with an enable toggle, schedule label, and retention count
+- Older successful backup snapshots are pruned automatically after a new backup completes
 
 ### Scheduled Jobs
 

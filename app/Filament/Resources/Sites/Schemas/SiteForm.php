@@ -280,6 +280,32 @@ class SiteForm
                             Textarea::make('contents')->rows(4)->columnSpanFull()->placeholder('Initial file content...'),
                         ])->columnSpanFull(),
                 ]),
+            Section::make('Backup Policy')
+                ->description('Control whether the site should back up automatically and how many snapshots to keep.')
+                ->icon('heroicon-o-archive-box')
+                ->schema([
+                    Toggle::make('backup_enabled')
+                        ->label('Enable automatic backups')
+                        ->default(false)
+                        ->live(),
+                    Select::make('backup_schedule')
+                        ->label('Backup schedule')
+                        ->options([
+                            'hourly' => 'Hourly',
+                            'daily' => 'Daily',
+                            'weekly' => 'Weekly',
+                            'monthly' => 'Monthly',
+                        ])
+                        ->default('daily')
+                        ->required(),
+                    TextInput::make('backup_retention_count')
+                        ->label('Retention count')
+                        ->numeric()
+                        ->default(5)
+                        ->minValue(1)
+                        ->maxValue(50)
+                        ->helperText('Keeps the newest successful backups and removes older snapshots automatically.'),
+                ])->columns(['md' => 2]),
         ];
 
         return $schema->components([

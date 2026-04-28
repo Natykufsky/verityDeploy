@@ -56,6 +56,17 @@ class SiteBackupService
                 'checksum' => $this->snapshotChecksum($site, $snapshotPath),
                 'finished_at' => now(),
             ]);
+
+            $prunedCount = $this->pruneBackups($site);
+
+            if ($prunedCount > 0) {
+                $backup->update([
+                    'output' => trim(implode(PHP_EOL.PHP_EOL, array_filter([
+                        $backup->output,
+                        sprintf('Pruned %d older backup snapshot(s).', $prunedCount),
+                    ]))),
+                ]);
+            }
         } catch (Throwable $throwable) {
             $backup->update([
                 'status' => 'failed',
@@ -293,6 +304,58 @@ class SiteBackupService
         ]);
 
         return sprintf('Shared runtime synced and release %s activated locally.', $releasePath);
+    }
+
+    protected function pruneBackups(Site $site): int
+    {
+        $retentionCount = max(1, (int) ($site->backup_retention_count ?: 5));
+        $backups = $site->backups()
+            ->where('operation', 'backup')
+            ->where('status', 'successful')
+            ->latest('started_at')
+            ->get();
+
+        $backups = $backups->slice($retentionCount)->values();
+
+        $pruned = 0;
+
+        foreach ($backups as $backup) {
+            $snapshotPath = $backup->snapshot_path;
+
+            if (filled($snapshotPath)) {
+                $this->deletePath($site, (string) $snapshotPath);
+            }
+
+            $backup->delete();
+            $pruned++;
+        }
+
+        return $pruned;
+    }
+
+    protected function deletePath(Site $site, string $path): void
+    {
+        $server = $site->server;
+
+        if (! $server) {
+            throw new RuntimeException('The site does not have a server configured.');
+        }
+
+        if ($server->connection_type === 'local') {
+            if (File::isDirectory($path)) {
+                File::deleteDirectory($path);
+            } elseif (File::exists($path)) {
+                File::delete($path);
+            }
+
+            return;
+        }
+
+        $process = $this->sshCommandRunner->execute($server, sprintf('rm -rf %s', escapeshellarg($path)));
+
+        if (! $process->isSuccessful()) {
+            throw new RuntimeException(trim($process->getErrorOutput() ?: $process->getOutput()) ?: 'Unable to prune an older backup snapshot.');
+        }
     }
 
     protected function linkLocalPath(string $sourcePath, string $destinationPath): void

@@ -193,20 +193,43 @@ class SiteInfolist
                                     ]),
                             ]),
                     ]),
-                Tab::make('Backups')
-                    ->badge(fn ($record): string => $record->backup_status_badge)
-                    ->badgeColor(fn ($record): string => match ($record->backup_status) {
-                        'healthy' => 'success',
-                        'needs attention' => 'warning',
-                        'running' => 'info',
-                        default => 'gray',
-                    })
-                    ->schema([
-                        Section::make('Backup actions')
+                        Tab::make('Backups')
+                            ->badge(fn ($record): string => $record->backup_status_badge)
+                            ->badgeColor(fn ($record): string => match ($record->backup_status) {
+                                'healthy' => 'success',
+                                'needs attention' => 'warning',
+                                'running' => 'info',
+                                default => 'gray',
+                            })
                             ->schema([
-                                View::make('filament.sites.backup-actions')
-                                    ->columnSpanFull(),
-                            ])
+                                Section::make('Backup policy')
+                                    ->description(fn ($record): string => $record->backup_policy_summary)
+                                    ->schema([
+                                        TextEntry::make('backup_policy_badge')
+                                            ->label('Policy mode')
+                                            ->badge()
+                                            ->color(fn (string $state): string => $state === 'automatic' ? 'success' : 'gray'),
+                                        TextEntry::make('backup_schedule')
+                                            ->label('Schedule')
+                                            ->badge()
+                                            ->placeholder('Daily'),
+                                        TextEntry::make('backup_retention_count')
+                                            ->label('Retention count')
+                                            ->badge()
+                                            ->placeholder('5'),
+                                        TextEntry::make('backup_retention_summary')
+                                            ->label('Retention rule')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns([
+                                        'default' => 1,
+                                        'md' => 2,
+                                    ]),
+                                Section::make('Backup actions')
+                                    ->schema([
+                                        View::make('filament.sites.backup-actions')
+                                            ->columnSpanFull(),
+                                    ])
                             ->columnSpanFull(),
                         Section::make('Backup status')
                             ->schema([
