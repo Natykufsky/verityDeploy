@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/thenew12/public_html/verityDeploy
+    - export DEPLOYPATH=/home/thenew12/public_html/deploy.monaksoft.com.ng
     - cd $DEPLOYPATH
 
     # 1. Install PHP dependencies
