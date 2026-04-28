@@ -295,16 +295,6 @@ class ViewSite extends ViewRecord
                 ->button()
                 ->size('sm'),
             ActionGroup::make([
-                Action::make('cleanupReleases')
-                    ->label('Clean releases')
-                    ->icon('heroicon-o-trash')
-                    ->color('danger')
-                    ->visible(fn (): bool => $this->record->deploy_source === 'git' && filled($this->record->deploy_path))
-                    ->requiresConfirmation()
-                    ->modalHeading('Remove old release folders?')
-                    ->modalDescription('This keeps the latest 5 releases and removes older release directories from the server to reduce disk usage.')
-                    ->modalSubmitActionLabel('Clean releases')
-                    ->action(fn () => $this->cleanupReleases()),
                 Action::make('createBackup')
                     ->label('Create backup')
                     ->icon('heroicon-o-archive-box')
@@ -341,6 +331,24 @@ class ViewSite extends ViewRecord
                     ->modalSubmitActionLabel('Restore backup')
                     ->requiresConfirmation()
                     ->action(fn (array $data) => $this->restoreBackup($data)),
+            ])
+                ->label('Backups')
+                ->icon('heroicon-o-archive-box-arrow-down')
+                ->color('primary')
+                ->outlined()
+                ->button()
+                ->size('sm'),
+            ActionGroup::make([
+                Action::make('cleanupReleases')
+                    ->label('Clean releases')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn (): bool => $this->record->deploy_source === 'git' && filled($this->record->deploy_path))
+                    ->requiresConfirmation()
+                    ->modalHeading('Remove old release folders?')
+                    ->modalDescription('This keeps the latest 5 releases and removes older release directories from the server to reduce disk usage.')
+                    ->modalSubmitActionLabel('Clean releases')
+                    ->action(fn () => $this->cleanupReleases()),
                 Action::make('restoreRelease')
                     ->label('Restore release')
                     ->icon('heroicon-o-backward')
