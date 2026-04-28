@@ -51,6 +51,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - ZIP file upload support for local deployments.
 - Scheduled jobs management UI and deployment integration.
 - Site-linked database request tracking and sync.
+- Backup verification flow for snapshot integrity checks.
 - SSL refresh, status sync, and HTTPS redirect management.
 - SSL actions now feed the operational alert pipeline.
 - Domain SSL renewal tracking and server-side renewal scans.
@@ -60,6 +61,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 
 - Multiple server providers.
 - Backups and restore workflows are in progress.
+- Backup verification is available from the UI.
 - External alert delivery to Slack or any additional destinations you want beyond email/webhooks.
 - Custom deploy hooks before and after deploys.
 - A lightweight agent for more reliable server communication.

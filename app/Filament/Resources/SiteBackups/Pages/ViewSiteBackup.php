@@ -44,6 +44,29 @@ class ViewSiteBackup extends ViewRecord
                             ->send();
                     }
                 }),
+            Action::make('verify')
+                ->label('Verify backup')
+                ->icon('heroicon-o-shield-check')
+                ->color('info')
+                ->visible(fn (): bool => $this->record->operation === 'backup' && $this->record->status === 'successful')
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    try {
+                        app(SiteBackupService::class)->verify($this->record->fresh(['site.server']), auth()->user());
+
+                        Notification::make()
+                            ->title('Backup verified')
+                            ->body('The selected backup snapshot passed verification.')
+                            ->success()
+                            ->send();
+                    } catch (Throwable $throwable) {
+                        Notification::make()
+                            ->title('Verification failed')
+                            ->body($throwable->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
         ];
     }
 }

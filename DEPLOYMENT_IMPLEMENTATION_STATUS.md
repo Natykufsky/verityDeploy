@@ -57,6 +57,7 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 
 - Site backups are created from the current release into the backups directory
 - Restores copy the selected snapshot into a new release and reactivate the site
+- Backup verification checks the stored snapshot path and integrity metadata
 - Backup records are available in their own Filament resource for browsing and manual restore actions
 - The site view still provides the backup shortcuts and history preview for the current site
 - Sites now carry a backup policy with an enable toggle, schedule label, and retention count

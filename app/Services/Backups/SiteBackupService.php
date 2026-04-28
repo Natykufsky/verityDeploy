@@ -143,6 +143,57 @@ class SiteBackupService
         return $restore->fresh(['site.server', 'sourceBackup', 'triggeredBy']);
     }
 
+    public function verify(SiteBackup $backup, ?User $user = null): SiteBackup
+    {
+        $backup->loadMissing('site.server');
+        $site = $backup->site;
+
+        if ($backup->operation !== 'backup') {
+            throw new RuntimeException('Only backup snapshots can be verified.');
+        }
+
+        if ($backup->status !== 'successful') {
+            throw new RuntimeException('Only successful backup snapshots can be verified.');
+        }
+
+        if (blank($backup->snapshot_path)) {
+            throw new RuntimeException('The selected backup does not have a snapshot path.');
+        }
+
+        $verification = SiteBackup::query()->create([
+            'site_id' => $site->id,
+            'triggered_by_user_id' => $user?->id,
+            'source_backup_id' => $backup->id,
+            'operation' => 'verify',
+            'status' => 'running',
+            'label' => $backup->label,
+            'source_release_path' => $backup->snapshot_path,
+            'started_at' => now(),
+        ]);
+
+        try {
+            $result = $this->verifySnapshot($site, $backup);
+
+            $verification->update([
+                'status' => 'successful',
+                'output' => $result['output'],
+                'size_bytes' => $result['size_bytes'],
+                'checksum' => $result['checksum'],
+                'finished_at' => now(),
+            ]);
+        } catch (Throwable $throwable) {
+            $verification->update([
+                'status' => 'failed',
+                'error_message' => $throwable->getMessage(),
+                'finished_at' => now(),
+            ]);
+
+            throw $throwable;
+        }
+
+        return $verification->fresh(['site.server', 'sourceBackup', 'triggeredBy']);
+    }
+
     protected function currentReleasePath(Site $site): string
     {
         return filled($site->current_release_path)
@@ -304,6 +355,59 @@ class SiteBackupService
         ]);
 
         return sprintf('Shared runtime synced and release %s activated locally.', $releasePath);
+    }
+
+    /**
+     * @return array{output: string, size_bytes: ?int, checksum: ?string}
+     */
+    protected function verifySnapshot(Site $site, SiteBackup $backup): array
+    {
+        $snapshotPath = (string) $backup->snapshot_path;
+        $server = $site->server;
+
+        if (! $server) {
+            throw new RuntimeException('The site does not have a server configured.');
+        }
+
+        if ($server->connection_type === 'local') {
+            if (! File::exists($snapshotPath)) {
+                throw new RuntimeException('The backup snapshot could not be found on this machine.');
+            }
+
+            $size = $this->snapshotSize($site, $snapshotPath);
+            $checksum = $this->snapshotChecksum($site, $snapshotPath);
+
+            if ($backup->size_bytes !== null && $size !== null && (int) $backup->size_bytes !== $size) {
+                throw new RuntimeException('The backup snapshot size no longer matches the recorded value.');
+            }
+
+            if (filled($backup->checksum) && filled($checksum) && $backup->checksum !== $checksum) {
+                throw new RuntimeException('The backup snapshot checksum no longer matches the recorded value.');
+            }
+
+            return [
+                'output' => sprintf(
+                    'Verified local snapshot %s. Size: %s. Checksum: %s.',
+                    $snapshotPath,
+                    $size !== null ? number_format($size).' bytes' : 'unknown',
+                    $checksum ?? 'unavailable',
+                ),
+                'size_bytes' => $size,
+                'checksum' => $checksum,
+            ];
+        }
+
+        $process = $this->sshCommandRunner->execute($server, sprintf('test -e %s', escapeshellarg($snapshotPath)));
+
+        if (! $process->isSuccessful()) {
+            throw new RuntimeException(trim($process->getErrorOutput() ?: $process->getOutput()) ?: 'The backup snapshot could not be found on the server.');
+        }
+
+        return [
+            'output' => sprintf('Verified backup snapshot path %s exists on %s.', $snapshotPath, $server->name),
+            'size_bytes' => null,
+            'checksum' => null,
+        ];
     }
 
     protected function pruneBackups(Site $site): int

@@ -382,6 +382,16 @@ class ViewSite extends ViewRecord
                     ->modalSubmitActionLabel('Restore backup')
                     ->requiresConfirmation()
                     ->action(fn (array $data) => $this->restoreBackup($data)),
+                Action::make('verifyLatestBackup')
+                    ->label('Verify latest backup')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->latestSuccessfulBackup))
+                    ->modalHeading('Verify the latest backup?')
+                    ->modalDescription('This checks that the latest backup snapshot still exists and matches its recorded integrity details.')
+                    ->modalSubmitActionLabel('Verify backup')
+                    ->action(fn () => $this->verifyLatestBackup()),
             ])
                 ->label('Backups')
                 ->icon('heroicon-o-archive-box-arrow-down')
@@ -784,6 +794,31 @@ class ViewSite extends ViewRecord
         } catch (Throwable $throwable) {
             Notification::make()
                 ->title('Unable to create backup')
+                ->body($throwable->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    protected function verifyLatestBackup(): void
+    {
+        try {
+            $latestBackup = $this->record->fresh(['server'])->latestSuccessfulBackup;
+
+            if (! $latestBackup) {
+                throw new \RuntimeException('No successful backup snapshot is available to verify.');
+            }
+
+            app(SiteBackupService::class)->verify($latestBackup->fresh(['site.server']), auth()->user());
+
+            Notification::make()
+                ->title('Backup verified')
+                ->body('The latest backup snapshot passed verification.')
+                ->success()
+                ->send();
+        } catch (Throwable $throwable) {
+            Notification::make()
+                ->title('Unable to verify backup')
                 ->body($throwable->getMessage())
                 ->danger()
                 ->send();

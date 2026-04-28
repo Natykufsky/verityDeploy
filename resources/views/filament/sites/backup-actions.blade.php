@@ -21,6 +21,16 @@
 
     <button
         type="button"
+        wire:click="mountAction('verifyLatestBackup')"
+        class="deployment-frost-panel flex flex-col rounded-2xl p-4 text-left transition hover:scale-[1.01]"
+    >
+        <span class="inline-flex w-fit items-center rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-200">verify</span>
+        <span class="text-sm font-semibold text-white">verify latest backup</span>
+        <span class="mt-1 text-xs leading-5 text-slate-400">check the latest snapshot against its recorded checksum and file presence.</span>
+    </button>
+
+    <button
+        type="button"
         wire:click="mountAction('cleanupReleases')"
         class="deployment-frost-panel flex flex-col rounded-2xl p-4 text-left transition hover:scale-[1.01]"
     >

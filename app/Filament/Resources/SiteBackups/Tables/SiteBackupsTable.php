@@ -56,6 +56,29 @@ class SiteBackupsTable
                                 ->send();
                         }
                     }),
+                Action::make('verify')
+                    ->label('Verify')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('info')
+                    ->visible(fn (SiteBackup $record): bool => $record->operation === 'backup' && $record->status === 'successful')
+                    ->requiresConfirmation()
+                    ->action(function (SiteBackup $record): void {
+                        try {
+                            app(SiteBackupService::class)->verify($record->fresh(['site.server']), auth()->user());
+
+                            Notification::make()
+                                ->title('Backup verified')
+                                ->body('The selected backup snapshot passed verification.')
+                                ->success()
+                                ->send();
+                        } catch (Throwable $throwable) {
+                            Notification::make()
+                                ->title('Verification failed')
+                                ->body($throwable->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

@@ -132,4 +132,56 @@ class SiteBackupServiceTest extends TestCase
             File::deleteDirectory($basePath);
         }
     }
+
+    public function test_it_verifies_a_backup_snapshot_and_records_the_run(): void
+    {
+        $basePath = storage_path('framework/testing/'.Str::uuid());
+        $releasePath = $basePath.'/releases/20260329000000-1';
+
+        File::ensureDirectoryExists($releasePath);
+        File::put($releasePath.'/index.php', '<?php echo "verityDeploy";');
+
+        $user = User::query()->create([
+            'name' => 'Verify User',
+            'email' => 'verify@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $server = Server::query()->create([
+            'user_id' => $user->id,
+            'name' => 'Verify Server',
+            'ip_address' => '127.0.0.1',
+            'ssh_port' => 22,
+            'ssh_user' => 'local',
+            'provider_type' => 'local',
+            'connection_type' => 'local',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'team_id' => null,
+            'name' => 'verify-site',
+            'deploy_path' => $basePath,
+            'current_release_path' => $releasePath,
+            'deploy_source' => 'local',
+            'local_source_path' => $basePath.'/source',
+        ]);
+
+        $service = app(SiteBackupService::class);
+
+        try {
+            $backup = $service->backup($site->fresh(['server']), $user, 'Verify backup');
+            $verification = $service->verify($backup->fresh(['site.server']), $user);
+
+            $this->assertSame('successful', $verification->status);
+            $this->assertSame('verify', $verification->operation);
+            $this->assertSame($backup->id, $verification->source_backup_id);
+            $this->assertNotEmpty($verification->checksum);
+            $this->assertNotEmpty($verification->output);
+            $this->assertStringContainsString('Verified local snapshot', $verification->output);
+        } finally {
+            File::deleteDirectory($basePath);
+        }
+    }
 }
