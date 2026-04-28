@@ -8,8 +8,10 @@ use App\Filament\Widgets\CpanelSetupCard;
 use App\Filament\Widgets\DeploymentOverviewStats;
 use App\Filament\Widgets\DeploymentTimelineWidget;
 use App\Filament\Widgets\GithubSyncDriftCard;
+use App\Filament\Widgets\QueueHealthOverviewCard;
 use App\Filament\Widgets\ReleaseCleanupOverviewCard;
 use App\Filament\Widgets\ServerHealthOverviewCard;
+use App\Filament\Widgets\SchedulerHealthOverviewCard;
 use App\Filament\Widgets\SiteBackupOverviewCard;
 use App\Filament\Widgets\WebhookSyncHealthCard;
 use App\Services\AppSettings;
@@ -68,6 +70,8 @@ class AdminPanelProvider extends PanelProvider
                 ReleaseCleanupOverviewCard::class,
                 SiteBackupOverviewCard::class,
                 DeploymentTimelineWidget::class,
+                QueueHealthOverviewCard::class,
+                SchedulerHealthOverviewCard::class,
             ])
             ->middleware([
                 EncryptCookies::class,
