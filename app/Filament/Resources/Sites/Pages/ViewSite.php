@@ -318,6 +318,16 @@ class ViewSite extends ViewRecord
                     ->modalDescription('This checks supervisor, Horizon, and queue workers so you can see which background processes are alive.')
                     ->modalSubmitActionLabel('Check status')
                     ->action(fn () => $this->checkDaemonStatus()),
+                Action::make('recoverDaemonStack')
+                    ->label('Recover daemon stack')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->deploy_path) && filled($this->record->server))
+                    ->modalHeading('Recover the daemon stack?')
+                    ->modalDescription('This attempts to restart supervisor, Horizon, and queue workers in one pass.')
+                    ->modalSubmitActionLabel('Recover stack')
+                    ->action(fn () => $this->recoverDaemonStack()),
             ])
                 ->label('Processes')
                 ->icon('heroicon-o-cog-6-tooth')
@@ -720,6 +730,11 @@ class ViewSite extends ViewRecord
     protected function checkDaemonStatus(): void
     {
         $this->runProcessAction('daemon_status', 'Daemon status checked', 'Unable to check daemon status.');
+    }
+
+    protected function recoverDaemonStack(): void
+    {
+        $this->runProcessAction('daemon_recover', 'Daemon stack recovery completed', 'Unable to recover daemon stack.');
     }
 
     protected function runProcessAction(string $action, string $successTitle, string $failureTitle): void

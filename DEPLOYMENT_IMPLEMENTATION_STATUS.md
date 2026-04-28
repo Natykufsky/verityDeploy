@@ -40,7 +40,7 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - The generated deploy path is shown to the user instead of being manually edited
 - Server pages include live domain inventory, site links, and quick actions
 - SSH key generation, authorization, and normalization are part of the server workflow
-- Site process actions now include queue restart, Horizon terminate, supervisor restart, and daemon status checks
+- Site process actions now include queue restart, Horizon terminate, supervisor restart, daemon status checks, and daemon stack recovery
 - Site-driven database requests are tracked as first-class site-linked records
 - The site page now includes a file browser/editor for the current release path
 - The site page now includes SSL status, AutoSSL refresh, and HTTPS redirect sync actions
@@ -80,7 +80,7 @@ To use the deployment features effectively:
 
 ## Current Gaps
 
-- Background daemon and process management are visible and partially controllable from the UI, but deeper automation and recovery are still pending
+- Background daemon and process management are visible and partially controllable from the UI, but deeper automation, health checks, and recovery heuristics are still pending
 - Manual SSL certificate upload and renewal tracking are implemented for domains, but full automated certificate issuance is still cPanel-first
 - Monitoring and alerting can still be expanded beyond the current deployment, server, webhook, and SSL events
 

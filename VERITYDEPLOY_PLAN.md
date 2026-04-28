@@ -54,7 +54,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - SSL refresh, status sync, and HTTPS redirect management.
 - SSL actions now feed the operational alert pipeline.
 - Domain SSL renewal tracking and server-side renewal scans.
-- Site process controls for queue restart, Horizon terminate, supervisor restart, and daemon status checks.
+- Site process controls for queue restart, Horizon terminate, supervisor restart, daemon status checks, and daemon stack recovery.
 
 ### Still Pending
 
@@ -65,7 +65,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - A lightweight agent for more reliable server communication.
 - Additional live staging smoke tests for rollback and cPanel edge cases.
 - Full scheduled jobs deployment integration (currently UI-only).
-- Background daemon/process automation and recovery.
+- Background daemon/process automation and recovery heuristics.
 - Manual SSL certificate upload and renewal tracking is implemented, while cPanel-first issuance remains the primary automation path.
 - Monitoring & alerts expansion.
 

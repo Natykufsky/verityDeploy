@@ -34,6 +34,15 @@
         <div class="mt-2 text-sm font-semibold text-white">Check daemon status</div>
         <p class="mt-1 text-sm text-slate-400">Use the header action to scan the live daemon state and record the output.</p>
     </div>
+
+    <div class="deployment-frost-panel rounded-2xl p-4">
+        <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <span>daemon recovery</span>
+            <x-info-tooltip text="Try to recover the stack by restarting supervisor, Horizon, and queue workers." label="Daemon recovery help" />
+        </div>
+        <div class="mt-2 text-sm font-semibold text-white">Recover daemon stack</div>
+        <p class="mt-1 text-sm text-slate-400">Use the header action to attempt a full recovery pass when the status check reports trouble.</p>
+    </div>
 </div>
 
 <div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">

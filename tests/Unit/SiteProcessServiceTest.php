@@ -117,4 +117,54 @@ class SiteProcessServiceTest extends TestCase
         $this->assertStringContainsString('php artisan horizon:status', $run->command);
         $this->assertStringContainsString('queue workers not detected', $run->command);
     }
+
+    public function test_it_recovers_daemon_stack_and_records_the_run(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Recover User',
+            'email' => 'recover@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $server = Server::query()->create([
+            'user_id' => $user->id,
+            'name' => 'Recover Server',
+            'ip_address' => '127.0.0.1',
+            'ssh_port' => 22,
+            'ssh_user' => 'forge',
+            'provider_type' => 'local',
+            'connection_type' => 'ssh_key',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'name' => 'recover-site',
+            'deploy_path' => '/var/www/recover-site',
+            'current_release_path' => '/var/www/recover-site/current',
+            'deploy_source' => 'git',
+            'repository_url' => 'https://github.com/acme/recover-site.git',
+            'default_branch' => 'main',
+        ]);
+
+        $runner = Mockery::mock(SshCommandRunner::class);
+        $runner->shouldReceive('run')
+            ->once()
+            ->with(Mockery::on(fn (Server $receivedServer): bool => $receivedServer->is($server)), Mockery::on(fn (array $commands): bool => count($commands) === 1 && str_contains($commands[0], 'supervisorctl restart all') && str_contains($commands[0], 'php artisan horizon:terminate') && str_contains($commands[0], 'php artisan queue:restart')))
+            ->andReturn([
+                'output' => "== supervisor ==\nsupervisor restarted\n== horizon ==\nhorizon terminated\n== queue workers ==\nqueue restarted",
+                'exit_code' => 0,
+            ]);
+
+        $service = new SiteProcessService($runner);
+
+        $run = $service->run($site->fresh(['server']), 'daemon_recover', $user);
+
+        $this->assertInstanceOf(SiteTerminalRun::class, $run);
+        $this->assertSame('successful', $run->status);
+        $this->assertStringContainsString('daemon_recover:', $run->command);
+        $this->assertStringContainsString('supervisorctl restart all', $run->command);
+        $this->assertStringContainsString('php artisan horizon:terminate', $run->command);
+        $this->assertStringContainsString('php artisan queue:restart', $run->command);
+    }
 }

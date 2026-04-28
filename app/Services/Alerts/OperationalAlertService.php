@@ -156,4 +156,36 @@ class OperationalAlertService
             ],
         );
     }
+
+    public function siteDaemonRecovered(Site $site, string $message): void
+    {
+        $this->notifyAll(
+            "Daemon recovered: {$site->name}",
+            $message,
+            'success',
+            SiteResource::getUrl('view', ['record' => $site, 'tab' => 'Processes']),
+            [
+                'site_id' => $site->id,
+                'site_name' => $site->name,
+                'primary_domain' => $site->primary_domain,
+                'deploy_path' => $site->deploy_path,
+            ],
+        );
+    }
+
+    public function siteDaemonRecoveryFailed(Site $site, string $message): void
+    {
+        $this->notifyAll(
+            "Daemon recovery failed: {$site->name}",
+            $message,
+            'danger',
+            SiteResource::getUrl('view', ['record' => $site, 'tab' => 'Processes']),
+            [
+                'site_id' => $site->id,
+                'site_name' => $site->name,
+                'primary_domain' => $site->primary_domain,
+                'deploy_path' => $site->deploy_path,
+            ],
+        );
+    }
 }

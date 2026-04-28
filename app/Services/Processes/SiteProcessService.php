@@ -57,6 +57,12 @@ class SiteProcessService
                     'description' => 'Checks supervisor, Horizon, and queue workers so you can confirm background daemons are alive.',
                     'command' => filled($releasePath) ? $this->daemonStatusCommand($site) : null,
                 ],
+                [
+                    'key' => 'daemon_recover',
+                    'label' => 'Recover daemon stack',
+                    'description' => 'Attempts to restart supervisor, Horizon, and queue workers in one pass.',
+                    'command' => filled($releasePath) ? $this->daemonRecoveryCommand($site) : null,
+                ],
             ],
         ];
     }
@@ -109,6 +115,20 @@ class SiteProcessService
                     ],
                 );
             }
+
+            if ($action === 'daemon_recover') {
+                if ($status === 'successful') {
+                    $this->alerts->siteDaemonRecovered(
+                        $site->fresh(),
+                        $this->daemonStatusSummary($output),
+                    );
+                } else {
+                    $this->alerts->siteDaemonRecoveryFailed(
+                        $site->fresh(),
+                        $this->daemonStatusSummary($output !== '' ? $output : 'The daemon recovery command failed before it produced output.'),
+                    );
+                }
+            }
         } catch (Throwable $throwable) {
             $run->update([
                 'status' => 'failed',
@@ -150,6 +170,9 @@ class SiteProcessService
             'daemon_status' => [
                 $this->daemonStatusCommand($site),
             ],
+            'daemon_recover' => [
+                $this->daemonRecoveryCommand($site),
+            ],
             default => throw new RuntimeException('Unknown process action requested.'),
         };
     }
@@ -178,6 +201,7 @@ class SiteProcessService
             'horizon_terminate' => 'Terminate Horizon',
             'supervisor_restart' => 'Restart supervisor',
             'daemon_status' => 'Check daemon status',
+            'daemon_recover' => 'Recover daemon stack',
             default => Str::headline(str_replace('_', ' ', $action)),
         };
     }
@@ -227,6 +251,58 @@ if pgrep -af "artisan queue:work" >/dev/null 2>&1; then
 else
     echo "queue workers not detected"
 fi
+BASH,
+        ]);
+    }
+
+    protected function daemonRecoveryCommand(Site $site): string
+    {
+        $releasePath = $this->releasePath($site);
+
+        if (blank($releasePath)) {
+            throw new RuntimeException('The site does not have a current release path configured.');
+        }
+
+        return implode(PHP_EOL, [
+            sprintf('cd %s', escapeshellarg($releasePath)),
+            <<<'BASH'
+set +e
+errors=0
+
+echo "== supervisor =="
+if command -v supervisorctl >/dev/null 2>&1; then
+    supervisorctl restart all
+    supervisor_exit=$?
+    if [ "$supervisor_exit" -ne 0 ]; then
+        errors=$((errors + 1))
+    fi
+else
+    echo "supervisorctl not installed"
+fi
+
+echo "== horizon =="
+if php artisan horizon:status >/dev/null 2>&1; then
+    php artisan horizon:terminate
+    horizon_exit=$?
+    if [ "$horizon_exit" -ne 0 ]; then
+        errors=$((errors + 1))
+    fi
+else
+    echo "horizon not configured or unavailable"
+fi
+
+echo "== queue workers =="
+php artisan queue:restart
+queue_exit=$?
+if [ "$queue_exit" -ne 0 ]; then
+    errors=$((errors + 1))
+fi
+
+if [ "$errors" -ne 0 ]; then
+    echo "daemon recovery finished with ${errors} error(s)"
+fi
+
+exit "$errors"
 BASH,
         ]);
     }
