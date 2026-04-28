@@ -38,6 +38,7 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - Server pages include live domain inventory, site links, and quick actions
 - SSH key generation, authorization, and normalization are part of the server workflow
 - Site-driven database requests are tracked as first-class site-linked records
+- The site page now includes a file browser/editor for the current release path
 
 ### Database Tracking
 
@@ -75,7 +76,6 @@ To use the deployment features effectively:
 ## Current Gaps
 
 - Background daemon and process management are not fully automated
-- File manager and code editor integration are still pending
 - Advanced SSL certificate management is still pending
 - Monitoring and alerting can still be expanded
 

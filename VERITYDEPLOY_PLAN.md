@@ -62,7 +62,6 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Additional live staging smoke tests for rollback and cPanel edge cases.
 - Full scheduled jobs deployment integration (currently UI-only).
 - Background daemon/process management.
-- File manager and code editor integration.
 - Advanced SSL certificate management (manual upload, renewal tracking).
 - Monitoring & alerts expansion.
 

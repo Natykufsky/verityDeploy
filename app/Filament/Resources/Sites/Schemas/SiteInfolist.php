@@ -107,6 +107,21 @@ class SiteInfolist
                                         'md' => 2,
                                     ]),
                             ]),
+                        Tab::make('Files')
+                            ->badge(fn ($record): string => filled($record->current_release_path) ? 'Live' : 'Setup')
+                            ->badgeColor(fn ($record): string => filled($record->current_release_path) ? 'success' : 'gray')
+                            ->schema([
+                                Section::make('File manager')
+                                    ->description('Browse and edit files directly on the server release path.')
+                                    ->schema([
+                                        View::make('filament.sites.file-manager')
+                                            ->viewData(fn ($record): array => [
+                                                'site' => $record->fresh(['server']),
+                                            ])
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columnSpanFull(),
+                            ]),
                         Tab::make('Database')
                             ->badge(fn ($record): string => $record->create_database ? ($record->database?->status ?? 'Requested') : 'Disabled')
                             ->badgeColor(fn ($record): string => match ($record->database?->status ?? ($record->create_database ? 'requested' : 'disabled')) {
