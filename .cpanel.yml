@@ -9,7 +9,7 @@ deployment:
 
     # 2. Build Frontend Assets (Required for Filament UI)
     # Note: Ensure your cPanel has Node.js 18+ installed via "Setup Node.js App"
-    - /bin/npm install
+    - /bin/npm ci
     - /bin/npm run build
 
     # 3. Database and Core Setup

@@ -99,7 +99,7 @@ echo ""
 # Step 7: Install Node.js dependencies and build
 echo -e "${YELLOW}Step 7: Installing Node.js dependencies and building assets for deploy.monaksoft.com.ng...${NC}"
 if command -v npm &> /dev/null; then
-    /bin/npm install --production
+    /bin/npm ci --omit=dev
     /bin/npm run build
     echo -e "${GREEN}✓ Assets built${NC}"
 else
