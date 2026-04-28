@@ -25,6 +25,15 @@
         <div class="mt-2 text-sm font-semibold text-white">supervisorctl restart all</div>
         <p class="mt-1 text-sm text-slate-400">Useful when the worker daemon itself is stuck or stale.</p>
     </div>
+
+    <div class="deployment-frost-panel rounded-2xl p-4">
+        <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <span>daemon status</span>
+            <x-info-tooltip text="Check whether supervisor, Horizon, and queue workers are actually running on the server." label="Daemon status help" />
+        </div>
+        <div class="mt-2 text-sm font-semibold text-white">Check daemon status</div>
+        <p class="mt-1 text-sm text-slate-400">Use the header action to scan the live daemon state and record the output.</p>
+    </div>
 </div>
 
 <div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">

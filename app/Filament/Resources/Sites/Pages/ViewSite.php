@@ -308,6 +308,16 @@ class ViewSite extends ViewRecord
                     ->modalDescription('This restarts all supervised processes for the site environment.')
                     ->modalSubmitActionLabel('Restart supervisor')
                     ->action(fn () => $this->restartSupervisor()),
+                Action::make('checkDaemonStatus')
+                    ->label('Check daemon status')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->deploy_path) && filled($this->record->server))
+                    ->modalHeading('Check daemon status?')
+                    ->modalDescription('This checks supervisor, Horizon, and queue workers so you can see which background processes are alive.')
+                    ->modalSubmitActionLabel('Check status')
+                    ->action(fn () => $this->checkDaemonStatus()),
             ])
                 ->label('Processes')
                 ->icon('heroicon-o-cog-6-tooth')
@@ -705,6 +715,11 @@ class ViewSite extends ViewRecord
     protected function restartSupervisor(): void
     {
         $this->runProcessAction('supervisor_restart', 'Supervisor restarted', 'Unable to restart supervisor.');
+    }
+
+    protected function checkDaemonStatus(): void
+    {
+        $this->runProcessAction('daemon_status', 'Daemon status checked', 'Unable to check daemon status.');
     }
 
     protected function runProcessAction(string $action, string $successTitle, string $failureTitle): void

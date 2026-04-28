@@ -5,7 +5,9 @@ namespace App\Services\Processes;
 use App\Models\Site;
 use App\Models\SiteTerminalRun;
 use App\Models\User;
+use App\Services\Alerts\OperationalAlertService;
 use App\Services\SSH\SshCommandRunner;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -14,7 +16,10 @@ class SiteProcessService
 {
     public function __construct(
         protected SshCommandRunner $sshCommandRunner,
-    ) {}
+        protected ?OperationalAlertService $alerts = null,
+    ) {
+        $this->alerts ??= app(OperationalAlertService::class);
+    }
 
     /**
      * @return array<string, mixed>
@@ -45,6 +50,12 @@ class SiteProcessService
                     'label' => 'Restart supervisor',
                     'description' => 'Restarts the process supervisor that keeps queue workers alive.',
                     'command' => filled($releasePath) ? $this->supervisorRestartCommand($site) : null,
+                ],
+                [
+                    'key' => 'daemon_status',
+                    'label' => 'Check daemon status',
+                    'description' => 'Checks supervisor, Horizon, and queue workers so you can confirm background daemons are alive.',
+                    'command' => filled($releasePath) ? $this->daemonStatusCommand($site) : null,
                 ],
             ],
         ];
@@ -83,6 +94,21 @@ class SiteProcessService
                 'finished_at' => now(),
                 'error_message' => $status === 'failed' ? ($output !== '' ? $output : 'The process command returned a non-zero exit code.') : null,
             ]);
+
+            if ($status === 'successful' && $action === 'daemon_status' && $this->daemonStatusHasWarnings($output)) {
+                $this->alerts->notifyAll(
+                    "Daemon issue detected: {$site->name}",
+                    $this->daemonStatusSummary($output),
+                    'warning',
+                    null,
+                    [
+                        'site_id' => $site->id,
+                        'site_name' => $site->name,
+                        'server_id' => $site->server->id,
+                        'action' => $action,
+                    ],
+                );
+            }
         } catch (Throwable $throwable) {
             $run->update([
                 'status' => 'failed',
@@ -121,6 +147,9 @@ class SiteProcessService
             'supervisor_restart' => [
                 'supervisorctl restart all',
             ],
+            'daemon_status' => [
+                $this->daemonStatusCommand($site),
+            ],
             default => throw new RuntimeException('Unknown process action requested.'),
         };
     }
@@ -148,6 +177,7 @@ class SiteProcessService
             'queue_restart' => 'Restart queue workers',
             'horizon_terminate' => 'Terminate Horizon',
             'supervisor_restart' => 'Restart supervisor',
+            'daemon_status' => 'Check daemon status',
             default => Str::headline(str_replace('_', ' ', $action)),
         };
     }
@@ -165,5 +195,64 @@ class SiteProcessService
     protected function supervisorRestartCommand(Site $site): string
     {
         return implode(PHP_EOL, $this->commandsForAction($site, 'supervisor_restart'));
+    }
+
+    protected function daemonStatusCommand(Site $site): string
+    {
+        $releasePath = $this->releasePath($site);
+
+        if (blank($releasePath)) {
+            throw new RuntimeException('The site does not have a current release path configured.');
+        }
+
+        return implode(PHP_EOL, [
+            sprintf('cd %s', escapeshellarg($releasePath)),
+            <<<'BASH'
+set +e
+echo "== supervisor =="
+if command -v supervisorctl >/dev/null 2>&1; then
+    supervisorctl status
+else
+    echo "supervisorctl not installed"
+fi
+echo "== horizon =="
+if php artisan horizon:status >/dev/null 2>&1; then
+    php artisan horizon:status
+else
+    echo "horizon not configured or unavailable"
+fi
+echo "== queue workers =="
+if pgrep -af "artisan queue:work" >/dev/null 2>&1; then
+    pgrep -af "artisan queue:work"
+else
+    echo "queue workers not detected"
+fi
+BASH,
+        ]);
+    }
+
+    protected function daemonStatusHasWarnings(string $output): bool
+    {
+        $output = strtolower($output);
+
+        return str_contains($output, 'not installed')
+            || str_contains($output, 'not configured')
+            || str_contains($output, 'not detected')
+            || str_contains($output, 'failed');
+    }
+
+    protected function daemonStatusSummary(string $output): string
+    {
+        $lines = Collection::make(preg_split('/\R/', trim($output)) ?: [])
+            ->filter(fn ($line) => filled(trim((string) $line)))
+            ->take(6)
+            ->values()
+            ->all();
+
+        if ($lines === []) {
+            return 'The daemon status check completed, but no output was returned.';
+        }
+
+        return implode(' ', $lines);
     }
 }
