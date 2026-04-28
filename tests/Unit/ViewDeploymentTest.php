@@ -84,6 +84,140 @@ class ViewDeploymentTest extends TestCase
         $this->assertSame('Activate release', $record->steps->last()->label);
     }
 
+    public function test_jump_deployment_options_include_available_records(): void
+    {
+        $server = Server::query()->create([
+            'name' => 'Jump Server',
+            'ip_address' => '203.0.113.251',
+            'ssh_port' => 22,
+            'ssh_user' => 'forge',
+            'connection_type' => 'ssh_key',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'name' => 'jump-site',
+            'deploy_path' => '/var/www/jump-site',
+            'deploy_source' => 'git',
+            'repository_url' => 'https://github.com/acme/jump-site.git',
+            'default_branch' => 'main',
+        ]);
+
+        $currentDeployment = Deployment::query()->create([
+            'site_id' => $site->id,
+            'source' => 'manual',
+            'status' => 'successful',
+            'branch' => 'main',
+            'commit_hash' => 'abc123',
+            'release_path' => '/var/www/jump-site/releases/001',
+            'started_at' => now()->subMinutes(10),
+        ]);
+
+        $otherDeployment = Deployment::query()->create([
+            'site_id' => $site->id,
+            'source' => 'manual',
+            'status' => 'failed',
+            'branch' => 'release',
+            'commit_hash' => 'def456',
+            'release_path' => '/var/www/jump-site/releases/002',
+            'started_at' => now()->subMinutes(5),
+        ]);
+
+        $otherServer = Server::query()->create([
+            'name' => 'Other Jump Server',
+            'ip_address' => '203.0.113.253',
+            'ssh_port' => 22,
+            'ssh_user' => 'forge',
+            'connection_type' => 'ssh_key',
+            'status' => 'online',
+        ]);
+
+        $otherSite = Site::query()->create([
+            'server_id' => $otherServer->id,
+            'name' => 'other-jump-site',
+            'deploy_path' => '/var/www/other-jump-site',
+            'deploy_source' => 'git',
+            'repository_url' => 'https://github.com/acme/other-jump-site.git',
+            'default_branch' => 'main',
+        ]);
+
+        $crossSiteDeployment = Deployment::query()->create([
+            'site_id' => $otherSite->id,
+            'source' => 'manual',
+            'status' => 'running',
+            'branch' => 'feature',
+            'commit_hash' => 'fedcba',
+            'release_path' => '/var/www/other-jump-site/releases/003',
+            'started_at' => now()->subMinutes(1),
+        ]);
+
+        $page = new ViewDeployment;
+        $this->setPageRecord($page, $currentDeployment->fresh(['site.server', 'steps', 'triggeredBy']));
+
+        $options = $this->invokeProtected($page, 'deploymentJumpOptions', [true]);
+        $allOptions = $this->invokeProtected($page, 'deploymentJumpOptions', [false]);
+
+        $this->assertArrayHasKey('jump-site', $options);
+        $this->assertArrayHasKey($currentDeployment->id, $options['jump-site']);
+        $this->assertArrayHasKey($otherDeployment->id, $options['jump-site']);
+        $this->assertArrayNotHasKey('other-jump-site', $options);
+
+        $this->assertArrayHasKey('jump-site', $allOptions);
+        $this->assertArrayHasKey('other-jump-site', $allOptions);
+        $this->assertArrayHasKey($crossSiteDeployment->id, $allOptions['other-jump-site']);
+        $this->assertStringContainsString('commit: def456', $options['jump-site'][$otherDeployment->id]);
+        $this->assertStringContainsString('#'.$crossSiteDeployment->id, $allOptions['other-jump-site'][$crossSiteDeployment->id]);
+    }
+
+    public function test_jump_to_deployment_redirects_to_the_selected_record(): void
+    {
+        $server = Server::query()->create([
+            'name' => 'Jump Server',
+            'ip_address' => '203.0.113.252',
+            'ssh_port' => 22,
+            'ssh_user' => 'forge',
+            'connection_type' => 'ssh_key',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'name' => 'jump-site',
+            'deploy_path' => '/var/www/jump-site',
+            'deploy_source' => 'git',
+            'repository_url' => 'https://github.com/acme/jump-site.git',
+            'default_branch' => 'main',
+        ]);
+
+        $currentDeployment = Deployment::query()->create([
+            'site_id' => $site->id,
+            'source' => 'manual',
+            'status' => 'successful',
+            'branch' => 'main',
+            'commit_hash' => 'abc123',
+            'release_path' => '/var/www/jump-site/releases/001',
+            'started_at' => now()->subMinutes(10),
+        ]);
+
+        $targetDeployment = Deployment::query()->create([
+            'site_id' => $site->id,
+            'source' => 'manual',
+            'status' => 'failed',
+            'branch' => 'release',
+            'commit_hash' => 'def456',
+            'release_path' => '/var/www/jump-site/releases/002',
+            'started_at' => now()->subMinutes(5),
+        ]);
+
+        $page = new ViewDeployment;
+        $this->setPageRecord($page, $currentDeployment->fresh(['site.server', 'steps', 'triggeredBy']));
+
+        $response = $this->invokeProtected($page, 'jumpToDeployment', [$targetDeployment->id]);
+
+        $this->assertStringContainsString((string) $targetDeployment->id, $response->getTargetUrl());
+    }
+
     protected function setPageRecord(ViewDeployment $page, Deployment $deployment): void
     {
         $reflection = new \ReflectionProperty($page, 'record');

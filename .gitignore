@@ -24,6 +24,7 @@ yarn-error.log
 /.vscode
 /.zed
 /.agent
+/.kilo
 /storage/app/deployment-archives
 /storage/app/ssh-temp
 /storage/app/ssh-keys

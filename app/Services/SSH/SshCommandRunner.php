@@ -353,4 +353,14 @@ class SshCommandRunner
     {
         return $server->effectiveSshPort() ?: $server->port ?: 22;
     }
+
+    public function run(Server $server, array|string $commands): array
+    {
+        $process = $this->execute($server, $commands);
+
+        return [
+            'output' => $process->getOutput(),
+            'exit_code' => $process->getExitCode(),
+        ];
+    }
 }

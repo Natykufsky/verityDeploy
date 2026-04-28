@@ -6,8 +6,11 @@ use App\Actions\DeployProject;
 use App\Filament\Resources\Deployments\DeploymentResource;
 use App\Models\Deployment;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Utilities\Get;
 use Throwable;
 
 class ViewDeployment extends ViewRecord
@@ -22,6 +25,27 @@ class ViewDeployment extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('jumpDeployment')
+                ->label('Jump to deployment')
+                ->icon('heroicon-o-arrows-right-left')
+                ->color('gray')
+                ->modalWidth('lg')
+                ->modalHeading('Jump to another deployment')
+                ->modalDescription('Choose a deployment to open it immediately without returning to the table.')
+                ->form([
+                    Toggle::make('same_site_only')
+                        ->label('Only show this site')
+                        ->default(true)
+                        ->live()
+                        ->helperText('Keep this on to browse deployments for the current site only. Turn it off to search all deployments.'),
+                    Select::make('deployment_id')
+                        ->label('Deployment')
+                        ->options(fn (Get $get): array => $this->deploymentJumpOptions((bool) $get('same_site_only')))
+                        ->searchable()
+                        ->required()
+                        ->helperText('Search by site name, branch, commit, or release path.'),
+                ])
+                ->action(fn (array $data) => $this->jumpToDeployment((int) $data['deployment_id'])),
             Action::make('refresh')
                 ->label('Refresh')
                 ->icon('heroicon-o-arrow-path')
@@ -190,11 +214,79 @@ class ViewDeployment extends ViewRecord
             'triggeredBy',
         ]);
 
+        $this->dispatch('deployment-refresh');
+
         Notification::make()
             ->title('Deployment refreshed')
             ->body('The latest deployment status, steps, and logs have been reloaded.')
             ->success()
             ->send();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function deploymentJumpOptions(bool $sameSiteOnly = true): array
+    {
+        $query = Deployment::query()
+            ->with(['site'])
+            ->visibleInAdmin()
+            ->latest('started_at')
+            ->latest('id')
+            ->limit($sameSiteOnly ? 50 : 100);
+
+        if ($sameSiteOnly) {
+            $query->where('site_id', $this->record->site_id);
+        }
+
+        return $query
+            ->get()
+            ->groupBy(fn (Deployment $deployment): string => $deployment->site?->name ?? 'Unknown site')
+            ->sortByDesc(function ($deployments): int {
+                $latest = $deployments->sortByDesc(fn (Deployment $deployment): int => $deployment->started_at?->timestamp ?? $deployment->id)->first();
+
+                return $latest?->started_at?->timestamp ?? ($latest?->id ?? 0);
+            })
+            ->map(function ($deployments): array {
+                return $deployments
+                    ->sortByDesc(fn (Deployment $deployment): int => $deployment->started_at?->timestamp ?? $deployment->id)
+                    ->mapWithKeys(function (Deployment $deployment): array {
+                        $labelParts = [
+                            '#'.$deployment->id,
+                            $deployment->started_at?->format('M d H:i')
+                                ?? $deployment->created_at?->format('M d H:i')
+                                ?? 'just now',
+                            str($deployment->status)->headline()->toString(),
+                        ];
+
+                        if (filled($deployment->branch)) {
+                            $labelParts[] = 'branch: '.$deployment->branch;
+                        }
+
+                        if (filled($deployment->commit_hash)) {
+                            $labelParts[] = 'commit: '.substr((string) $deployment->commit_hash, 0, 8);
+                        }
+
+                        if (filled($deployment->release_path)) {
+                            $labelParts[] = basename((string) $deployment->release_path);
+                        }
+
+                        return [$deployment->id => implode(' | ', $labelParts)];
+                    })
+                    ->all();
+            })
+            ->all();
+    }
+
+    protected function jumpToDeployment(int $deploymentId)
+    {
+        $target = Deployment::query()
+            ->visibleInAdmin()
+            ->findOrFail($deploymentId);
+
+        return redirect()->to(DeploymentResource::getUrl('view', [
+            'record' => $target,
+        ]));
     }
 
     protected function getRollbackTarget(): ?Deployment

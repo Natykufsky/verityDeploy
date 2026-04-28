@@ -37,6 +37,13 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - The generated deploy path is shown to the user instead of being manually edited
 - Server pages include live domain inventory, site links, and quick actions
 - SSH key generation, authorization, and normalization are part of the server workflow
+- Site-driven database requests are tracked as first-class site-linked records
+
+### Database Tracking
+
+- Site form requests now create or clear a site-linked database record
+- The site details view now shows the requested database name, sync time, and notes
+- The record is intentionally lightweight for now, with live cPanel provisioning left for a later pass
 
 ### Scheduled Jobs
 

@@ -6,12 +6,14 @@ use App\Models\Deployment;
 use App\Services\Deployment\DeploymentBridgeUrl;
 use Carbon\CarbonInterval;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class DeploymentTerminal extends Component
 {
     public Deployment $record;
 
+    #[On('deployment-refresh')]
     public function refreshFromBridge(): void
     {
         $this->record = $this->record->fresh(['site.server', 'steps', 'triggeredBy']) ?? $this->record;

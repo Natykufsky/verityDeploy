@@ -3,6 +3,7 @@
 namespace App\Services\Deployment;
 
 use App\Models\Deployment;
+use App\Models\Site;
 use App\Services\Alerts\OperationalAlertService;
 use App\Services\Cpanel\CpanelApiClient;
 use App\Services\Cpanel\CpanelSiteProvisioner;
@@ -344,11 +345,20 @@ class CpanelDeploymentRunner
                 ],
             ],
             [
-                'label' => 'Activate previous release',
+                'label' => 'Activate release',
                 'command' => 'ln -sfn release current',
                 'runner' => fn (): array => [
                     'summary' => $this->siteProvisioner->activateRelease($site, $releasePath),
                 ],
+            ],
+            [
+                'label' => 'Install scheduled jobs',
+                'command' => 'crontab -u user -l | grep -v "# Site: '.$site->name.'" | cat - | crontab -u user -',
+                'runner' => function () use ($site): array {
+                    $this->installScheduledJobs($site);
+
+                    return ['summary' => 'Scheduled jobs installed in crontab.'];
+                },
             ],
         ];
 
@@ -383,5 +393,41 @@ class CpanelDeploymentRunner
             $message,
             sprintf('Recovery: %s', $hint),
         ]);
+    }
+
+    protected function installScheduledJobs(Site $site): void
+    {
+        $jobs = $site->scheduledJobs()->where('is_active', true)->get();
+
+        if ($jobs->isEmpty()) {
+            return;
+        }
+
+        $server = $site->server;
+        $user = $server->cpanel_username ?: $server->ssh_user;
+        $siteComment = "# Site: {$site->name}";
+
+        // Get current crontab
+        $getCronCommand = "crontab -u {$user} -l 2>/dev/null || echo ''";
+        $process = $this->sshCommandRunner->execute($server, $getCronCommand);
+        $currentCrontab = $process->getOutput() ?? '';
+
+        // Remove existing entries for this site
+        $lines = explode("\n", trim($currentCrontab));
+        $filteredLines = array_filter($lines, function ($line) use ($siteComment) {
+            return ! str_contains(trim($line), $siteComment);
+        });
+
+        // Add new entries
+        $newEntries = [];
+        foreach ($jobs as $job) {
+            $newEntries[] = trim("{$job->frequency} {$job->command} {$siteComment}");
+        }
+
+        $newCrontab = implode("\n", array_merge($filteredLines, $newEntries));
+
+        // Set new crontab
+        $setCronCommand = 'echo '.escapeshellarg($newCrontab."\n")." | crontab -u {$user} -";
+        $this->sshCommandRunner->run($server, $setCronCommand);
     }
 }

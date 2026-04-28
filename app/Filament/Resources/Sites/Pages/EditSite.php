@@ -6,6 +6,7 @@ use App\Filament\Resources\Sites\SiteResource;
 use App\Models\Domain;
 use App\Models\Server;
 use App\Models\Site;
+use App\Services\Databases\SiteDatabaseSynchronizer;
 use App\Services\Cpanel\CpanelInventoryRepairService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -24,6 +25,10 @@ class EditSite extends EditRecord
 
     protected function afterSave(): void
     {
+        if ($this->record->create_database || $this->record->wasChanged(['create_database', 'database_name'])) {
+            app(SiteDatabaseSynchronizer::class)->sync($this->record->fresh(['server', 'database']));
+        }
+
         if (! $this->record->wasChanged([
             'primary_domain_id',
             'deploy_path',

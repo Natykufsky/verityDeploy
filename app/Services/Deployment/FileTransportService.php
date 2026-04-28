@@ -418,8 +418,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-
 if (Test-Path -LiteralPath $ArchivePath) {
     Remove-Item -LiteralPath $ArchivePath -Force
 }
@@ -431,9 +429,11 @@ if ($directory -and -not (Test-Path -LiteralPath $directory)) {
     New-Item -ItemType Directory -Force -Path $directory | Out-Null
 }
 
-$zip = [System.IO.Compression.ZipFile]::Open($ArchivePath, [System.IO.Compression.ZipArchiveMode]::Create)
+if (-not (Get-Command Compress-Archive -ErrorAction SilentlyContinue)) {
+    throw 'Compress-Archive is not available on this machine.'
+}
 
-try {
+$relativePaths = @(
     foreach ($entry in $entries) {
         $relativePath = [string] $entry.relative
 
@@ -447,16 +447,21 @@ try {
             continue
         }
 
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-            $zip,
-            $fullPath,
-            $relativePath,
-            [System.IO.Compression.CompressionLevel]::Optimal
-        ) | Out-Null
+        $relativePath
     }
+)
+
+if ($relativePaths.Count -eq 0) {
+    throw 'No files were found to package from the local source directory.'
+}
+
+Push-Location -LiteralPath $SourcePath
+
+try {
+    Compress-Archive -LiteralPath $relativePaths -DestinationPath $ArchivePath -Force
 }
 finally {
-    $zip.Dispose()
+    Pop-Location
 }
 PS1, '.ps1');
 

@@ -49,7 +49,8 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Inline domain creation with type selection (addon/subdomain/alias).
 - Improved server UI with sites overview and metrics.
 - ZIP file upload support for local deployments.
-- Scheduled jobs management UI (basic implementation).
+- Scheduled jobs management UI and deployment integration.
+- Site-linked database request tracking and sync.
 
 ### Still Pending
 
@@ -63,7 +64,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Background daemon/process management.
 - File manager and code editor integration.
 - Advanced SSL certificate management (manual upload, renewal tracking).
-- Database management interface.
+- Full database management interface and live cPanel provisioning.
 - Monitoring & alerts expansion.
 
 ## MVP Definition

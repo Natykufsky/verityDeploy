@@ -6,6 +6,7 @@ use App\Filament\Resources\Sites\SiteResource;
 use App\Models\Domain;
 use App\Models\Server;
 use App\Models\Site;
+use App\Services\Databases\SiteDatabaseSynchronizer;
 use App\Services\Cpanel\CpanelInventoryRepairService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -23,6 +24,10 @@ class CreateSite extends CreateRecord
 
     protected function afterCreate(): void
     {
+        if ($this->record->create_database) {
+            app(SiteDatabaseSynchronizer::class)->sync($this->record->fresh(['server', 'database']));
+        }
+
         if ($this->record->server?->connection_type !== 'cpanel' || blank($this->record->primary_domain)) {
             return;
         }

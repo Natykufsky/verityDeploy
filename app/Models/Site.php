@@ -209,6 +209,11 @@ class Site extends Model
         return $this->hasMany(SiteBackup::class)->latest('started_at');
     }
 
+    public function database(): HasOne
+    {
+        return $this->hasOne(Database::class);
+    }
+
     public function terminalRuns(): HasMany
     {
         return $this->hasMany(SiteTerminalRun::class)->latest('started_at');
