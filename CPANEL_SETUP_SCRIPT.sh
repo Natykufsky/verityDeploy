@@ -4,7 +4,7 @@
 # This script automates the initial setup for cPanel hosting
 # Run this on your cPanel server via SSH
 
-set -e
+set -euo pipefail
 
 # Color codes for output
 GREEN='\033[0;32m'
@@ -16,9 +16,10 @@ echo -e "${YELLOW}=== verityDeploy cPanel Setup Script ===${NC}"
 echo ""
 
 # Configuration variables - MODIFY THESE
-CPANEL_USERNAME="monaksof"
-DEPLOYMENT_PATH="/home/${CPANEL_USERNAME}/public_html/verityDeploy"
-REPO_PATH="/home/${CPANEL_USERNAME}/repositories/verityDeploy"
+CPANEL_USERNAME="thenew12"
+PROJECT_SLUG="verityDeploy"
+DEPLOYMENT_PATH="/home/${CPANEL_USERNAME}/public_html/${PROJECT_SLUG}"
+REPO_PATH="/home/${CPANEL_USERNAME}/repositories/${PROJECT_SLUG}"
 DB_NAME="veritydeploy_prod"
 DB_USER="veritydeploy_user"
 DOMAIN="yourdomain.com"
@@ -48,16 +49,24 @@ if [ ! -d "$REPO_PATH/.git" ]; then
 else
     echo -e "${YELLOW}Step 2: Repository already exists, pulling latest changes...${NC}"
     cd "$REPO_PATH"
-    git pull origin main
+    git reset --hard HEAD
+    git clean -fdx
+    git pull --ff-only origin main
     echo -e "${GREEN}✓ Repository updated${NC}"
 fi
 echo ""
 
-# Step 3: Copy files to deployment path
-echo -e "${YELLOW}Step 3: Copying files to deployment path...${NC}"
-cp -R "$REPO_PATH"/* "$DEPLOYMENT_PATH"
-cp -R "$REPO_PATH"/.* "$DEPLOYMENT_PATH" 2>/dev/null || true
-echo -e "${GREEN}✓ Files copied${NC}"
+# Step 3: Sync repository contents to deployment path
+echo -e "${YELLOW}Step 3: Syncing repository to deployment path...${NC}"
+if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete --exclude='.git' "$REPO_PATH"/ "$DEPLOYMENT_PATH"/
+else
+    rm -rf "$DEPLOYMENT_PATH"/*
+    rm -rf "$DEPLOYMENT_PATH"/.[!.]* "$DEPLOYMENT_PATH"/..?* 2>/dev/null || true
+    cp -R "$REPO_PATH"/. "$DEPLOYMENT_PATH"
+    rm -rf "$DEPLOYMENT_PATH/.git"
+fi
+echo -e "${GREEN}✓ Files synced${NC}"
 echo ""
 
 # Step 4: Set permissions
