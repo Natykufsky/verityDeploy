@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Domains\Schemas;
 
 use App\Services\Domains\DomainHealthCheckService;
+use App\Services\Domains\DomainSslManagementService;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -88,6 +89,63 @@ class DomainInfolist
                                             ]),
                                     ])
                                     ->columnSpanFull(),
+                            ]),
+                        Tab::make('SSL')
+                            ->badge(fn ($record): string => $record->ssl_badge)
+                            ->badgeColor(fn ($record): string => match ((string) $record->ssl_status) {
+                                'issued' => 'success',
+                                'pending' => 'warning',
+                                'expired', 'failed' => 'danger',
+                                default => 'gray',
+                            })
+                            ->schema([
+                                Section::make('SSL management')
+                                    ->description('Track manually imported SSL certificates, expiry dates, and renewal status for this domain.')
+                                    ->schema([
+                                        View::make('filament.domains.ssl-management')
+                                            ->columnSpanFull()
+                                            ->viewData(fn ($record): array => [
+                                                'preview' => app(DomainSslManagementService::class)->preview($record),
+                                            ]),
+                                        TextEntry::make('is_ssl_enabled')
+                                            ->label('SSL enabled')
+                                            ->badge()
+                                            ->state(fn ($record): string => $record->is_ssl_enabled ? 'enabled' : 'disabled')
+                                            ->color(fn (string $state): string => $state === 'enabled' ? 'success' : 'gray'),
+                                        TextEntry::make('ssl_status')
+                                            ->label('SSL status')
+                                            ->badge()
+                                            ->color(fn (?string $state): string => match ($state) {
+                                                'issued' => 'success',
+                                                'pending' => 'warning',
+                                                'expired', 'failed' => 'danger',
+                                                default => 'gray',
+                                            }),
+                                        TextEntry::make('ssl_expires_badge')
+                                            ->label('Expires'),
+                                        TextEntry::make('ssl_renewal_badge')
+                                            ->label('Renewal')
+                                            ->badge()
+                                            ->color(fn (string $state): string => match ($state) {
+                                                'renewal healthy' => 'success',
+                                                'renewal due' => 'warning',
+                                                'renewal overdue' => 'danger',
+                                                default => 'gray',
+                                            }),
+                                        TextEntry::make('ssl_summary')
+                                            ->label('Summary')
+                                            ->columnSpanFull(),
+                                        TextEntry::make('ssl_renewal_summary')
+                                            ->label('Renewal summary')
+                                            ->columnSpanFull(),
+                                        TextEntry::make('ssl_material_summary')
+                                            ->label('Stored SSL material')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns([
+                                        'default' => 1,
+                                        'md' => 2,
+                                    ]),
                             ]),
                         Tab::make('Health')
                             ->schema([

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Servers\RelationManagers;
 
 use App\Models\Domain;
 use App\Services\Cpanel\CpanelApiClient;
+use App\Services\Domains\DomainSslManagementService;
 use App\Services\Servers\ServerDomainSynchronizer;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -91,6 +92,24 @@ class DomainsRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
                         }
+                    }),
+                Action::make('scanSslRenewals')
+                    ->label('Scan SSL renewals')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('warning')
+                    ->visible(fn (): bool => (bool) $this->getOwnerRecord()->domains()->count())
+                    ->requiresConfirmation()
+                    ->modalHeading('Scan SSL renewals for this server?')
+                    ->modalDescription('This checks all tracked SSL certificates on the server and alerts you about expiring or expired domains.')
+                    ->modalSubmitActionLabel('Scan renewals')
+                    ->action(function (DomainSslManagementService $ssl): void {
+                        $summary = $ssl->scanServer($this->getOwnerRecord());
+
+                        Notification::make()
+                            ->title('SSL renewal scan finished')
+                            ->body(implode(' ', $summary))
+                            ->success()
+                            ->send();
                     }),
                 CreateAction::make(),
             ])

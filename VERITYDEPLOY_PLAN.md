@@ -53,6 +53,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Site-linked database request tracking and sync.
 - SSL refresh, status sync, and HTTPS redirect management.
 - SSL actions now feed the operational alert pipeline.
+- Domain SSL renewal tracking and server-side renewal scans.
 
 ### Still Pending
 
@@ -64,7 +65,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Additional live staging smoke tests for rollback and cPanel edge cases.
 - Full scheduled jobs deployment integration (currently UI-only).
 - Background daemon/process management.
-- Manual SSL certificate upload and renewal tracking.
+- Manual SSL certificate upload and renewal tracking is implemented, while cPanel-first issuance remains the primary automation path.
 - Monitoring & alerts expansion.
 
 ## MVP Definition

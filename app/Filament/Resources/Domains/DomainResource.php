@@ -9,6 +9,7 @@ use App\Models\Domain;
 use App\Models\Server;
 use App\Services\AppSettings;
 use App\Services\Cpanel\CpanelApiClient;
+use App\Services\Domains\DomainSslManagementService;
 use App\Services\Servers\ServerDomainSynchronizer;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -295,6 +296,91 @@ class DomainResource extends Resource
                             Notification::make()->title('AutoSSL Triggered')->success()->send();
                         } catch (\Exception $e) {
                             Notification::make()->title('Action Failed')->body($e->getMessage())->danger()->send();
+                        }
+                    }),
+                Action::make('markSslIssued')
+                    ->label('Mark SSL issued')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('success')
+                    ->visible(fn (Domain $record): bool => filled($record->ssl_certificate) || filled($record->ssl_key))
+                    ->modalHeading('Mark the SSL certificate as issued?')
+                    ->modalDescription('Use this when you have pasted a certificate bundle and want to track its expiry on the domain record.')
+                    ->schema([
+                        DateTimePicker::make('ssl_expires_at')
+                            ->label('Expires at')
+                            ->helperText('Leave blank to default to 90 days from now.'),
+                    ])
+                    ->modalSubmitActionLabel('Mark issued')
+                    ->action(function (Domain $record, array $data, DomainSslManagementService $ssl): void {
+                        try {
+                            $summary = $ssl->markIssued(
+                                $record,
+                                filled($data['ssl_expires_at'] ?? null) ? now()->parse($data['ssl_expires_at']) : null,
+                            );
+
+                            Notification::make()
+                                ->title('SSL marked issued')
+                                ->body(implode(' ', $summary))
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $throwable) {
+                            Notification::make()
+                                ->title('Unable to mark SSL issued')
+                                ->body($throwable->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+                Action::make('markSslRenewalDue')
+                    ->label('Mark renewal due')
+                    ->icon('heroicon-o-clock')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->visible(fn (Domain $record): bool => (bool) $record->is_ssl_enabled)
+                    ->modalHeading('Mark SSL renewal as due?')
+                    ->modalDescription('This marks the SSL record as needing renewal so the renewal tracker can surface it clearly.')
+                    ->modalSubmitActionLabel('Mark due')
+                    ->action(function (Domain $record, DomainSslManagementService $ssl): void {
+                        try {
+                            $summary = $ssl->markRenewalDue($record);
+
+                            Notification::make()
+                                ->title('SSL marked for renewal')
+                                ->body(implode(' ', $summary))
+                                ->warning()
+                                ->send();
+                        } catch (\Throwable $throwable) {
+                            Notification::make()
+                                ->title('Unable to mark renewal due')
+                                ->body($throwable->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+                Action::make('clearSslTracking')
+                    ->label('Clear SSL data')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn (Domain $record): bool => filled($record->ssl_certificate) || filled($record->ssl_key) || filled($record->ssl_chain) || filled($record->ssl_status))
+                    ->modalHeading('Clear the SSL tracking data?')
+                    ->modalDescription('This removes the stored certificate material, expiry date, and SSL status from the domain record.')
+                    ->modalSubmitActionLabel('Clear SSL data')
+                    ->action(function (Domain $record, DomainSslManagementService $ssl): void {
+                        try {
+                            $summary = $ssl->clearTracking($record);
+
+                            Notification::make()
+                                ->title('SSL data cleared')
+                                ->body(implode(' ', $summary))
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $throwable) {
+                            Notification::make()
+                                ->title('Unable to clear SSL data')
+                                ->body($throwable->getMessage())
+                                ->danger()
+                                ->send();
                         }
                     }),
                 EditAction::make(),

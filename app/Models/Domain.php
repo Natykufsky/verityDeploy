@@ -65,6 +65,89 @@ class Domain extends Model
         return $this->belongsTo(Site::class);
     }
 
+    public function getSslBadgeAttribute(): string
+    {
+        return match ((string) ($this->ssl_status ?: 'unconfigured')) {
+            'issued' => 'ssl issued',
+            'pending' => 'ssl pending',
+            'expired' => 'ssl expired',
+            'failed' => 'ssl failed',
+            default => 'ssl unconfigured',
+        };
+    }
+
+    public function getSslSummaryAttribute(): string
+    {
+        return match ((string) ($this->ssl_status ?: 'unconfigured')) {
+            'issued' => 'The certificate is tracked and should be serving HTTPS.',
+            'pending' => 'The certificate is waiting on renewal or issuance.',
+            'expired' => 'The certificate has expired and should be renewed.',
+            'failed' => 'The last SSL attempt failed and needs attention.',
+            default => 'No SSL certificate state has been tracked for this domain yet.',
+        };
+    }
+
+    public function getSslRenewalStatusAttribute(): string
+    {
+        if (! (bool) $this->is_ssl_enabled) {
+            return 'disabled';
+        }
+
+        if (blank($this->ssl_expires_at)) {
+            return 'unknown';
+        }
+
+        $daysRemaining = now()->diffInDays($this->ssl_expires_at, false);
+
+        if ($daysRemaining < 0) {
+            return 'expired';
+        }
+
+        if ($daysRemaining <= 30) {
+            return 'renewal due';
+        }
+
+        return 'healthy';
+    }
+
+    public function getSslRenewalBadgeAttribute(): string
+    {
+        return match ($this->ssl_renewal_status) {
+            'healthy' => 'renewal healthy',
+            'renewal due' => 'renewal due',
+            'expired' => 'renewal overdue',
+            'disabled' => 'tracking disabled',
+            default => 'renewal unknown',
+        };
+    }
+
+    public function getSslRenewalSummaryAttribute(): string
+    {
+        return match ($this->ssl_renewal_status) {
+            'healthy' => 'The certificate is not due for renewal yet.',
+            'renewal due' => 'The certificate is close to expiry and should be renewed soon.',
+            'expired' => 'The certificate is already expired and needs immediate attention.',
+            'disabled' => 'SSL tracking is disabled for this domain.',
+            default => 'The certificate expiry date has not been tracked yet.',
+        };
+    }
+
+    public function getSslMaterialSummaryAttribute(): string
+    {
+        return collect([
+            'cert' => filled($this->ssl_certificate) ? 'certificate stored' : 'certificate missing',
+            'key' => filled($this->ssl_key) ? 'private key stored' : 'private key missing',
+            'chain' => filled($this->ssl_chain) ? 'chain stored' : 'chain missing',
+        ])->values()->implode(', ');
+    }
+
+    public function getSslExpiresBadgeAttribute(): string
+    {
+        return filled($this->ssl_expires_at)
+            ? $this->ssl_expires_at->format('M d, Y H:i')
+            : 'not set';
+    }
+
     protected function syncLiveDomain(string $action): void
     {
         if (app()->runningUnitTests()) {
