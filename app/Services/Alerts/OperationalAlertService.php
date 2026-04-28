@@ -104,4 +104,56 @@ class OperationalAlertService
             ],
         );
     }
+
+    public function siteSslRefreshed(Site $site, string $message): void
+    {
+        $this->notifyAll(
+            "SSL refreshed: {$site->name}",
+            $message,
+            'success',
+            SiteResource::getUrl('view', ['record' => $site, 'tab' => 'SSL']),
+            [
+                'site_id' => $site->id,
+                'site_name' => $site->name,
+                'primary_domain' => $site->primary_domain,
+                'ssl_state' => $site->ssl_state,
+                'force_https' => (bool) $site->force_https,
+            ],
+        );
+    }
+
+    public function siteHttpsRedirectSynced(Site $site, string $message): void
+    {
+        $this->notifyAll(
+            "HTTPS redirect synced: {$site->name}",
+            $message,
+            'success',
+            SiteResource::getUrl('view', ['record' => $site, 'tab' => 'SSL']),
+            [
+                'site_id' => $site->id,
+                'site_name' => $site->name,
+                'primary_domain' => $site->primary_domain,
+                'ssl_state' => $site->ssl_state,
+                'force_https' => (bool) $site->force_https,
+            ],
+        );
+    }
+
+    public function siteSslActionFailed(Site $site, string $action, string $message): void
+    {
+        $this->notifyAll(
+            "{$action} failed: {$site->name}",
+            $message,
+            'danger',
+            SiteResource::getUrl('view', ['record' => $site, 'tab' => 'SSL']),
+            [
+                'site_id' => $site->id,
+                'site_name' => $site->name,
+                'action' => $action,
+                'primary_domain' => $site->primary_domain,
+                'ssl_state' => $site->ssl_state,
+                'force_https' => (bool) $site->force_https,
+            ],
+        );
+    }
 }

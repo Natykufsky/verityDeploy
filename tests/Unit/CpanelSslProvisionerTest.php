@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
-use App\Models\Server;
 use App\Models\Domain;
+use App\Models\Server;
 use App\Models\Site;
 use App\Services\Cpanel\CpanelApiClient;
 use App\Services\Cpanel\CpanelSslProvisioner;

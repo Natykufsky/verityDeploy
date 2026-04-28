@@ -7,6 +7,7 @@ use App\Actions\DeployProject;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Models\Deployment;
 use App\Models\SiteBackup;
+use App\Services\Alerts\OperationalAlertService;
 use App\Services\Backups\SiteBackupService;
 use App\Services\Cpanel\CpanelDomainProvisioner;
 use App\Services\Cpanel\CpanelInventoryRepairService;
@@ -504,7 +505,13 @@ class ViewSite extends ViewRecord
     protected function provisionSsl(): void
     {
         try {
-            $summary = app(CpanelSslProvisioner::class)->provision($this->record->fresh(['server']));
+            $site = $this->record->fresh(['server']);
+            $summary = app(CpanelSslProvisioner::class)->provision($site);
+
+            app(OperationalAlertService::class)->siteSslRefreshed(
+                $site,
+                implode(' ', $summary),
+            );
 
             Notification::make()
                 ->title('SSL provisioning finished')
@@ -512,6 +519,12 @@ class ViewSite extends ViewRecord
                 ->success()
                 ->send();
         } catch (Throwable $throwable) {
+            app(OperationalAlertService::class)->siteSslActionFailed(
+                $this->record->fresh(['server']),
+                'SSL provisioning',
+                $throwable->getMessage(),
+            );
+
             Notification::make()
                 ->title('Unable to provision SSL')
                 ->body($throwable->getMessage())
@@ -523,7 +536,13 @@ class ViewSite extends ViewRecord
     protected function refreshSslStatus(): void
     {
         try {
-            $summary = app(CpanelSslProvisioner::class)->refreshStatus($this->record->fresh(['server']));
+            $site = $this->record->fresh(['server']);
+            $summary = app(CpanelSslProvisioner::class)->refreshStatus($site);
+
+            app(OperationalAlertService::class)->siteSslRefreshed(
+                $site,
+                implode(' ', $summary),
+            );
 
             Notification::make()
                 ->title('SSL status refreshed')
@@ -531,6 +550,12 @@ class ViewSite extends ViewRecord
                 ->success()
                 ->send();
         } catch (Throwable $throwable) {
+            app(OperationalAlertService::class)->siteSslActionFailed(
+                $this->record->fresh(['server']),
+                'SSL refresh',
+                $throwable->getMessage(),
+            );
+
             Notification::make()
                 ->title('Unable to refresh SSL status')
                 ->body($throwable->getMessage())
@@ -542,7 +567,13 @@ class ViewSite extends ViewRecord
     protected function syncHttpsRedirect(): void
     {
         try {
-            $summary = app(CpanelSslProvisioner::class)->syncHttpsRedirect($this->record->fresh(['server']));
+            $site = $this->record->fresh(['server']);
+            $summary = app(CpanelSslProvisioner::class)->syncHttpsRedirect($site);
+
+            app(OperationalAlertService::class)->siteHttpsRedirectSynced(
+                $site,
+                implode(' ', $summary),
+            );
 
             Notification::make()
                 ->title('HTTPS redirect synced')
@@ -550,6 +581,12 @@ class ViewSite extends ViewRecord
                 ->success()
                 ->send();
         } catch (Throwable $throwable) {
+            app(OperationalAlertService::class)->siteSslActionFailed(
+                $this->record->fresh(['server']),
+                'HTTPS redirect sync',
+                $throwable->getMessage(),
+            );
+
             Notification::make()
                 ->title('Unable to sync HTTPS redirect')
                 ->body($throwable->getMessage())

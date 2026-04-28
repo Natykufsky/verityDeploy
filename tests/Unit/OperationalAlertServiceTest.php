@@ -5,6 +5,8 @@ namespace Tests\Unit;
 use App\Jobs\DeliverOperationalAlertEmail;
 use App\Jobs\DeliverOperationalAlertWebhooks;
 use App\Models\AppSetting;
+use App\Models\Server;
+use App\Models\Site;
 use App\Models\User;
 use App\Services\Alerts\OperationalAlertService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -121,5 +123,62 @@ class OperationalAlertServiceTest extends TestCase
         });
 
         $this->assertSame(1, $user->notifications()->count());
+    }
+
+    public function test_site_ssl_alert_helpers_create_contextual_notifications(): void
+    {
+        $user = User::query()->create([
+            'name' => 'SSL User',
+            'email' => 'ssl@example.com',
+            'password' => bcrypt('password'),
+            'alert_inbox_enabled' => true,
+            'alert_minimum_level' => 'success',
+        ]);
+
+        $server = Server::query()->create([
+            'name' => 'Cpanel Server',
+            'ip_address' => 'monaksoft.com',
+            'ssh_port' => 22,
+            'ssh_user' => 'monaksof',
+            'connection_type' => 'cpanel',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'name' => 'verityapi',
+            'deploy_path' => '/home/monaksof/public_html/verityapi.monaksoft.com.ng',
+            'ssl_state' => 'valid',
+            'force_https' => true,
+        ]);
+
+        app(OperationalAlertService::class)->siteSslRefreshed(
+            $site,
+            'Triggered an AutoSSL check for verityapi.monaksoft.com.ng.',
+        );
+
+        app(OperationalAlertService::class)->siteHttpsRedirectSynced(
+            $site,
+            'Enabled HTTPS redirects for verityapi.monaksoft.com.ng.',
+        );
+
+        app(OperationalAlertService::class)->siteSslActionFailed(
+            $site,
+            'SSL refresh',
+            'AutoSSL failed on cPanel.',
+        );
+
+        $notifications = $user->notifications()->latest()->get();
+
+        $this->assertCount(3, $notifications);
+        $titles = $notifications->pluck('data.title')->all();
+        $bodies = $notifications->pluck('data.body')->all();
+
+        $this->assertContains('SSL refresh failed: verityapi', $titles);
+        $this->assertContains('HTTPS redirect synced: verityapi', $titles);
+        $this->assertContains('SSL refreshed: verityapi', $titles);
+        $this->assertContains('AutoSSL failed on cPanel.', $bodies);
+        $this->assertContains('Enabled HTTPS redirects for verityapi.monaksoft.com.ng.', $bodies);
+        $this->assertContains('Triggered an AutoSSL check for verityapi.monaksoft.com.ng.', $bodies);
     }
 }

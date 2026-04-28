@@ -31,6 +31,7 @@ As of April 28, 2026, the app is beyond the original "ready to deploy" milestone
 - Site creation links the site to the server and domain flow
 - Live site docroots follow the current release path where the deployment flow expects it
 - SSL status can be refreshed from the site page and HTTPS redirects can be synced back to cPanel
+- SSL actions now emit operational alerts so inbox, email, and webhook subscribers can see the change
 
 ### Site and Server Management
 
@@ -79,7 +80,7 @@ To use the deployment features effectively:
 
 - Background daemon and process management are not fully automated
 - Manual SSL certificate upload and renewal tracking are still pending
-- Monitoring and alerting can still be expanded
+- Monitoring and alerting can still be expanded beyond the current deployment, server, webhook, and SSL events
 
 ## Current Notes
 

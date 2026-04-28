@@ -52,6 +52,7 @@ This plan started as the launch roadmap for `verityDeploy`. The codebase has mov
 - Scheduled jobs management UI and deployment integration.
 - Site-linked database request tracking and sync.
 - SSL refresh, status sync, and HTTPS redirect management.
+- SSL actions now feed the operational alert pipeline.
 
 ### Still Pending
 
