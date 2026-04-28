@@ -328,6 +328,16 @@ class ViewSite extends ViewRecord
                     ->modalDescription('This attempts to restart supervisor, Horizon, and queue workers in one pass.')
                     ->modalSubmitActionLabel('Recover stack')
                     ->action(fn () => $this->recoverDaemonStack()),
+                Action::make('restartAndRecoverDaemonStack')
+                    ->label('Restart and recover')
+                    ->icon('heroicon-o-arrow-path-rounded-square')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn (): bool => filled($this->record->deploy_path) && filled($this->record->server))
+                    ->modalHeading('Restart and recover the daemon stack?')
+                    ->modalDescription('This checks the daemon stack first, then runs the recovery pass if any worker layer looks unhealthy.')
+                    ->modalSubmitActionLabel('Restart and recover')
+                    ->action(fn () => $this->restartAndRecoverDaemonStack()),
             ])
                 ->label('Processes')
                 ->icon('heroicon-o-cog-6-tooth')
@@ -735,6 +745,11 @@ class ViewSite extends ViewRecord
     protected function recoverDaemonStack(): void
     {
         $this->runProcessAction('daemon_recover', 'Daemon stack recovery completed', 'Unable to recover daemon stack.');
+    }
+
+    protected function restartAndRecoverDaemonStack(): void
+    {
+        $this->runProcessAction('daemon_cycle', 'Daemon stack checked and recovered', 'Unable to restart and recover the daemon stack.');
     }
 
     protected function runProcessAction(string $action, string $successTitle, string $failureTitle): void

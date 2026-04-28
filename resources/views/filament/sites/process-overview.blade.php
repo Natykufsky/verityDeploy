@@ -43,6 +43,15 @@
         <div class="mt-2 text-sm font-semibold text-white">Recover daemon stack</div>
         <p class="mt-1 text-sm text-slate-400">Use the header action to attempt a full recovery pass when the status check reports trouble.</p>
     </div>
+
+    <div class="deployment-frost-panel rounded-2xl p-4">
+        <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <span>daemon cycle</span>
+            <x-info-tooltip text="Run a status check first, then recover automatically if the stack looks unhealthy." label="Daemon cycle help" />
+        </div>
+        <div class="mt-2 text-sm font-semibold text-white">Restart and recover</div>
+        <p class="mt-1 text-sm text-slate-400">This is the single-click flow for checking and then recovering the daemon stack.</p>
+    </div>
 </div>
 
 <div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-slate-300">

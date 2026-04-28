@@ -167,4 +167,57 @@ class SiteProcessServiceTest extends TestCase
         $this->assertStringContainsString('php artisan horizon:terminate', $run->command);
         $this->assertStringContainsString('php artisan queue:restart', $run->command);
     }
+
+    public function test_it_checks_and_recovers_daemon_stack_in_one_pass(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Cycle User',
+            'email' => 'cycle@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $server = Server::query()->create([
+            'user_id' => $user->id,
+            'name' => 'Cycle Server',
+            'ip_address' => '127.0.0.1',
+            'ssh_port' => 22,
+            'ssh_user' => 'forge',
+            'provider_type' => 'local',
+            'connection_type' => 'ssh_key',
+            'status' => 'online',
+        ]);
+
+        $site = Site::query()->create([
+            'server_id' => $server->id,
+            'name' => 'cycle-site',
+            'deploy_path' => '/var/www/cycle-site',
+            'current_release_path' => '/var/www/cycle-site/current',
+            'deploy_source' => 'git',
+            'repository_url' => 'https://github.com/acme/cycle-site.git',
+            'default_branch' => 'main',
+        ]);
+
+        $runner = Mockery::mock(SshCommandRunner::class);
+        $runner->shouldReceive('run')
+            ->once()
+            ->with(
+                Mockery::on(fn (Server $receivedServer): bool => $receivedServer->is($server)),
+                Mockery::on(fn (array $commands): bool => count($commands) === 1 && str_contains($commands[0], 'daemon status') && str_contains($commands[0], 'daemon recovery') && str_contains($commands[0], 'queue:restart')),
+            )
+            ->andReturn([
+                'output' => "== daemon status ==\nsupervisorctl not installed\n== daemon recovery ==\ndaemon cycle finished with 1 recovery error(s)",
+                'exit_code' => 1,
+            ]);
+
+        $service = new SiteProcessService($runner);
+
+        $run = $service->run($site->fresh(['server']), 'daemon_cycle', $user);
+
+        $this->assertInstanceOf(SiteTerminalRun::class, $run);
+        $this->assertSame('failed', $run->status);
+        $this->assertStringContainsString('daemon_cycle:', $run->command);
+        $this->assertStringContainsString('daemon status', $run->command);
+        $this->assertStringContainsString('daemon recovery', $run->command);
+        $this->assertStringContainsString('php artisan queue:restart', $run->command);
+    }
 }
