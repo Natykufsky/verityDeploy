@@ -2,10 +2,11 @@
 
 namespace Tests\Unit;
 
-use App\Models\Database;
 use App\Models\CredentialProfile;
+use App\Models\Database;
 use App\Models\Server;
 use App\Models\Site;
+use App\Services\Databases\DatabaseProvisioner;
 use App\Services\Databases\SiteDatabaseSynchronizer;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Mockery;
@@ -120,7 +121,7 @@ class SiteDatabaseSynchronizerTest extends TestCase
             'database_name' => 'db_site_prod',
         ]);
 
-        $provisioner = Mockery::mock(\App\Services\Databases\DatabaseProvisioner::class);
+        $provisioner = Mockery::mock(DatabaseProvisioner::class);
         $provisioner->shouldReceive('provision')
             ->once()
             ->with(Mockery::on(fn (Database $database): bool => $database->site_id === $site->id))

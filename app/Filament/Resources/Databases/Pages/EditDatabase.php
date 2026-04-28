@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Databases\Pages;
 
 use App\Filament\Resources\Databases\DatabaseResource;
+use App\Models\Site;
 use App\Services\Databases\DatabaseProvisioner;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -16,7 +17,7 @@ class EditDatabase extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         if (filled($data['site_id'] ?? null)) {
-            $data['server_id'] = \App\Models\Site::query()->find($data['site_id'])?->server_id ?? $this->record->server_id;
+            $data['server_id'] = Site::query()->find($data['site_id'])?->server_id ?? $this->record->server_id;
         }
 
         return $data;

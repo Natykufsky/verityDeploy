@@ -6,11 +6,11 @@ use App\Models\Database;
 use App\Models\Site;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Str;
 
 class DatabaseForm
 {
@@ -83,7 +83,7 @@ class DatabaseForm
 
                 Section::make('Notes')
                     ->schema([
-                        \Filament\Forms\Components\Textarea::make('notes')
+                        Textarea::make('notes')
                             ->rows(4)
                             ->columnSpanFull(),
                     ]),

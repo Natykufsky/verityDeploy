@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\SiteBackups\Tables;
 
-use App\Filament\Resources\SiteBackups\Pages\ViewSiteBackup;
 use App\Models\SiteBackup;
 use App\Services\Backups\SiteBackupService;
 use Filament\Actions\Action;

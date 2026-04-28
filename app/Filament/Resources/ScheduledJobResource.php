@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ScheduledJobResource\Pages;
 use App\Models\ScheduledJob;
+use BackedEnum;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DateTimeInput;
 use Filament\Forms\Components\Select;
@@ -15,7 +16,6 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
-use BackedEnum;
 
 class ScheduledJobResource extends Resource
 {

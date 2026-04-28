@@ -706,9 +706,4 @@ class CpanelApiClient
 
         return $message;
     }
-
-    
-
-
-
 }

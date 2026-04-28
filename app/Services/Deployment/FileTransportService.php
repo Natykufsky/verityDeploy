@@ -373,7 +373,7 @@ class FileTransportService
         }
 
         if (class_exists(ZipArchive::class)) {
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $result = $zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
             if ($result !== true) {
@@ -599,7 +599,7 @@ PS1, '.ps1');
     protected function unzipArchive(string $zipPath, string $extractTo): void
     {
         if (class_exists(ZipArchive::class)) {
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
             $result = $zip->open($zipPath);
 
             if ($result !== true) {

@@ -7,7 +7,6 @@ use App\Services\AppSettings;
 use App\Support\SiteDnsPreview;
 use App\Support\SiteDomainPreview;
 use App\Support\SiteVhostPreview;
-use App\Models\SiteTerminalRun;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

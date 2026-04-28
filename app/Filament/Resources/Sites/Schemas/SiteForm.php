@@ -2,15 +2,15 @@
 
 namespace App\Filament\Resources\Sites\Schemas;
 
-use Filament\Forms\Set;
 use App\Models\CredentialProfile;
 use App\Models\Domain;
 use App\Models\Server;
 use App\Models\Site;
 use App\Models\Team;
-use App\Services\Servers\ServerDomainSynchronizer;
 use App\Services\AppSettings;
+use App\Services\Servers\ServerDomainSynchronizer;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -94,7 +94,7 @@ class SiteForm
                         ->placeholder('git@github.com:user/repo.git')
                         ->url()
                         ->visible(fn (Get $get): bool => $get('deploy_source') === 'git'),
-                    \Filament\Forms\Components\FileUpload::make('local_source_archive')
+                    FileUpload::make('local_source_archive')
                         ->label('Upload Local Source')
                         ->directory(true)
                         ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
@@ -121,10 +121,14 @@ class SiteForm
                         ->label('Primary Domain')
                         ->options(function (callable $get) {
                             $serverId = $get('server_id');
-                            if (!$serverId) return [];
+                            if (! $serverId) {
+                                return [];
+                            }
 
                             $server = Server::find($serverId);
-                            if (!$server) return [];
+                            if (! $server) {
+                                return [];
+                            }
 
                             $synchronizer = app(ServerDomainSynchronizer::class);
                             $preview = $synchronizer->preview($server);
